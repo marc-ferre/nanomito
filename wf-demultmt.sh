@@ -5,15 +5,27 @@
 #SBATCH --time 30
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-01-10.1'
+VERSION='2025-03-08.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
-SAMPLE_ID=${PWD##*/} # Assign directory name to sample id
-SAMPLE_ID=${SAMPLE_ID:-/} # Correct for the case where PWD=/
+RUN_ID=${PWD##*/} # Assign directory name to sample id
+RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
+
+if [ $# -eq 0 ]
+	then
+		echo "[ERROR] No arguments supplied"
+		exit 9999 # die with error code 9999
+fi
+SAMPLE_ID=$1
 
 #FASTQ_FILE="$SAMPLE_ID.fastq.gz"
-FASTQ_FILE=`find ~+ -type f -name "*$SAMPLE_ID.fastq.gz"`
+#FASTQ_FILE=`find ~+ -type f -name "*$SAMPLE_ID.fastq.gz"`
+WORK_DIR=`pwd`
+FASTQ_DIR=`find fastq_pass/ -type d -name "$SAMPLE_ID"`
+PROCESSING_DIR='processing'
+OUT_DIR="$PROCESSING_DIR/$SAMPLE_ID"
+
 MAPPING_FILE="$SAMPLE_ID.paf"
 DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
 
@@ -55,11 +67,15 @@ check_file () {
 START=`date +%s`
 
 echo "Workflow: $SLURM_JOB_NAME v.$VERSION by $AUTHOR"
+echo "Run: $RUN_ID"
 echo "Sample: $SAMPLE_ID"
 echo "Job: $SLURM_JOB_ID"
-echo "Working directory: `pwd`"
-echo "Input file: $FASTQ_FILE"
+echo "Working directory: $WORK_DIR"
+echo "Input directory: $FASTQ_DIR"
+echo "Output directory: $OUT_DIR"
 echo "Date: `date`"
+
+mkdir -p $OUT_DIR
 
 echo
 echo '******************************'
@@ -69,7 +85,7 @@ echo '******************************'
 echo "Minimap2 version: `$MINIMAP2_BIN --version`"
 check_file $FASTQ_FILE
 
-$MINIMAP2_BIN -x map-ont -t 10 $REF_WHOLE $FASTQ_FILE > $MAPPING_FILE
+$MINIMAP2_BIN -x map-ont -t 10 $REF_WHOLE $FASTQ_DIR/* > $OUT_DIR/$MAPPING_FILE
 
 echo
 echo '******************'
@@ -87,6 +103,7 @@ demult () {
 	echo "| $SELECT"
 	echo '|'
 	
+	cd $OUT_DIR
 	mkdir select-$SELECT
 	check_dir select-$SELECT
 	cd select-$SELECT
@@ -100,7 +117,7 @@ demult () {
 		--max-unmatched 200 \
 		--margin 10 \
 		--cut-file $CUT_FILE \
-		--fastq $FASTQ_FILE \
+		--fastq $WORK_DIR/$FASTQ_DIR \
 		--prefix ${DEMULT_PREFIX} \
 		--matched-only \
 		--compress \
