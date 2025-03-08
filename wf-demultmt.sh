@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-03-08.1'
+VERSION='2025-03-08.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -83,7 +83,6 @@ echo '* Mapping Standard Reference *'
 echo '******************************'
 
 echo "Minimap2 version: `$MINIMAP2_BIN --version`"
-check_file $FASTQ_FILE
 
 $MINIMAP2_BIN -x map-ont -t 10 $REF_WHOLE $FASTQ_DIR/* > $OUT_DIR/$MAPPING_FILE
 
