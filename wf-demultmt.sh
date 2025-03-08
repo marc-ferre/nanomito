@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-03-08.2'
+VERSION='2025-03-08.5'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -19,15 +19,12 @@ if [ $# -eq 0 ]
 fi
 SAMPLE_ID=$1
 
-#FASTQ_FILE="$SAMPLE_ID.fastq.gz"
-#FASTQ_FILE=`find ~+ -type f -name "*$SAMPLE_ID.fastq.gz"`
 WORK_DIR=`pwd`
-FASTQ_DIR=`find fastq_pass/ -type d -name "$SAMPLE_ID"`
-PROCESSING_DIR='processing'
-OUT_DIR="$PROCESSING_DIR/$SAMPLE_ID"
+FASTQ_DIR=`find fastq_pass/ -type d -path "$SAMPLE_ID"`
+OUT_DIR="$WORK_DIR/processing/$SAMPLE_ID"
 
-MAPPING_FILE="$SAMPLE_ID.paf"
 DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
+DEMULT_TAB_FILE="$WORK_DIR/demult_summary.$RUN_ID.tsv"
 
 MINIMAP2_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/minimap2-2.28_x64-linux/minimap2'
 REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.fa'
@@ -75,7 +72,20 @@ echo "Input directory: $FASTQ_DIR"
 echo "Output directory: $OUT_DIR"
 echo "Date: `date`"
 
+echo
+echo '*****************'
+echo '* Preprocessing *'
+echo '*****************'
+
 mkdir -p $OUT_DIR
+FASTQ_FILE="$OUT_DIR/$SAMPLE_ID.fastq.gz"
+echo "FastQ file: $FASTQ_FILE"
+MAPPING_FILE="$OUT_DIR/$SAMPLE_ID.paf"
+echo "Mapping file: $MAPPING_FILE"
+
+cat $FASTQ_DIR/*.fastq.gz > $FASTQ_FILE
+check_file $FASTQ_FILE
+COUNT_TOTAL=$(expr $(zcat $FASTQ_FILE|wc -l)/4|bc)
 
 echo
 echo '******************************'
@@ -84,7 +94,8 @@ echo '******************************'
 
 echo "Minimap2 version: `$MINIMAP2_BIN --version`"
 
-$MINIMAP2_BIN -x map-ont -t 10 $REF_WHOLE $FASTQ_DIR/* > $OUT_DIR/$MAPPING_FILE
+$MINIMAP2_BIN -x map-ont -t 10 $REF_WHOLE $FASTQ_FILE > $MAPPING_FILE
+check_file $MAPPING_FILE
 
 echo
 echo '******************'
@@ -107,7 +118,7 @@ demult () {
 	check_dir select-$SELECT
 	cd select-$SELECT
 
-	check_file ../$MAPPING_FILE
+	check_file $MAPPING_FILE
 	
 	$ONT_DEMULT_BIN --select $SELECT \
 		--loglevel info \
@@ -116,26 +127,36 @@ demult () {
 		--max-unmatched 200 \
 		--margin 10 \
 		--cut-file $CUT_FILE \
-		--fastq $WORK_DIR/$FASTQ_DIR \
+		--fastq $FASTQ_FILE \
 		--prefix ${DEMULT_PREFIX} \
 		--matched-only \
 		--compress \
-		../$MAPPING_FILE
+		$MAPPING_FILE
 	check_file ${DEMULT_PREFIX}_res.txt.gz
 
-	TOTAL_COUNT=$((`zcat ${DEMULT_PREFIX}_res.txt.gz | wc -l` - 1))
+	COUNT_ALIGN=$((`zcat ${DEMULT_PREFIX}_res.txt.gz | wc -l` - 1))
 	
 	zcat ${DEMULT_PREFIX}_res.txt.gz | head -1 > ${DEMULT_PREFIX}_res.match_chrM.txt
 	zcat ${DEMULT_PREFIX}_res.txt.gz | grep -P 'chrM\t' >> ${DEMULT_PREFIX}_res.match_chrM.txt
-	MATCH_CHRM=$((`cat ${DEMULT_PREFIX}_res.match_chrM.txt | wc -l` - 1))
+	COUNT_CHRM_ONLY=$((`cat ${DEMULT_PREFIX}_res.match_chrM.txt | wc -l` - 1))
 
 	zcat ${DEMULT_PREFIX}_res.txt.gz | head -1 > ${DEMULT_PREFIX}_res.matched.txt
 	zcat ${DEMULT_PREFIX}_res.txt.gz | grep -P 'Matched\tmt_' >> ${DEMULT_PREFIX}_res.matched.txt
-	MATCHED=$((`cat ${DEMULT_PREFIX}_res.matched.txt | wc -l` - 1))
+	COUNT_MATCHED=$((`cat ${DEMULT_PREFIX}_res.matched.txt | wc -l` - 1))
+	
+	COUNT_CHRM=$(($COUNT_CHRM_ONLY+$COUNT_MATCHED))
+	
+	echo "=> Reads generated: $COUNT_TOTAL"
+	echo "==> Reads aligned to reference: $COUNT_ALIGN"
+	echo "===> Reads aligned to chrM: $COUNT_CHRM"
+	echo "====> Reads matching $SELECT: $COUNT_MATCHED"
 
-	echo "=> Reads aligned to reference: $TOTAL_COUNT"
-	echo "==> Reads matching chrM: $MATCH_CHRM"
-	echo "===> Reads matching $SELECT strands: $MATCHED"
+	if ! [ -e "$DEMULT_TAB_FILE" ] ; then
+		echo "Sample Id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" > $DEMULT_TAB_FILE
+		echo "[OK] File $DEMULT_TAB_FILE created"
+	fi
+	echo "$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> $DEMULT_TAB_FILE
+	echo "[OK] Line added to $DEMULT_TAB_FILE"
 	
 	$MINIMAP2_BIN -ax map-ont $REF_MT_2KB ${DEMULT_PREFIX}_mt_2kb.fastq.gz > alignment_mt_2kb.sam
 	$MINIMAP2_BIN -ax map-ont $REF_MT_3KB ${DEMULT_PREFIX}_mt_3kb.fastq.gz > alignment_mt_3kb.sam
