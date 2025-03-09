@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-03-09.1'
+VERSION='2025-03-09.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -24,6 +24,7 @@ SAMPLE_ID=$1
 # Read selection strategy (start, both, either ,xor)
 SELECT='both' 
 
+# Directories
 WORK_DIR=`pwd`
 FASTQ_DIR="$WORK_DIR/fastq_pass/$SAMPLE_ID"
 POD5_DIR="$WORK_DIR/pod5"
@@ -31,28 +32,36 @@ PROCESS_DIR="$WORK_DIR/processing"
 OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 
-MINIMAP2_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/minimap2-2.28_x64-linux/minimap2'
+# Binaries
+BALDUR_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/baldur/target/release/baldur'
+#MINIMAP2_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/minimap2-2.28_x64-linux/minimap2'
 ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_demult/target/release/ont_demult'
 
+# Conda envs
+BALDUR_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_baldur'
+ONT_DEMULT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_ont_demult'
 POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5'
 
+# References
 REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.fa'
+REF_MT='/scratch/mferre/reference/chrM.fa'
 REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
 REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
 REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
 
-CUT_FILE='/scratch/mferre/reference/cut.txt'
+# Prefixes
+BALDUR_PREFIX="$SAMPLE_ID.baldur"
 DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
-IDS_FILE="$SELECT_DIR/read_ids.txt"
 
+# Files
+CUT_FILE='/scratch/mferre/reference/cut.txt'
 DEMULT_SUMMARY_FILE="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
 DEMULT_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.txt.gz"
 CHRM_ONLY_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.match_chrM_only.txt"
 MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"
-
+IDS_FILE="$SELECT_DIR/read_ids.txt"
 BAM_FILE="$SELECT_DIR/$SAMPLE_ID.bam"
 SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
-
 DEMULT_POD5_FILE="$OUT_DIR/$SAMPLE_ID.demultmt.pod5"
 
 check_dir () { 
@@ -109,14 +118,16 @@ cat $FASTQ_DIR/*.fastq.gz > $FASTQ_FILE
 check_file $FASTQ_FILE
 COUNT_TOTAL=$(expr $(zcat $FASTQ_FILE|wc -l)/4|bc)
 
+. /local/env/envconda.sh
+
 echo
 echo '******************************'
 echo '* Mapping Standard Reference *'
 echo '******************************'
+conda activate $ONT_DEMULT_ENV
+echo "Minimap2 version: `minimap2 --version`"
 
-echo "Minimap2 version: `$MINIMAP2_BIN --version`"
-
-$MINIMAP2_BIN -x map-ont -t 10 $REF_WHOLE $FASTQ_FILE > $MAPPING_FILE
+minimap2 -x map-ont -t 10 $REF_WHOLE $FASTQ_FILE > $MAPPING_FILE
 check_file $MAPPING_FILE
 
 echo
@@ -176,11 +187,11 @@ fi
 echo "$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> $DEMULT_SUMMARY_FILE
 echo "[OK] Line added to $DEMULT_SUMMARY_FILE"
 
-$MINIMAP2_BIN -ax map-ont $REF_MT_2KB ${DEMULT_PREFIX}_mt_2kb.fastq.gz > alignment_mt_2kb.sam
-$MINIMAP2_BIN -ax map-ont $REF_MT_3KB ${DEMULT_PREFIX}_mt_3kb.fastq.gz > alignment_mt_3kb.sam
-$MINIMAP2_BIN -ax map-ont $REF_MT_10KB ${DEMULT_PREFIX}_mt_10kb.fastq.gz > alignment_mt_10kb.sam
+minimap2 -ax map-ont $REF_MT_2KB ${DEMULT_PREFIX}_mt_2kb.fastq.gz > alignment_mt_2kb.sam
+minimap2 -ax map-ont $REF_MT_3KB ${DEMULT_PREFIX}_mt_3kb.fastq.gz > alignment_mt_3kb.sam
+minimap2 -ax map-ont $REF_MT_10KB ${DEMULT_PREFIX}_mt_10kb.fastq.gz > alignment_mt_10kb.sam
 
-. /local/env/envsamtools-1.15.sh
+echo "`samtools --version`"
 samtools view -b alignment_mt_2kb.sam > alignment_mt_2kb.bam
 samtools view -b alignment_mt_3kb.sam > alignment_mt_3kb.bam
 samtools view -b alignment_mt_10kb.sam > alignment_mt_10kb.bam
@@ -195,11 +206,31 @@ check_file "$SORTED_BAM_FILE.bai"
 
 cd $OUT_DIR
 
+conda deactivate
+
 echo
 echo '*******************'
 echo '* Variant calling *'
 echo '*******************'
-echo "TO DO..."
+conda activate $BALDUR_ENV
+
+echo "`$BALDUR_BIN --version`"
+
+$BALDUR_BIN \
+	--mapq-threshold 20 \
+	--qual-threshold 10 \
+	--max-qual 30 \
+	--max-indel-qual 20 \
+	--homopolymer-limit 4 \
+	--reference $REF_MT \
+	--adjust 5 \
+	--view \
+	--output-deletions \
+	--output-prefix $BALDUR_PREFIX \
+	--sample $SAMPLE_ID \
+	$BAM_FILE
+
+conda deactivate
 
 echo
 echo '***********************'
@@ -208,13 +239,11 @@ echo '***********************'
 check_file $MATCH_FILE
 cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
 
-. /local/env/envconda.sh
 conda activate $POD5_ENV
 
-echo "`modkit --version`"
 check_dir $POD5_DIR
 
-pod5 filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE #--missing-ok
+pod5 filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE --missing-ok
 
 conda deactivate
 
