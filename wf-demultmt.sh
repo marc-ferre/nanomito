@@ -9,9 +9,11 @@ VERSION='2025-03-08.5'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
+# Run Id = Working directory
 RUN_ID=${PWD##*/} # Assign directory name to sample id
 RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
 
+# Sample Id = Argument
 if [ $# -eq 0 ]
 	then
 		echo "[ERROR] No arguments supplied"
@@ -19,21 +21,37 @@ if [ $# -eq 0 ]
 fi
 SAMPLE_ID=$1
 
-WORK_DIR=`pwd`
-FASTQ_DIR=`find fastq_pass/ -type d -path "$SAMPLE_ID"`
-OUT_DIR="$WORK_DIR/processing/$SAMPLE_ID"
+# Read selection strategy (start, both, either ,xor)
+SELECT='both' 
 
-DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
-DEMULT_TAB_FILE="$WORK_DIR/demult_summary.$RUN_ID.tsv"
+WORK_DIR=`pwd`
+FASTQ_DIR="$WORK_DIR/fastq_pass/$SAMPLE_ID"
+POD5_DIR="$WORK_DIR/pod5"
+OUT_DIR="$WORK_DIR/processing/$SAMPLE_ID"
+SELECT_DIR="$OUT_DIR/select-$SELECT"
 
 MINIMAP2_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/minimap2-2.28_x64-linux/minimap2'
+ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_demult/target/release/ont_demult'
+MODKIT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_modkit'
+
 REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.fa'
 REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
 REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
 REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
 
-ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_demult/target/release/ont_demult'
 CUT_FILE='/scratch/mferre/reference/cut.txt'
+DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
+IDS_FILE="$SELECT_DIR/read_ids.txt"
+
+DEMULT_SUMMARY_FILE="$OUT_DIR/demult_summary.$RUN_ID.tsv"
+DEMULT_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.txt.gz"
+CHRM_ONLY_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.match_chrM_only.txt"
+MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"
+
+BAM_FILE="$SELECT_DIR/$SAMPLE_ID.bam"
+SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
+
+DEMULT_POD5_FILE="$OUT_DIR/$SAMPLE_ID.demultmt.pod5"
 
 check_dir () { 
 	if [ -d "$1" ]
@@ -68,7 +86,8 @@ echo "Run: $RUN_ID"
 echo "Sample: $SAMPLE_ID"
 echo "Job: $SLURM_JOB_ID"
 echo "Working directory: $WORK_DIR"
-echo "Input directory: $FASTQ_DIR"
+echo "Pod5 directory: $POD5_DIR"
+echo "FastQ directory: $FASTQ_DIR"
 echo "Output directory: $OUT_DIR"
 echo "Date: `date`"
 
@@ -76,7 +95,8 @@ echo
 echo '*****************'
 echo '* Preprocessing *'
 echo '*****************'
-
+check_dir $POD5_DIR
+check_dir $FASTQ_DIR
 mkdir -p $OUT_DIR
 FASTQ_FILE="$OUT_DIR/$SAMPLE_ID.fastq.gz"
 echo "FastQ file: $FASTQ_FILE"
@@ -103,84 +123,98 @@ echo '* Demultiplexing *'
 echo '******************'
 echo "`$ONT_DEMULT_BIN --version`"
 
-demult () {
+echo
+echo '|'
+echo "| Selection strategy: $SELECT"
+echo '|'
 
-	# Read selection strategy (start, both, either ,xor)
-	SELECT=$1
-	
-	echo
-	echo '|'
-	echo "| $SELECT"
-	echo '|'
-	
-	cd $OUT_DIR
-	mkdir select-$SELECT
-	check_dir select-$SELECT
-	cd select-$SELECT
+mkdir $SELECT_DIR
+check_dir $SELECT_DIR
+cd $SELECT_DIR
 
-	check_file $MAPPING_FILE
-	
-	$ONT_DEMULT_BIN --select $SELECT \
-		--loglevel info \
-		--mapq-threshold 10 \
-		--max-distance 100 \
-		--max-unmatched 200 \
-		--margin 10 \
-		--cut-file $CUT_FILE \
-		--fastq $FASTQ_FILE \
-		--prefix ${DEMULT_PREFIX} \
-		--matched-only \
-		--compress \
-		$MAPPING_FILE
-	check_file ${DEMULT_PREFIX}_res.txt.gz
+check_file $MAPPING_FILE
 
-	COUNT_ALIGN=$((`zcat ${DEMULT_PREFIX}_res.txt.gz | wc -l` - 1))
-	
-	zcat ${DEMULT_PREFIX}_res.txt.gz | head -1 > ${DEMULT_PREFIX}_res.match_chrM.txt
-	zcat ${DEMULT_PREFIX}_res.txt.gz | grep -P 'chrM\t' >> ${DEMULT_PREFIX}_res.match_chrM.txt
-	COUNT_CHRM_ONLY=$((`cat ${DEMULT_PREFIX}_res.match_chrM.txt | wc -l` - 1))
+$ONT_DEMULT_BIN --select $SELECT \
+	--loglevel info \
+	--mapq-threshold 10 \
+	--max-distance 100 \
+	--max-unmatched 200 \
+	--margin 10 \
+	--cut-file $CUT_FILE \
+	--fastq $FASTQ_FILE \
+	--prefix ${DEMULT_PREFIX} \
+	--matched-only \
+	--compress \
+	$MAPPING_FILE
+check_file $DEMULT_FILE
 
-	zcat ${DEMULT_PREFIX}_res.txt.gz | head -1 > ${DEMULT_PREFIX}_res.matched.txt
-	zcat ${DEMULT_PREFIX}_res.txt.gz | grep -P 'Matched\tmt_' >> ${DEMULT_PREFIX}_res.matched.txt
-	COUNT_MATCHED=$((`cat ${DEMULT_PREFIX}_res.matched.txt | wc -l` - 1))
-	
-	COUNT_CHRM=$(($COUNT_CHRM_ONLY+$COUNT_MATCHED))
-	
-	echo "=> Reads generated: $COUNT_TOTAL"
-	echo "==> Reads aligned to reference: $COUNT_ALIGN"
-	echo "===> Reads aligned to chrM: $COUNT_CHRM"
-	echo "====> Reads matching $SELECT: $COUNT_MATCHED"
+COUNT_ALIGN=$((`zcat $DEMULT_FILE | wc -l` - 1))
 
-	if ! [ -e "$DEMULT_TAB_FILE" ] ; then
-		echo "Sample Id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" > $DEMULT_TAB_FILE
-		echo "[OK] File $DEMULT_TAB_FILE created"
-	fi
-	echo "$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> $DEMULT_TAB_FILE
-	echo "[OK] Line added to $DEMULT_TAB_FILE"
-	
-	$MINIMAP2_BIN -ax map-ont $REF_MT_2KB ${DEMULT_PREFIX}_mt_2kb.fastq.gz > alignment_mt_2kb.sam
-	$MINIMAP2_BIN -ax map-ont $REF_MT_3KB ${DEMULT_PREFIX}_mt_3kb.fastq.gz > alignment_mt_3kb.sam
-	$MINIMAP2_BIN -ax map-ont $REF_MT_10KB ${DEMULT_PREFIX}_mt_10kb.fastq.gz > alignment_mt_10kb.sam
+zcat $DEMULT_FILE | head -1 > $CHRM_ONLY_FILE
+zcat $DEMULT_FILE | grep -P 'chrM\t' >> $CHRM_ONLY_FILE
+check_file $CHRM_ONLY_FILE
+COUNT_CHRM_ONLY=$((`cat $CHRM_ONLY_FILE | wc -l` - 1))
 
-	. /local/env/envsamtools-1.15.sh
-	samtools view -b alignment_mt_2kb.sam > alignment_mt_2kb.bam
-	samtools view -b alignment_mt_3kb.sam > alignment_mt_3kb.bam
-	samtools view -b alignment_mt_10kb.sam > alignment_mt_10kb.bam
-	rm *.sam
+zcat $DEMULT_FILE | head -1 > $MATCH_FILE
+zcat $DEMULT_FILE | grep -P 'Matched\tmt_' >> $MATCH_FILE
+check_file $MATCH_FILE
+COUNT_MATCHED=$((`cat $MATCH_FILE | wc -l` - 1))
 
-	samtools merge $SAMPLE_ID.bam alignment_mt_2kb.bam alignment_mt_3kb.bam alignment_mt_10kb.bam
-	check_file $SAMPLE_ID.bam
-	samtools sort $SAMPLE_ID.bam -o $SAMPLE_ID.sorted.bam
-	samtools index $SAMPLE_ID.sorted.bam
-	check_file $SAMPLE_ID.sorted.bam
-	check_file $SAMPLE_ID.sorted.bam.bai
-	
-	cd ..
-}
+COUNT_CHRM=$(($COUNT_CHRM_ONLY+$COUNT_MATCHED))
 
-demult both
-# demult start
-# demult either
+echo "=> Reads generated: $COUNT_TOTAL"
+echo "==> Reads aligned to reference: $COUNT_ALIGN"
+echo "===> Reads aligned to chrM: $COUNT_CHRM"
+echo "====> Reads matching $SELECT: $COUNT_MATCHED"
+
+if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
+	echo "Sample Id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" > $DEMULT_SUMMARY_FILE
+	echo "[OK] File $DEMULT_SUMMARY_FILE created (with header)"
+fi
+echo "$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> $DEMULT_SUMMARY_FILE
+echo "[OK] Line added to $DEMULT_SUMMARY_FILE"
+
+$MINIMAP2_BIN -ax map-ont $REF_MT_2KB ${DEMULT_PREFIX}_mt_2kb.fastq.gz > alignment_mt_2kb.sam
+$MINIMAP2_BIN -ax map-ont $REF_MT_3KB ${DEMULT_PREFIX}_mt_3kb.fastq.gz > alignment_mt_3kb.sam
+$MINIMAP2_BIN -ax map-ont $REF_MT_10KB ${DEMULT_PREFIX}_mt_10kb.fastq.gz > alignment_mt_10kb.sam
+
+. /local/env/envsamtools-1.15.sh
+samtools view -b alignment_mt_2kb.sam > alignment_mt_2kb.bam
+samtools view -b alignment_mt_3kb.sam > alignment_mt_3kb.bam
+samtools view -b alignment_mt_10kb.sam > alignment_mt_10kb.bam
+rm *.sam
+
+samtools merge $BAM_FILE alignment_mt_2kb.bam alignment_mt_3kb.bam alignment_mt_10kb.bam
+check_file $BAM_FILE
+samtools sort $BAM_FILE -o $SORTED_BAM_FILE
+samtools index $SORTED_BAM_FILE
+check_file $SORTED_BAM_FILE
+check_file "$SORTED_BAM_FILE.bai"
+
+cd $OUT_DIR
+
+echo
+echo '*******************'
+echo '* Variant calling *'
+echo '*******************'
+echo "TO DO..."
+
+echo
+echo '***********************'
+echo '* Retrieving raw data *'
+echo '***********************'
+check_file $MATCH_FILE
+cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
+
+. /local/env/envconda.sh
+conda activate $MODKIT_ENV
+
+echo "`modkit --version`"
+check_dir $POD5_DIR
+
+modkit filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE --missing-ok
+
+conda deactivate
 
 echo
 echo '***********'
