@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-03-08.5'
+VERSION='2025-03-09.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -32,7 +32,8 @@ SELECT_DIR="$OUT_DIR/select-$SELECT"
 
 MINIMAP2_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/minimap2-2.28_x64-linux/minimap2'
 ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_demult/target/release/ont_demult'
-MODKIT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_modkit'
+
+POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5'
 
 REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.fa'
 REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
@@ -207,12 +208,12 @@ check_file $MATCH_FILE
 cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
 
 . /local/env/envconda.sh
-conda activate $MODKIT_ENV
+conda activate $POD5_ENV
 
 echo "`modkit --version`"
 check_dir $POD5_DIR
 
-modkit filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE --missing-ok
+pod5 filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE #--missing-ok
 
 conda deactivate
 
