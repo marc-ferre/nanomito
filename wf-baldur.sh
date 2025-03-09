@@ -1,5 +1,5 @@
 #!/bin/zsh
-VERSION='2024-10-03.1'
+VERSION='2025-03-09.1'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 PREFIX=${PWD##*/}
@@ -17,6 +17,8 @@ $BALDUR_BIN \
 	--mapq-threshold 20 \
 	--qual-threshold 10 \
 	--max-qual 30 \
+	--max-indel-qual 20 \
+	--homopolymer-limit 4 \
 	--reference /Users/marcferre/Documents/Recherche/Projets/Nanomito/Test/reference/chrM.fa \
 	--adjust 5 \
 	--view \

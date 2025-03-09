@@ -27,7 +27,8 @@ SELECT='both'
 WORK_DIR=`pwd`
 FASTQ_DIR="$WORK_DIR/fastq_pass/$SAMPLE_ID"
 POD5_DIR="$WORK_DIR/pod5"
-OUT_DIR="$WORK_DIR/processing/$SAMPLE_ID"
+PROCESS_DIR="$WORK_DIR/processing"
+OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 
 MINIMAP2_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/minimap2-2.28_x64-linux/minimap2'
@@ -44,7 +45,7 @@ CUT_FILE='/scratch/mferre/reference/cut.txt'
 DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
 IDS_FILE="$SELECT_DIR/read_ids.txt"
 
-DEMULT_SUMMARY_FILE="$OUT_DIR/demult_summary.$RUN_ID.tsv"
+DEMULT_SUMMARY_FILE="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
 DEMULT_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.txt.gz"
 CHRM_ONLY_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.match_chrM_only.txt"
 MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"

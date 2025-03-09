@@ -7,7 +7,7 @@
 #SBATCH --time 15
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-01-10.1'
+VERSION='2025-03-07.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -21,7 +21,7 @@ DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
 DEMULT_FILE="./select-both/${DEMULT_PREFIX}_res.matched.txt"
 
 POD5_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/.local/bin/pod5'
-DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado-0.8.3-linux-x64/bin/dorado'
+DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado-0.9.1-linux-x64/bin/dorado'
 MODKIT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/modkit_v0.3.1_centos7_x86_64/modkit'
 
 MINIMAP2_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/minimap2-2.28_x64-linux/minimap2'
