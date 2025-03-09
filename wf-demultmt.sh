@@ -33,8 +33,7 @@ OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 
 # Binaries
-BALDUR_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/baldur/target/release/baldur'
-#MINIMAP2_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/minimap2-2.28_x64-linux/minimap2'
+BALDUR_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/baldur-1.2.2/target/release/baldur'
 ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_demult/target/release/ont_demult'
 
 # Conda envs
@@ -202,22 +201,22 @@ check_file $BAM_FILE
 samtools sort $BAM_FILE -o $SORTED_BAM_FILE
 samtools index $SORTED_BAM_FILE
 check_file $SORTED_BAM_FILE
-check_file "$SORTED_BAM_FILE.bai"
-
-cd $OUT_DIR
+check_file "${SORTED_BAM_FILE}.bai"
 
 conda deactivate
 
 echo
 echo '*******************'
-echo '* Variant calling *'
+echo '* Variant Calling *'
 echo '*******************'
+cd $OUT_DIR
 conda activate $BALDUR_ENV
-
 echo "`$BALDUR_BIN --version`"
 
-$BALDUR_BIN \
-	--mapq-threshold 20 \
+# !!!
+# BUG: Presumed endless command
+# Add "&" to fix
+$BALDUR_BIN --mapq-threshold 20 \
 	--qual-threshold 10 \
 	--max-qual 30 \
 	--max-indel-qual 20 \
@@ -228,13 +227,14 @@ $BALDUR_BIN \
 	--output-deletions \
 	--output-prefix $BALDUR_PREFIX \
 	--sample $SAMPLE_ID \
-	$BAM_FILE
+	$BAM_FILE &
 
+check_file "$BALDUR_PREFIX.vcf.gz"
 conda deactivate
 
 echo
 echo '***********************'
-echo '* Retrieving raw data *'
+echo '* Retrieving Raw Data *'
 echo '***********************'
 check_file $MATCH_FILE
 cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
