@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-03-09.3'
+VERSION='2025-03-10.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -229,8 +229,10 @@ $BALDUR_BIN --mapq-threshold 20 \
 	--sample $SAMPLE_ID \
 	$BAM_FILE &
 
-check_file "$BALDUR_PREFIX.vcf.gz"
 conda deactivate
+
+#check_file "$BALDUR_PREFIX.vcf.gz"
+echo "[WARNING] Bug fixed appending '&' to baldur command : no check_file"
 
 echo
 echo '***********************'
