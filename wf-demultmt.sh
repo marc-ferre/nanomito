@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-03-10.2'
+VERSION='2025-03-10.3'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -205,9 +205,9 @@ check_file "${SORTED_BAM_FILE}.bai"
 
 conda deactivate
 
-# Remove large files
-rm -i $FASTQ_FILE && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
-rm -i $MAPPING_FILE && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $FASTQ_FILE"
+# # Remove large files
+# rm -i $FASTQ_FILE && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
+# rm -i $MAPPING_FILE && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $FASTQ_FILE"
 
 echo
 echo '*******************'
