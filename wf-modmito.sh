@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=wf-modmito
+#SBATCH --job-name=modmito
 #SBATCH --gpus=1
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=12
@@ -7,29 +7,57 @@
 #SBATCH --time 15
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-03-07.1'
+set -e
+
+VERSION='2025-03-11.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
-SAMPLE_ID=${PWD##*/} # Assign directory name to sample id
-SAMPLE_ID=${SAMPLE_ID:-/} # Correct for the case where PWD=/
+# Run Id = Working directory
+RUN_ID=${PWD##*/} # Assign directory name to run id
+RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
 
+# Sample Id = Argument
+if [ $# -eq 0 ]
+	then
+		echo "[ERROR] No arguments supplied"
+		exit 9999 # die with error code 9999
+fi
+SAMPLE_ID=$1
+
+# Basecalling model
 MODEL_COMPLEX='sup,5mC_5hmC,6mA'
 
-POD5_DIR='/scratch/mferre/workbench/241202_run10/no_sample_id/20241202_1702_MN19558_FBA90343_6e5d6a93/pod5'
-DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
-DEMULT_FILE="./select-both/${DEMULT_PREFIX}_res.matched.txt"
+# Read selection strategy (start, both, either ,xor)
+SELECT='both'
 
-POD5_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/.local/bin/pod5'
+# Directories
+WORK_DIR=`pwd`
+PROCESS_DIR="$WORK_DIR/processing"
+OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
+SELECT_DIR="$OUT_DIR/select-$SELECT"
+
+# Binary and Conda env
 DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado-0.9.1-linux-x64/bin/dorado'
-MODKIT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/modkit_v0.3.1_centos7_x86_64/modkit'
+MODMITO_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_modmito'
+#MODKIT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_modkit'
 
-MINIMAP2_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/minimap2-2.28_x64-linux/minimap2'
+# References
 REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.fa'
-REF_CHRM='/scratch/mferre/reference/chrM.fa'
+REF_MT='/scratch/mferre/reference/chrM.fa'
 REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
 REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
 REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
+
+# Prefixes
+BAM_PREFIX="$SAMPLE_ID.chrM.$MODEL_COMPLEX"
+
+# Files
+DEMULT_POD5_FILE="$OUT_DIR/$SAMPLE_ID.demultmt.pod5"
+BAM_FILE="$OUT_DIR/$BAM_PREFIX.bam"
+SORTED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.sorted.bam"
+BEDMETHYL_FILE="$OUT_DIR/$BAM_PREFIX.combine.bed"
+PILEUP_LOG_FILE="$OUT_DIR/$BAM_PREFIX.pileup.log"
 
 check_dir () { 
 	if [ -d "$1" ]
@@ -59,54 +87,54 @@ check_file () {
 
 START=`date +%s`
 
-echo "Workflow: $SLURM_JOB_NAME v.$VERSION by $AUTHOR"
+echo "Workflow: wf-modmito v.$VERSION by $AUTHOR"
+echo "Run: $RUN_ID"
 echo "Sample: $SAMPLE_ID"
 echo "Job: $SLURM_JOB_ID"
-echo "Working directory: `pwd`"
-echo "Raw data directory: $POD5_DIR"
-echo "Result file from ont_demult: $DEMULT_FILE"
+echo "Working directory: $WORK_DIR"
+echo "Pod5 directory: $POD5_DIR"
+echo "Output directory: $OUT_DIR"
+echo "Read selection strategy: $SELECT"
 echo "Model Complex: $MODEL_COMPLEX"
 echo "Date: `date`"
-
-echo
-echo '***********************'
-echo '* Retrieving raw data *'
-echo '***********************'
-
-. /local/env/envpython-3.9.5.sh
-echo "`$POD5_BIN --version`"
-
-check_file $DEMULT_FILE
-cut -f1 $DEMULT_FILE | tail -n +2 > read_ids.txt
-
-check_dir $POD5_DIR
-POD5_FILE="$SAMPLE_ID.chrM.pod5"
-$POD5_BIN filter $POD5_DIR --output $POD5_FILE --ids read_ids.txt --missing-ok
 
 echo
 echo '******************************'
 echo '* Modified bases Basecalling *'
 echo '******************************'
+check_file $DEMULT_POD5_FILE
 
 # To work around the issue https://github.com/nanoporetech/dorado/issues/432
 export LC_ALL=en_US.UTF-8
 
 echo "Dorado version: `$DORADO_BIN --version`"
-echo "Modkit version: `$MODKIT_BIN --version`"
 
-BAM_PRE="$SAMPLE_ID.chrM.$MODEL_COMPLEX"
 echo "Output file prefix: $BAM_PRE"
 
-$DORADO_BIN duplex $MODEL_COMPLEX $POD5_FILE --reference $REF_MT_3KB > $BAM_PRE.bam
-check_file $BAM_PRE.bam
+$DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $REF_MT_3KB > $BAM_FILE
+check_file $BAM_FILE
 
-. /local/env/envsamtools-1.15.sh
-samtools sort $BAM_PRE.bam -o $BAM_PRE.sorted.bam
-samtools index $BAM_PRE.sorted.bam
+echo
+echo '****************************'
+echo '* Sorted BAM and bedMethyl *'
+echo '****************************'
 
-# Create bedMethyl file
-$MODKIT_BIN pileup $BAM_PRE.sorted.bam $BAM_PRE.combine.bed --log-filepath $BAM_PRE.pileup.log
-check_file $BAM_PRE.combine.bed
+. /local/env/envconda.sh
+conda activate $MODMITO_ENV
+
+echo "`samtools --version`"
+
+samtools sort $BAM_FILE -o $SORTED_BAM_FILE
+check_file $SORTED_BAM_FILE
+samtools index $SORTED_BAM_FILE
+check_file "${SORTED_BAM_FILE}.bai"
+
+echo "Modkit version: `modkit --version`"
+
+modkit pileup $SORTED_BAM_FILE $BEDMETHYL_FILE --log-filepath $PILEUP_LOG_FILE
+check_file $BEDMETHYL_FILE
+
+conda deactivate
 
 echo
 echo '***********'
