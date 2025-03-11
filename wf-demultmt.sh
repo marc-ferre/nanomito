@@ -1,16 +1,16 @@
 #!/bin/bash
-#SBATCH --job-name=wf-demultmt
+#SBATCH --job-name=demultmt
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=150G
 #SBATCH --time 30
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-03-10.3'
+VERSION='2025-03-11.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 # Run Id = Working directory
-RUN_ID=${PWD##*/} # Assign directory name to sample id
+RUN_ID=${PWD##*/} # Assign directory name to run id
 RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
 
 # Sample Id = Argument
@@ -91,7 +91,7 @@ check_file () {
 
 START=`date +%s`
 
-echo "Workflow: $SLURM_JOB_NAME v.$VERSION by $AUTHOR"
+echo "Workflow: wf-demultmt v.$VERSION by $AUTHOR"
 echo "Run: $RUN_ID"
 echo "Sample: $SAMPLE_ID"
 echo "Job: $SLURM_JOB_ID"
@@ -99,6 +99,7 @@ echo "Working directory: $WORK_DIR"
 echo "Pod5 directory: $POD5_DIR"
 echo "FastQ directory: $FASTQ_DIR"
 echo "Output directory: $OUT_DIR"
+echo "Read selection strategy: $SELECT"
 echo "Date: `date`"
 
 echo
