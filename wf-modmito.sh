@@ -7,9 +7,8 @@
 #SBATCH --time 15
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-set -e
 
-VERSION='2025-03-11.1'
+VERSION='2025-03-11.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -92,9 +91,9 @@ echo "Run: $RUN_ID"
 echo "Sample: $SAMPLE_ID"
 echo "Job: $SLURM_JOB_ID"
 echo "Working directory: $WORK_DIR"
-echo "Pod5 directory: $POD5_DIR"
 echo "Output directory: $OUT_DIR"
 echo "Read selection strategy: $SELECT"
+echo "Pod5 file: $DEMULT_POD5_FILE"
 echo "Model Complex: $MODEL_COMPLEX"
 echo "Date: `date`"
 
