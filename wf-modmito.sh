@@ -5,10 +5,10 @@
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=50G
 #SBATCH --time 15
-#SBATCH --mail-type=ALL
+#SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 
-VERSION='2025-03-11.2'
+VERSION='2025-03-12.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -31,8 +31,8 @@ MODEL_COMPLEX='sup,5mC_5hmC,6mA'
 SELECT='both'
 
 # Directories
-WORK_DIR=`pwd`
-PROCESS_DIR="$WORK_DIR/processing"
+RUN_DIR=`pwd`
+PROCESS_DIR="$RUN_DIR/processing"
 OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 
@@ -68,18 +68,11 @@ check_dir () {
 	fi
 }
 check_file () { 
-	if [ -f "$1" ]
+	if [ -f "$1" ] && [ -s "$1" ]
 	then 
-   		echo "[OK] File $1 exists"
+   		echo "[OK] File $1 exists and is not empty"
    	else
-		echo "[ERROR] File $1 doesn't exist"
-		exit 9999 # die with error code 9999
-	fi
-	if [ -s "$1" ]
-	then 
-   		echo "[OK] File $1 not empty"
-   	else
-		echo "[ERROR] File $1 is empty"
+		echo "[ERROR] File $1 is empty or doesn't exist"
 		exit 9999 # die with error code 9999
 	fi
 }
@@ -90,7 +83,7 @@ echo "Workflow: wf-modmito v.$VERSION by $AUTHOR"
 echo "Run: $RUN_ID"
 echo "Sample: $SAMPLE_ID"
 echo "Job: $SLURM_JOB_ID"
-echo "Working directory: $WORK_DIR"
+echo "Run directory: $RUN_DIR"
 echo "Output directory: $OUT_DIR"
 echo "Read selection strategy: $SELECT"
 echo "Pod5 file: $DEMULT_POD5_FILE"
