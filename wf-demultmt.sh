@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-03-12.2'
+VERSION='2025-03-12.3'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -62,7 +62,7 @@ IDS_FILE="$SELECT_DIR/read_ids.txt"
 BAM_FILE="$SELECT_DIR/$SAMPLE_ID.bam"
 SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
 DEMULT_POD5_FILE="$OUT_DIR/$SAMPLE_ID.demultmt.pod5"
-WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/demultmt_summary.$RUN_ID.tsv"
+WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 check_dir () { 
 	if [ -d "$1" ] # && [ ! -z "$( ls -A $1 )" ]
@@ -258,8 +258,8 @@ SECONDS=$(( (RUNTIME % 3600) % 60 ))
 echo "Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
 
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Runtime (hh:mm:ss)	Status" > $WORKFLOW_SUMMARY_FILE
+	echo "Run id	Sample id	Workflow	Runtime (hh:mm)	Status" > $WORKFLOW_SUMMARY_FILE
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	$HOURS:$MINUTES:$SECONDS	[OK]" >> $WORKFLOW_SUMMARY_FILE
+echo "$RUN_ID	$SAMPLE_ID	demultmt	$HOURS:$MINUTES	[OK]" >> $WORKFLOW_SUMMARY_FILE
 echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
