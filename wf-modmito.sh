@@ -57,6 +57,7 @@ BAM_FILE="$OUT_DIR/$BAM_PREFIX.bam"
 SORTED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.sorted.bam"
 BEDMETHYL_FILE="$OUT_DIR/$BAM_PREFIX.combine.bed"
 PILEUP_LOG_FILE="$OUT_DIR/$BAM_PREFIX.pileup.log"
+WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 check_dir () { 
 	if [ -d "$1" ]
@@ -139,3 +140,10 @@ HOURS=$((RUNTIME / 3600))
 MINUTES=$(( (RUNTIME % 3600) / 60 ))
 SECONDS=$(( (RUNTIME % 3600) % 60 ))
 echo ">>> Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
+
+if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
+	echo "Run id	Sample id	Workflow	Runtime (hh:mm)	Status" > $WORKFLOW_SUMMARY_FILE
+	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
+fi
+echo "$RUN_ID	$SAMPLE_ID	modmito	$HOURS:$MINUTES	[OK]" >> $WORKFLOW_SUMMARY_FILE
+echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
