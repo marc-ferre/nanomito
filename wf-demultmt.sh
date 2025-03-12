@@ -3,9 +3,9 @@
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=150G
 #SBATCH --time 30
-#SBATCH --mail-type=ALL
+#SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='2025-03-11.1'
+VERSION='2025-03-12.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -25,10 +25,10 @@ SAMPLE_ID=$1
 SELECT='both' 
 
 # Directories
-WORK_DIR=`pwd`
-FASTQ_DIR="$WORK_DIR/fastq_pass/$SAMPLE_ID"
-POD5_DIR="$WORK_DIR/pod5"
-PROCESS_DIR="$WORK_DIR/processing"
+RUN_DIR=`pwd`
+FASTQ_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
+POD5_DIR="$RUN_DIR/pod5"
+PROCESS_DIR="$RUN_DIR/processing"
 OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 
@@ -62,9 +62,10 @@ IDS_FILE="$SELECT_DIR/read_ids.txt"
 BAM_FILE="$SELECT_DIR/$SAMPLE_ID.bam"
 SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
 DEMULT_POD5_FILE="$OUT_DIR/$SAMPLE_ID.demultmt.pod5"
+WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/demultmt_summary.$RUN_ID.tsv"
 
 check_dir () { 
-	if [ -d "$1" ]
+	if [ -d "$1" ] # && [ ! -z "$( ls -A $1 )" ]
 	then 
    		echo "[OK] Directory $1 exists"
    	else
@@ -73,18 +74,11 @@ check_dir () {
 	fi
 }
 check_file () { 
-	if [ -f "$1" ]
+	if [ -f "$1" ] && [ -s "$1" ]
 	then 
-   		echo "[OK] File $1 exists"
+   		echo "[OK] File $1 exists and is not empty"
    	else
-		echo "[ERROR] File $1 doesn't exist"
-		exit 9999 # die with error code 9999
-	fi
-	if [ -s "$1" ]
-	then 
-   		echo "[OK] File $1 not empty"
-   	else
-		echo "[ERROR] File $1 is empty"
+		echo "[ERROR] File $1 is empty or doesn't exist"
 		exit 9999 # die with error code 9999
 	fi
 }
@@ -95,7 +89,7 @@ echo "Workflow: wf-demultmt v.$VERSION by $AUTHOR"
 echo "Run: $RUN_ID"
 echo "Sample: $SAMPLE_ID"
 echo "Job: $SLURM_JOB_ID"
-echo "Working directory: $WORK_DIR"
+echo "Run directory: $RUN_DIR"
 echo "Pod5 directory: $POD5_DIR"
 echo "FastQ directory: $FASTQ_DIR"
 echo "Output directory: $OUT_DIR"
@@ -135,11 +129,6 @@ echo '******************'
 echo '* Demultiplexing *'
 echo '******************'
 echo "`$ONT_DEMULT_BIN --version`"
-
-echo
-echo '|'
-echo "| Selection strategy: $SELECT"
-echo '|'
 
 mkdir $SELECT_DIR
 check_dir $SELECT_DIR
@@ -181,10 +170,10 @@ echo "===> Reads aligned to chrM: $COUNT_CHRM"
 echo "====> Reads matching $SELECT: $COUNT_MATCHED"
 
 if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
-	echo "Sample Id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" > $DEMULT_SUMMARY_FILE
+	echo "Run id	Sample id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" > $DEMULT_SUMMARY_FILE
 	echo "[OK] File $DEMULT_SUMMARY_FILE created (with header)"
 fi
-echo "$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> $DEMULT_SUMMARY_FILE
+echo "$RUN_ID	$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> $DEMULT_SUMMARY_FILE
 echo "[OK] Line added to $DEMULT_SUMMARY_FILE"
 
 minimap2 -ax map-ont $REF_MT_2KB ${DEMULT_PREFIX}_mt_2kb.fastq.gz > alignment_mt_2kb.sam
@@ -200,8 +189,8 @@ rm *.sam
 samtools merge $BAM_FILE alignment_mt_2kb.bam alignment_mt_3kb.bam alignment_mt_10kb.bam
 check_file $BAM_FILE
 samtools sort $BAM_FILE -o $SORTED_BAM_FILE
-samtools index $SORTED_BAM_FILE
 check_file $SORTED_BAM_FILE
+samtools index $SORTED_BAM_FILE
 check_file "${SORTED_BAM_FILE}.bai"
 
 conda deactivate
@@ -252,6 +241,8 @@ check_dir $POD5_DIR
 
 pod5 filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE --missing-ok
 
+check_file $DEMULT_POD5_FILE
+
 conda deactivate
 
 echo
@@ -265,3 +256,10 @@ HOURS=$((RUNTIME / 3600))
 MINUTES=$(( (RUNTIME % 3600) / 60 ))
 SECONDS=$(( (RUNTIME % 3600) % 60 ))
 echo "Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
+
+if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
+	echo "Run id	Sample id	Runtime (hh:mm:ss)	Status" > $WORKFLOW_SUMMARY_FILE
+	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
+fi
+echo "$RUN_ID	$SAMPLE_ID	$HOURS:$MINUTES:$SECONDS	[OK]" >> $DEMULT_SUMMARY_FILE
+echo "[OK] Line added to $DEMULT_SUMMARY_FILE"
