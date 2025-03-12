@@ -8,7 +8,7 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 
-VERSION='2025-03-12.2'
+VERSION='25-03-12.3'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -104,7 +104,8 @@ echo "Dorado version: `$DORADO_BIN --version`"
 
 echo "Output file prefix: $BAM_PRE"
 
-$DORADO_BIN basecaller $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $REF_MT_3KB > $BAM_FILE
+#$DORADO_BIN basecaller $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $REF_MT_3KB > $BAM_FILE
+$DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $REF_MT_3KB > $BAM_FILE
 check_file $BAM_FILE
 
 echo
