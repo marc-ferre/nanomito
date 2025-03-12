@@ -8,7 +8,7 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 
-VERSION='2025-03-12.1'
+VERSION='2025-03-12.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -104,7 +104,7 @@ echo "Dorado version: `$DORADO_BIN --version`"
 
 echo "Output file prefix: $BAM_PRE"
 
-$DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $REF_MT_3KB > $BAM_FILE
+$DORADO_BIN basecaller $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $REF_MT_3KB > $BAM_FILE
 check_file $BAM_FILE
 
 echo
@@ -142,8 +142,8 @@ SECONDS=$(( (RUNTIME % 3600) % 60 ))
 echo ">>> Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
 
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Workflow	Runtime (hh:mm)	Status" > $WORKFLOW_SUMMARY_FILE
+	echo "Run id	Sample id	Workflow	Runtime (hh:mm)" > $WORKFLOW_SUMMARY_FILE
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	modmito	$HOURS:$MINUTES	[OK]" >> $WORKFLOW_SUMMARY_FILE
+echo "$RUN_ID	$SAMPLE_ID	modmito	$HOURS:$MINUTES" >> $WORKFLOW_SUMMARY_FILE
 echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
