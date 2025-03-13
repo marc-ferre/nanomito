@@ -12,11 +12,11 @@ VERSION='25.03.13.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
-# Run Id = Working directory
+# Run id = Working directory
 RUN_ID=${PWD##*/} # Assign directory name to run id
 RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
 
-# Sample Id = Argument
+# Sample id = Argument
 if [ $# -eq 0 ]
 	then
 		echo "[ERROR] No arguments supplied"
