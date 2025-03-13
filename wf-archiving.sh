@@ -69,7 +69,7 @@ echo '************'
 echo "From: $RUN_DIR "
 echo "To  : $ARCHIVING_DIR "
 
-rsync -av --stats --progress --delete $RUN_DIR $ARCHIVING_DIR
+rsync -av --stats --progress --delete "$RUN_DIR/" "$ARCHIVING_DIR/"
 if [ $? -eq 0 ]; then
     echo "[OK] Run copied successfully"
 else
