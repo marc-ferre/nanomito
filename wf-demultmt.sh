@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.12.3'
+VERSION='25.03.13.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -54,6 +54,7 @@ DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
 
 # Files
 CUT_FILE='/scratch/mferre/reference/cut.txt'
+CUT_TAG='mt_3kb'
 DEMULT_SUMMARY_FILE="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
 DEMULT_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.txt.gz"
 CHRM_ONLY_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.match_chrM_only.txt"
@@ -188,16 +189,16 @@ rm *.sam
 
 samtools merge $BAM_FILE alignment_mt_2kb.bam alignment_mt_3kb.bam alignment_mt_10kb.bam
 check_file $BAM_FILE
-samtools sort $BAM_FILE -o $SORTED_BAM_FILE
-check_file $SORTED_BAM_FILE
-samtools index $SORTED_BAM_FILE
-check_file "${SORTED_BAM_FILE}.bai"
+# samtools sort $BAM_FILE -o $SORTED_BAM_FILE
+# check_file $SORTED_BAM_FILE
+# samtools index $SORTED_BAM_FILE
+# check_file "${SORTED_BAM_FILE}.bai"
 
 conda deactivate
 
-# # Remove large files
-# rm -i $FASTQ_FILE && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
-# rm -i $MAPPING_FILE && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $FASTQ_FILE"
+echo "Remove large files:"
+rm -i $FASTQ_FILE && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
+rm -i $MAPPING_FILE && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $FASTQ_FILE"
 
 echo
 echo '*******************'
@@ -242,6 +243,7 @@ check_dir $POD5_DIR
 pod5 filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE --missing-ok
 
 check_file $DEMULT_POD5_FILE
+echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
 
 conda deactivate
 
@@ -257,6 +259,7 @@ MINUTES=$(( (RUNTIME % 3600) / 60 ))
 SECONDS=$(( (RUNTIME % 3600) % 60 ))
 echo "Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
 
+# Write workflow summary file
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
 	echo "Run id	Sample id	Workflow	Runtime (hh:mm)	Status" > $WORKFLOW_SUMMARY_FILE
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
