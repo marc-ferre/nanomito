@@ -5,7 +5,7 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 
-VERSION='25.03.13.2'
+VERSION='25.03.13.3'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -15,7 +15,7 @@ if [ $# -eq 0 ]
 		exit 9999 # die with error code 9999
 fi
 RUN_DIR=$1
-RUN_ID=$(basename $RUN_DIR_PATH)
+RUN_ID=$(basename $RUN_DIR)
 
 if [ $# -eq 1 ]
 	then
@@ -24,7 +24,9 @@ if [ $# -eq 1 ]
 fi
 ARCHIVING_DIR=$2
 
-REMOVED_DIR="$RUN_DIR/pod5 $RUN_DIR/fastq_pass"
+# Directories to remove
+FASTQ_DIR="$RUN_DIR/fastq_pass"
+POD5_DIR="$RUN_DIR/pod5"
 
 START=`date +%s`
 
@@ -36,23 +38,44 @@ echo "Archiving directory: $ARCHIVING_DIR"
 echo "Date: `date`"
 
 echo
-echo '*********'
-echo '* Clean *'
-echo '*********'
+echo '*************'
+echo '* Clean run *'
+echo '*************'
 
-echo "Remove directories: $REMOVED_DIR"
+clean_dir {
+	DIR_TO_CLEAN=$1
 
-rm -rf $REMOVED_DIR
+	if [ -d "$DIR_TO_CLEAN" ]; then
+			rm -Rf $DIR_TO_CLEAN
+			if [ $? -eq 0 ]; then
+    			echo "[OK] Directory cleaned successfully: $DIR_TO_CLEAN"
+			else
+    			echo "[ERROR] Can't clean directory: $DIR_TO_CLEAN"
+    			exit 9999 # die with error code 9999
+			fi
+	else
+		echo "[WARNING] Directory doesn't exist: $DIR_TO_CLEAN"
+	fi
+}
+
+clean_dir $FASTQ_DIR
+clean_dir $POD5_DIR
 
 echo
-echo '********'
-echo '* Copy *'
-echo '********'
+echo '************'
+echo '* Copy run *'
+echo '************'
 
 echo "From: $RUN_DIR "
 echo "To  : $ARCHIVING_DIR "
 
 rsync -av --stats --progress --delete $RUN_DIR $ARCHIVING_DIR
+if [ $? -eq 0 ]; then
+    echo "[OK] Run copied successfully"
+else
+    echo "[ERROR] While copying"
+    exit 9999 # die with error code 9999
+fi
 
 echo
 echo '***********'
