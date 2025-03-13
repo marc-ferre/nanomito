@@ -27,5 +27,5 @@ mkdir $ARCHIVING_DIR
 
 SLURM_FILE="$PROJECTS_DIR/slurm-$RUN_ID.txt"
 
-sbatch --chdir=~/ --job-name="a${SAMPLE_ID: -5}" --output="$SLURM_FILE" $WF_ARCHIVING $RUN_DIR $ARCHIVING_DIR
+sbatch --chdir=~/ --job-name="a${RUN_ID: -5}" --output="$SLURM_FILE" $WF_ARCHIVING $RUN_DIR $ARCHIVING_DIR
 echo "> Output in $SLURM_FILE"
