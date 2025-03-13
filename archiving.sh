@@ -27,7 +27,7 @@ if [ -d "$ARCHIVING_DIR" ]; then
     echo "[WARNING] Archiving directory already exist: $ARCHIVING_DIR exist"
     echo "Do you want overwrite it? (y/n)"
     read YN
-    if [ $YN -eq "y" ];
+    if [ $YN = "y" ];
     then
         echo "Overwritting..."
     else
