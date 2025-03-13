@@ -5,7 +5,7 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 
-VERSION='25.03.13.3'
+VERSION='25.03.13.4'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -42,7 +42,7 @@ echo '*************'
 echo '* Clean run *'
 echo '*************'
 
-clean_dir {
+clean_dir () {
 	DIR_TO_CLEAN=$1
 
 	if [ -d "$DIR_TO_CLEAN" ]; then
