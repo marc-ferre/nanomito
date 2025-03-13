@@ -8,7 +8,7 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 
-VERSION='25.03.12.3'
+VERSION='25.03.13.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -24,11 +24,11 @@ if [ $# -eq 0 ]
 fi
 SAMPLE_ID=$1
 
+# Read selection strategy (start, both, either ,xor)
+SELECT='both' 
+
 # Basecalling model
 MODEL_COMPLEX='sup,5mC_5hmC,6mA'
-
-# Read selection strategy (start, both, either ,xor)
-SELECT='both'
 
 # Directories
 RUN_DIR=`pwd`
@@ -47,6 +47,8 @@ REF_MT='/scratch/mferre/reference/chrM.fa'
 REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
 REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
 REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
+
+SELECTED_REF=$REF_MT_3KB
 
 # Prefixes
 BAM_PREFIX="$SAMPLE_ID.chrM.$MODEL_COMPLEX"
@@ -89,6 +91,7 @@ echo "Output directory: $OUT_DIR"
 echo "Read selection strategy: $SELECT"
 echo "Pod5 file: $DEMULT_POD5_FILE"
 echo "Model Complex: $MODEL_COMPLEX"
+echo "Reference file: $SELECTED_REF"
 echo "Date: `date`"
 
 echo
@@ -105,7 +108,7 @@ echo "Dorado version: `$DORADO_BIN --version`"
 echo "Output file prefix: $BAM_PRE"
 
 #$DORADO_BIN basecaller $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $REF_MT_3KB > $BAM_FILE
-$DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $REF_MT_3KB > $BAM_FILE
+$DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $SELECTED_REF > $BAM_FILE
 check_file $BAM_FILE
 
 echo
@@ -123,9 +126,12 @@ check_file $SORTED_BAM_FILE
 samtools index $SORTED_BAM_FILE
 check_file "${SORTED_BAM_FILE}.bai"
 
+echo "Remove unsorted BAM file:"
+rm -i $BAM_FILE && [[ ! -e $BAM_FILE ]] && echo "[OK] BAM file removed: $BAM_FILE"
+
 echo "Modkit version: `modkit --version`"
 
-modkit pileup $SORTED_BAM_FILE $BEDMETHYL_FILE --log-filepath $PILEUP_LOG_FILE
+modkit pileup $SORTED_BAM_FILE $BEDMETHYL_FILE #--log-filepath $PILEUP_LOG_FILE
 check_file $BEDMETHYL_FILE
 
 conda deactivate
@@ -142,9 +148,10 @@ MINUTES=$(( (RUNTIME % 3600) / 60 ))
 SECONDS=$(( (RUNTIME % 3600) % 60 ))
 echo ">>> Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
 
+# Write workflow summary file
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
 	echo "Run id	Sample id	Workflow	Runtime (hh:mm)" > $WORKFLOW_SUMMARY_FILE
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	modmito	$HOURS:$MINUTES" >> $WORKFLOW_SUMMARY_FILE
+echo "$RUN_ID	$SAMPLE_ID	modmito 	$HOURS:$MINUTES" >> $WORKFLOW_SUMMARY_FILE
 echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
