@@ -23,7 +23,21 @@ RUN_ID=$(basename $RUN_DIR)
 echo "Run id : $RUN_ID"
 
 ARCHIVING_DIR="$PROJECTS_DIR/$RUN_ID"
-mkdir $ARCHIVING_DIR
+if [ -d "$ARCHIVING_DIR" ]; then
+    echo "[WARNING] Archiving directory already exist: $ARCHIVING_DIR exist"
+    echo "Do you want overwrite it? (y/n)"
+    read YN
+    if [ $YN -eq "y" ];
+    then
+        echo "Overwritting..."
+    else
+    	echo "Exiting..."
+        exit 0
+    fi
+else
+	mkdir $ARCHIVING_DIR
+fi    
+
 
 SLURM_FILE="$PROJECTS_DIR/slurm-$RUN_ID.txt"
 
