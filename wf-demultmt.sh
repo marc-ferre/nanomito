@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.15.1'
+VERSION='25.03.15.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -101,7 +101,6 @@ echo
 echo '*****************'
 echo '* Preprocessing *'
 echo '*****************'
-check_dir $POD5_DIR
 check_dir $FASTQ_DIR
 mkdir -p $OUT_DIR
 FASTQ_FILE="$OUT_DIR/$SAMPLE_ID.fastq.gz"
@@ -233,6 +232,8 @@ echo "[WARNING] Bug fixed appending '&' to baldur command : no check_file"
 # echo '***********************'
 # echo '* Retrieving Raw Data *'
 # echo '***********************'
+# check_dir $POD5_DIR
+#
 # check_file $MATCH_FILE
 # cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
 # 
