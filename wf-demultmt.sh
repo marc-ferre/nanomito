@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.13.1'
+VERSION='25.03.15.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -59,7 +59,7 @@ DEMULT_SUMMARY_FILE="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
 DEMULT_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.txt.gz"
 CHRM_ONLY_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.match_chrM_only.txt"
 MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"
-IDS_FILE="$SELECT_DIR/read_ids.txt"
+IDS_FILE="$SELECT_DIR/$SAMPLE_ID.read_ids.txt"
 BAM_FILE="$SELECT_DIR/$SAMPLE_ID.bam"
 SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
 DEMULT_POD5_FILE="$OUT_DIR/$SAMPLE_ID.demultmt.pod5"
@@ -229,23 +229,23 @@ conda deactivate
 #check_file "$BALDUR_PREFIX.vcf.gz"
 echo "[WARNING] Bug fixed appending '&' to baldur command : no check_file"
 
-echo
-echo '***********************'
-echo '* Retrieving Raw Data *'
-echo '***********************'
-check_file $MATCH_FILE
-cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
-
-conda activate $POD5_ENV
-
-check_dir $POD5_DIR
-
-pod5 filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE --missing-ok
-
-check_file $DEMULT_POD5_FILE
-echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
-
-conda deactivate
+# echo
+# echo '***********************'
+# echo '* Retrieving Raw Data *'
+# echo '***********************'
+# check_file $MATCH_FILE
+# cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
+# 
+# conda activate $POD5_ENV
+# 
+# check_dir $POD5_DIR
+# 
+# pod5 filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE --missing-ok
+# 
+# check_file $DEMULT_POD5_FILE
+# echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
+# 
+# conda deactivate
 
 echo
 echo '***********'
