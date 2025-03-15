@@ -34,11 +34,11 @@ echo "Output dir: $OUT_DIR"
 SLURM_PRE="slurm-$SAMPLE_ID"
 SLURM_EXT="txt"
 
-SLURM_FILE="$RUN_DIR_PATH/$OUT_DIR/$SLURM_PRE.1.$SLURM_EXT"
+SLURM_FILE="$RUN_DIR_PATH/$OUT_DIR/$SLURM_PRE.demultmt.$SLURM_EXT"
 JOBID=$(sbatch --parsable --chdir=$RUN_DIR_PATH --job-name="d${SAMPLE_ID: -5}" --output="$SLURM_FILE" $WF_DEMULTMT $SAMPLE_ID)
 echo "Submitted batch job $JOBID"
 echo "> Output in $SLURM_FILE"
 
-SLURM_FILE="$RUN_DIR_PATH/$OUT_DIR/$SLURM_PRE.2.$SLURM_EXT"
+SLURM_FILE="$RUN_DIR_PATH/$OUT_DIR/$SLURM_PRE.modmito.$SLURM_EXT"
 sbatch --dependency=afterok:${JOBID} --chdir=$RUN_DIR_PATH --job-name="m${SAMPLE_ID: -5}" --output="$SLURM_FILE" $WF_MODMITO $SAMPLE_ID
 echo "> Output in $SLURM_FILE"
