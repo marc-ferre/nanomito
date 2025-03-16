@@ -266,5 +266,5 @@ if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
 	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)	Status" > $WORKFLOW_SUMMARY_FILE
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	demultmt	$HOURS:$MINUTES:$SECOND" >> $WORKFLOW_SUMMARY_FILE
+echo "$RUN_ID	$SAMPLE_ID	demultmt	$HOURS:$MINUTES:$SECONDS" >> $WORKFLOW_SUMMARY_FILE
 echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
