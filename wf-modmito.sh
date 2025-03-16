@@ -4,11 +4,11 @@
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=50G
-#SBATCH --time 15
+#SBATCH --time 30
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 
-VERSION='25.03.13.1'
+VERSION='25.03.16.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -41,14 +41,8 @@ DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado-0.9.
 MODMITO_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_modmito'
 #MODKIT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_modkit'
 
-# References
-REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.fa'
-REF_MT='/scratch/mferre/reference/chrM.fa'
-REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
-REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
-REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
-
-SELECTED_REF=$REF_MT_3KB
+# Reference
+SELECTED_REF='/scratch/mferre/reference/chrM-mt_3kb-a0.fa'
 
 # Prefixes
 BAM_PREFIX="$SAMPLE_ID.chrM.$MODEL_COMPLEX"
@@ -96,16 +90,15 @@ echo "Date: `date`"
 
 echo
 echo '******************************'
-echo '* Modified bases Basecalling *'
+echo '* Modified bases basecalling *'
 echo '******************************'
 check_file $DEMULT_POD5_FILE
 
 # To work around the issue https://github.com/nanoporetech/dorado/issues/432
 export LC_ALL=en_US.UTF-8
 
-echo "Dorado version: `$DORADO_BIN --version`"
-
-echo "Output file prefix: $BAM_PRE"
+echo "Dorado version:"
+$DORADO_BIN --version
 
 #$DORADO_BIN basecaller $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $REF_MT_3KB > $BAM_FILE
 $DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $SELECTED_REF > $BAM_FILE
@@ -150,8 +143,8 @@ echo ">>> Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
 
 # Write workflow summary file
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Workflow	Runtime (hh:mm)" > $WORKFLOW_SUMMARY_FILE
+	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > $WORKFLOW_SUMMARY_FILE
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	modmito 	$HOURS:$MINUTES" >> $WORKFLOW_SUMMARY_FILE
+echo "$RUN_ID	$SAMPLE_ID	modmito 	$HOURS:$MINUTES:$SECONDS" >> $WORKFLOW_SUMMARY_FILE
 echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
