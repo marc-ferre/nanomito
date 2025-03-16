@@ -44,19 +44,18 @@ for DIR in $(ls -1); do
 	echo "--- Sample: $SAMPLE_ID"
 	
 	OUT_PATH="$PROCESS_PATH/$SAMPLE_ID"
-	
 	SLURM_PRE="slurm-$SAMPLE_ID"
 	SLURM_EXT='txt'
 	
 	WF_ID='demultmt'
 	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-	JOBID=$(sbatch --parsable --chdir="$RUN_DIR_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_CUSTOM" --mail-user="$MAIL_USER" $WF_DEMULTMT $SAMPLE_ID)
+	JOBID=$(sbatch --parsable --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_CUSTOM" --mail-user="$MAIL_USER" $WF_DEMULTMT $SAMPLE_ID)
 	echo "> Submitted batch job $JOBID"
 	echo "  Output in $SLURM_FILE"
 	
 # 	WF_ID='modmito'
 # 	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-# 	JOBID=(sbatch --dependency=afterok:${JOBID} --chdir="$RUN_DIR_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_CUSTOM" --mail-user="$MAIL_USER" $WF_MODMITO $SAMPLE_ID)
+# 	JOBID=(sbatch --dependency=afterok:${JOBID} --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_CUSTOM" --mail-user="$MAIL_USER" $WF_MODMITO $SAMPLE_ID)
 # 	echo "> Submitted batch job $JOBID"
 # 	echo "  Output in $SLURM_FILE"
 
