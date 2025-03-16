@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.16.1'
+VERSION='25.03.16.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -263,8 +263,8 @@ echo "Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
 
 # Write workflow summary file
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Workflow	Runtime (hh:mm)	Status" > $WORKFLOW_SUMMARY_FILE
+	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)	Status" > $WORKFLOW_SUMMARY_FILE
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	demultmt	$HOURS:$MINUTES	[OK]" >> $WORKFLOW_SUMMARY_FILE
+echo "$RUN_ID	$SAMPLE_ID	demultmt	$HOURS:$MINUTES:$SECOND" >> $WORKFLOW_SUMMARY_FILE
 echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
