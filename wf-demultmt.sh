@@ -2,10 +2,10 @@
 #SBATCH --job-name=demultmt
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=150G
-#SBATCH --time 30
+#SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.16.2'
+VERSION='25.03.16.3'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
