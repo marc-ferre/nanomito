@@ -5,7 +5,7 @@
 #SBATCH --time 30
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.15.2'
+VERSION='25.03.16.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -228,15 +228,16 @@ conda deactivate
 #check_file "$BALDUR_PREFIX.vcf.gz"
 echo "[WARNING] Bug fixed appending '&' to baldur command : no check_file"
 
-# echo
-# echo '***********************'
-# echo '* Retrieving Raw Data *'
-# echo '***********************'
-# check_dir $POD5_DIR
-#
-# check_file $MATCH_FILE
-# cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
-# 
+echo
+echo '***********************'
+echo '* Retrieving Raw Data *'
+echo '***********************'
+check_file $MATCH_FILE
+
+echo "Retrieving matching reads (select: $SELECT)..."
+cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
+check_file $IDS_FILE
+
 # conda activate $POD5_ENV
 # 
 # check_dir $POD5_DIR
