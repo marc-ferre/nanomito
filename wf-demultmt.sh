@@ -5,7 +5,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.16.3'
+VERSION='25.03.23.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -25,44 +25,54 @@ SAMPLE_ID=$1
 SELECT='both' 
 
 # Directories
-RUN_DIR=`pwd`
 FASTQ_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
+OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 POD5_DIR="$RUN_DIR/pod5"
 PROCESS_DIR="$RUN_DIR/processing"
-OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
+RUN_DIR=`pwd`
 SELECT_DIR="$OUT_DIR/select-$SELECT"
+VARCALL_DIR="$OUT_DIR/varcall"
 
 # Binaries
 BALDUR_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/baldur-1.2.2/target/release/baldur'
 ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_demult/target/release/ont_demult'
 
 # Conda envs
+ANNOTMT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_annotmt'
 BALDUR_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_baldur'
 ONT_DEMULT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_ont_demult'
 POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5'
 
 # References
-REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.fa'
-REF_MT='/scratch/mferre/reference/chrM.fa'
+ANN_GNOMAD='/scratch/mferre/reference/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
+ANN_MITOMAP_DISEASE='/scratch/mferre/reference/MITOMAP/disease.vcf'
+ANN_MITOMAP_POLYMORPHISMS='/scratch/mferre/reference/MITOMAP/polymorphisms.vcf'
 REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
 REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
 REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
+REF_MT='/scratch/mferre/reference/chrM.fa'
+REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.fa'
 
 # Prefixes
 BALDUR_PREFIX="$SAMPLE_ID.baldur"
 DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
+HPLCHK_PREFIX="$OUT_DIR/$SAMPLE_ID-haplocheck"
 
 # Files
-CUT_FILE='/scratch/mferre/reference/cut.txt'
-CUT_TAG='mt_3kb'
-DEMULT_SUMMARY_FILE="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
-DEMULT_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.txt.gz"
-CHRM_ONLY_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.match_chrM_only.txt"
-MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"
-IDS_FILE="$SELECT_DIR/$SAMPLE_ID.read_ids.txt"
+ANNOTMT_TSV_FILE="$OUT_DIR/$SAMPLE_ID.ann.tsv"
+ANNOTMT_VCF_FILE="$OUT_DIR/$SAMPLE_ID.ann.vcf"
+BALDUR_VCF_FILE="$VARCALL_DIR/$BALDUR_PREFIX.vcf.gz"
 BAM_FILE="$SELECT_DIR/$SAMPLE_ID.bam"
+CHRM_ONLY_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.match_chrM_only.txt"
+CUT_FILE='/scratch/mferre/reference/cut.txt'
+DEMULT_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.txt.gz"
+DEMULT_POD5_FILE="$SELECT_DIR/$SAMPLE_ID.demultmt.pod5"
+DEMULT_SUMMARY_FILE="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
+HPLCHK_RAW_FILE="$HPLCHK_PREFIX.raw.txt"
+HPLCHK_SUMMARY_FILE="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
+IDS_FILE="$SELECT_DIR/$SAMPLE_ID.read_ids.txt"
+MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"
 SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
-DEMULT_POD5_FILE="$OUT_DIR/$SAMPLE_ID.demultmt.pod5"
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 check_dir () { 
@@ -203,7 +213,8 @@ echo
 echo '*******************'
 echo '* Variant Calling *'
 echo '*******************'
-cd $OUT_DIR
+mkdir $VARCALL_DIR
+cd $VARCALL_DIR
 conda activate $BALDUR_ENV
 echo "`$BALDUR_BIN --version`"
 
@@ -225,29 +236,133 @@ $BALDUR_BIN --mapq-threshold 20 \
 
 conda deactivate
 
-#check_file "$BALDUR_PREFIX.vcf.gz"
+#check_file $BALDUR_VCF_FILE
 echo "[WARNING] Bug fixed appending '&' to baldur command : no check_file"
 
 echo
 echo '***********************'
 echo '* Retrieving Raw Data *'
 echo '***********************'
+cd $VARCALL_DIR
 check_file $MATCH_FILE
 
 echo "Retrieving matching reads (select: $SELECT)..."
 cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
 check_file $IDS_FILE
 
-# conda activate $POD5_ENV
-# 
-# check_dir $POD5_DIR
-# 
-# pod5 filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE --missing-ok
-# 
-# check_file $DEMULT_POD5_FILE
-# echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
-# 
-# conda deactivate
+conda activate $POD5_ENV
+
+check_dir $POD5_DIR
+
+pod5 filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE --missing-ok
+
+check_file $DEMULT_POD5_FILE
+echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
+
+conda deactivate
+
+echo
+echo '**********************'
+echo '* Variant Annotating *'
+echo '**********************'
+cd $VARCALL_DIR
+check_file $BALDUR_VCF_FILE
+gunzip $BALDUR_VCF_FILE
+BALDUR_VCF_FILE=`basename $BALDUR_VCF_FILE .gz`
+check_file $BALDUR_VCF_FILE
+
+# # Stats
+# bcftools stats $BALDUR_VCF_FILE
+
+conda activate $ANNOTMT_ENV
+
+SnpSift # Get version
+
+VCF_TMP1="$ANNOTMT_VCF_FILE.tmp"
+VCF_TMP2="$ANNOTMT_VCF_FILE.1.tmp"
+
+# MITOMAP
+SnpSift annotate -v \
+	$ANN_MITOMAP_DISEASE \
+	$BALDUR_VCF_FILE \
+	> $VCF_TMP2
+mv $VCF_TMP2 $VCF_TMP1
+	
+SnpSift annotate -v \
+	$ANN_MITOMAP_POLYMORPHISMS \
+	$VCF_TMP1 \
+	> $VCF_TMP2
+mv $VCF_TMP2 $VCF_TMP1
+
+# GnomAD including MitoTIP
+SnpSift annotate -v \
+	$ANN_GNOMAD \
+	$VCF_TMP1 \
+	> $ANNOTMT_VCF_FILE
+check_file $ANNOTMT_VCF_FILE
+
+rm $VCF_TMP1
+
+#
+# Export to TSV
+#
+# Columns (TSV:VCF)
+#
+# CHROM:CHROM
+# POS:POS
+# ID:ID
+# REF:REF
+# ALT:ALT
+# Heteroplasmy:HPL
+# MitoMap_GenBank_allele_count:AC
+# MitoMap_GenBank_allele_freq:AF
+# MitoMap_Disease:Disease
+# MitoMap_DiseaseStatus:DiseaseStatus
+# MitoMap_Haplogroups_with_high_variant_frequency:HGFL
+# MitoMap_PubmedIDs:PubmedIDs
+# MitoMap_aachange:aachange
+# MitoMap_heteroplasmy:heteroplasmy
+# MitoMap_homoplasmy:homoplasmy
+# MitoTIP_Interporetation:mitotip_trna_prediction
+# MitoTIP_Score:mitotip_score
+# gnomAD_WG_AlleleCount_heteroplasmic:AC_het
+# gnomAD_WG_AlleleCount_homoplasmic:AC_hom
+# gnomAD_WG_AlleleFreq_heteroplasmic:AF_het
+# gnomAD_WG_AlleleFreq_homoplasmic:AF_hom
+# gnomAD_WG_total_AlleleNumber:AN
+# gnomAD_WG_filters:filters
+# gnomAD_WG_hap_defining_variant:hap_defining_variant
+# gnomAD_WG_max_hl:max_hl
+# gnomAD_WG_pon_ml_probability_of_pathogenicity:pon_ml_probability_of_pathogenicity
+# gnomAD_WG_pon_mt_trna_prediction:pon_mt_trna_prediction
+# FILTER:FILTER
+# SAMPLE_ADF:ADF
+# SAMPLE_ADR:ADR
+# QUAL:QUAL
+# DP:DP
+bcftools --version
+echo "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP" > $ANNOTMT_TSV_FILE
+bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' $ANNOTMT_VCF_FILE >> $ANNOTMT_TSV_FILET
+check_file $ANNOTMT_TSV_FILE
+
+echo
+echo '*******************************************'
+echo '* Determining major and minor haplogroups *'
+echo '*******************************************'
+haplocheck --version
+
+haplocheck --raw --out $HPLCHK_PREFIX $ANNOTMT_VCF_FILE
+check_file $HPLCHK_RAW_FILE
+
+if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
+	cp $HPLCHK_RAW_FILE $HPLCHK_SUMMARY_FILE
+	echo "[OK] File $HPLCHK_SUMMARY_FILE created (with header)"
+else
+	tail -n 1  >> $HPLCHK_SUMMARY_FILE
+	echo "[OK] Line added to $HPLCHK_SUMMARY_FILE"
+fi
+
+conda deactivate
 
 echo
 echo '***********'
