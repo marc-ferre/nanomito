@@ -1,20 +1,29 @@
 #!/bin/bash
+#SBATCH --job-name=subwf
+#SBATCH --time 5
+#SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
+#SBATCH --mail-user=marc.ferre@univ-angers.fr
 #
 # Submit Nanomito workflows to Slurm
 #
-# submit_nanomito.sh /Path/to/run/dir/
+# wf-subwf.sh /Path/to/run/dir/
 #
 set -e
+
+VERSION='25.03.24.1'
+
+AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-demultmt.sh'
 WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-modmito.sh'
 
 FASTQ_DIR='fastq_pass'
-POD5_DIR='pod5'
+POD5_DIR='pod5_chrM'
 PROCESS_DIR='processing'
 
-MAIL_TYPE_CUSTOM='END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
 MAIL_TYPE_ALL='ALL'
+MAIL_TYPE_END='END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
+MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
 MAIL_TYPE_NONE='NONE'
 
 MAIL_USER='marc.ferre@univ-angers.fr'
@@ -33,15 +42,20 @@ FASTQ_PATH="$RUN_PATH/$FASTQ_DIR"
 POD5_PATH="$RUN_PATH/$POD5_DIR"
 PROCESS_PATH="$RUN_PATH/$PROCESS_DIR"
 
+START=`date +%s`
+
+echo "Workflow: wf-subwf v.$VERSION by $AUTHOR"
 echo "Run path   : $RUN_PATH"
 echo "FastQ path : $FASTQ_PATH"
 echo "Pod5 path  : $POD5_PATH"
 echo "Output path: $PROCESS_PATH"
+echo "Date: `date`"
 
 SAMPLES_COUNT=0
 JOBS_COUNT=0
+JOBID_LIST=''
 cd $FASTQ_PATH
-for DIR in $(ls -1); do
+for DIR in $(ls -1 -d */); do
 	SAMPLE_ID=`basename $DIR`
 	echo "--- Sample: $SAMPLE_ID"
 	
@@ -53,20 +67,38 @@ for DIR in $(ls -1); do
 	
 	WF_ID='demultmt'
 	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-#	JOBID=$(sbatch --parsable --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_CUSTOM" --mail-user="$MAIL_USER" $WF_DEMULTMT $SAMPLE_ID)
+	JOBID='debug1'
+#	JOBID=$(sbatch --parsable --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" $WF_DEMULTMT $SAMPLE_ID)
 	echo "> Submitted batch job $JOBID"
 	echo "  Output in $SLURM_FILE"
 	JOBS_COUNT=$((JOBS_COUNT+1))
+	JOBID_LIST="$JOBID_LIST $JOBID"
 	
-# 	WF_ID='modmito'
-# 	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-# 	JOBID=(sbatch --dependency=afterok:${JOBID} --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_CUSTOM" --mail-user="$MAIL_USER" $WF_MODMITO $SAMPLE_ID)
-# 	echo "> Submitted batch job $JOBID"
-# 	echo "  Output in $SLURM_FILE"
-#	JOBS_COUNT=$((JOBS_COUNT+1))
-
+	WF_ID='modmito'
+	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+	JOBID='debug2'
+# 	JOBID=(sbatch --dependency=afterok:${JOBID} --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_MODMITO $SAMPLE_ID)
+	echo "> Submitted batch job $JOBID"
+	echo "  Output in $SLURM_FILE"
+	JOBS_COUNT=$((JOBS_COUNT+1))
+	JOBID_LIST="$JOBID_LIST $JOBID"
 done
 
 echo "=== $SAMPLES_COUNT sample(s)/$JOBS_COUNT batch job(s) submitted ==="
 
-# TODO: scancel ...
+echo "|"
+echo "| Use following command to cancel all jobs:"
+echo "|"
+echo "| scancel $JOBID_LIST"
+echo "|"
+echo "|"
+echo "|"
+
+END=`date +%s`
+RUNTIME=$(echo "$END - $START")
+HOURS=$((RUNTIME / 3600))
+MINUTES=$(( (RUNTIME % 3600) / 60 ))
+SECONDS=$(( (RUNTIME % 3600) % 60 ))
+
+echo "| Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
+echo "|"
