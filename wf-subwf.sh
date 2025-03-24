@@ -10,7 +10,7 @@
 #
 set -e
 
-VERSION='25.03.24.1'
+VERSION='25.03.24.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -67,8 +67,7 @@ for DIR in $(ls -1 -d */); do
 	
 	WF_ID='demultmt'
 	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-	JOBID='debug1'
-#	JOBID=$(sbatch --parsable --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" $WF_DEMULTMT $SAMPLE_ID)
+	JOBID=$(sbatch --parsable --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" $WF_DEMULTMT $SAMPLE_ID)
 	echo "> Submitted batch job $JOBID"
 	echo "  Output in $SLURM_FILE"
 	JOBS_COUNT=$((JOBS_COUNT+1))
@@ -76,8 +75,7 @@ for DIR in $(ls -1 -d */); do
 	
 	WF_ID='modmito'
 	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-	JOBID='debug2'
-# 	JOBID=(sbatch --dependency=afterok:${JOBID} --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_MODMITO $SAMPLE_ID)
+ 	JOBID=(sbatch --dependency=afterok:${JOBID} --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_MODMITO $SAMPLE_ID)
 	echo "> Submitted batch job $JOBID"
 	echo "  Output in $SLURM_FILE"
 	JOBS_COUNT=$((JOBS_COUNT+1))
