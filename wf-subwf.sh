@@ -71,7 +71,7 @@ for DIR in $(ls -1 -d */); do
 	echo "> Submitted batch job $JOBID"
 	echo "  Output in $SLURM_FILE"
 	JOBS_COUNT=$((JOBS_COUNT+1))
-	JOBID_LIST="$JOBID_LIST $JOBID"
+	JOBID_LIST="$JOBID $JOBID_LIST"
 	
 	WF_ID='modmito'
 	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
@@ -79,7 +79,7 @@ for DIR in $(ls -1 -d */); do
 	echo "> Submitted batch job $JOBID"
 	echo "  Output in $SLURM_FILE"
 	JOBS_COUNT=$((JOBS_COUNT+1))
-	JOBID_LIST="$JOBID_LIST $JOBID"
+	JOBID_LIST="$JOBID $JOBID_LIST"
 done
 
 echo "=== $SAMPLES_COUNT sample(s)/$JOBS_COUNT batch job(s) submitted ==="
