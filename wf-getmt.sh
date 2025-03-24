@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 
-VERSION='25.03.24.3'
+VERSION='25.03.24.5'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
-ALN_DIR='alignments'
+ALN_DIR='alignment'
 POD5_ALL_DIR='pod5'
 POD5_MT_DIR='pod5_chrM'
 IDS_DIR='read_ids'
@@ -26,10 +26,10 @@ POD5_ALL_PATH="$RUN_PATH/$POD5_ALL_DIR"
 POD5_MT_PATH="$RUN_PATH/$POD5_MT_DIR"
 IDS_PATH="$RUN_PATH/$IDS_DIR"
 
-echo "Run path        : $RUN_PATH"
-echo "Alignments path : $ALN_PATH"
-echo "Pod5 path       : $POD5_ALL_PATH"
-echo "Output path     : $POD5_MT_PATH"
+echo "Run path       : $RUN_PATH"
+echo "Alignments path: $ALN_PATH"
+echo "Pod5 path      : $POD5_ALL_PATH"
+echo "Output path    : $POD5_MT_PATH"
 
 mkdir $IDS_PATH
 echo "[OK] Read ids directory $IDS_PATH created"
@@ -71,7 +71,8 @@ echo "[OK] Read ids directory $IDS_PATH removed"
 
 echo '|'
 echo '|'
-echo "| [OK] Workflow finished successfully"
+echo "| Workflow finished successfully. Pod5 data generated:"
+echo "| `du -hs $POD5_MT_PATH`"
 echo '|'
 echo '|'
 echo "=== $SAMPLES_COUNT sample(s) processed ==="
