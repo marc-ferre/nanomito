@@ -68,3 +68,5 @@ for DIR in $(ls -1); do
 done
 
 echo "=== $SAMPLES_COUNT sample(s)/$JOBS_COUNT batch job(s) submitted ==="
+
+# TODO: scancel ...

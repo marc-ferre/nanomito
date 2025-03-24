@@ -5,7 +5,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.23.1'
+VERSION='25.03.23.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 

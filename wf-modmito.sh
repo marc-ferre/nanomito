@@ -8,7 +8,7 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 
-VERSION='25.03.16.1'
+VERSION='25.03.23.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -35,11 +35,11 @@ RUN_DIR=`pwd`
 PROCESS_DIR="$RUN_DIR/processing"
 OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
+# MODBASE_DIR="$OUT_DIR/modbase"
 
 # Binary and Conda env
 DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado-0.9.1-linux-x64/bin/dorado'
 MODMITO_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_modmito'
-#MODKIT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_modkit'
 
 # Reference
 SELECTED_REF='/scratch/mferre/reference/chrM-mt_3kb-a0.fa'
@@ -48,7 +48,7 @@ SELECTED_REF='/scratch/mferre/reference/chrM-mt_3kb-a0.fa'
 BAM_PREFIX="$SAMPLE_ID.chrM.$MODEL_COMPLEX"
 
 # Files
-DEMULT_POD5_FILE="$OUT_DIR/$SAMPLE_ID.demultmt.pod5"
+DEMULT_POD5_FILE="$SELECT_DIR/$SAMPLE_ID.demultmt.pod5"
 BAM_FILE="$OUT_DIR/$BAM_PREFIX.bam"
 SORTED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.sorted.bam"
 BEDMETHYL_FILE="$OUT_DIR/$BAM_PREFIX.combine.bed"
