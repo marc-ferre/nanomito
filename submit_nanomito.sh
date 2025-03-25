@@ -60,7 +60,7 @@ JOBID_LIST=''
 	
 	WF_ID='subwf'
 	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-	JOBID=(sbatch --dependency=afterok:${JOBID} --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${RUN_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_SUBWF $RUN_PATH)
+	JOBID=$(sbatch --dependency=afterok:${JOBID} --parsable --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${RUN_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_SUBWF $RUN_PATH)
 	echo "> Submitted batch job $JOBID"
 	echo "  Output in $SLURM_FILE"
 	JOBID_LIST="$JOBID $JOBID_LIST"
