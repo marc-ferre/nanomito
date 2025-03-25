@@ -7,12 +7,16 @@
 #SBATCH --time 30
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-
-VERSION='25.03.23.1'
+#
+#
+# wf-modmito.sh /Path/to/run/dir/
+#
+#
+VERSION='25.03.25.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
-# Run id = Working directory
+# Run id = Working directory basename
 RUN_ID=${PWD##*/} # Assign directory name to run id
 RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
 
