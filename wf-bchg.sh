@@ -12,17 +12,9 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.03.24.7'
+VERSION='25.03.24.8'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
-
-# Argument = run path
-if [ $# -eq 0 ]
-	then
-		echo "[ERROR] No arguments supplied"
-		exit 9999 # die with error code 9999
-fi
-cd $1
 
 # Directories
 RUN_DIR=`pwd`
