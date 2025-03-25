@@ -4,13 +4,13 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 #
-# Submit Nanomito workflows to Slurm
 #
 # wf-subwf.sh /Path/to/run/dir/
 #
+#
 set -e
 
-VERSION='25.03.24.2'
+VERSION='25.03.25.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -20,6 +20,10 @@ WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-modmi
 FASTQ_DIR='fastq_pass'
 POD5_DIR='pod5_chrM'
 PROCESS_DIR='processing'
+
+RUN_ID=`basename $RUN_DIR`
+
+WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 MAIL_TYPE_ALL='ALL'
 MAIL_TYPE_END='END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
@@ -45,6 +49,8 @@ PROCESS_PATH="$RUN_PATH/$PROCESS_DIR"
 START=`date +%s`
 
 echo "Workflow: wf-subwf v.$VERSION by $AUTHOR"
+echo "Run: $RUN_ID"
+echo "Job: $SLURM_JOB_ID"
 echo "Run path   : $RUN_PATH"
 echo "FastQ path : $FASTQ_PATH"
 echo "Pod5 path  : $POD5_PATH"
@@ -100,3 +106,11 @@ SECONDS=$(( (RUNTIME % 3600) % 60 ))
 
 echo "| Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
 echo "|"
+
+# Write workflow summary file
+if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
+	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > $WORKFLOW_SUMMARY_FILE
+	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
+fi
+echo "$RUN_ID	$SAMPLE_ID	subwf	$HOURS:$MINUTES:$SECONDS" >> $WORKFLOW_SUMMARY_FILE
+echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
