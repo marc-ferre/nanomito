@@ -10,21 +10,9 @@
 #
 set -e
 
-VERSION='25.03.25.3'
+VERSION='25.03.25.4'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
-
-# Argument = run path
-if [ $# -eq 0 ]
-	then
-		echo "[ERROR] No arguments supplied"
-		exit 9999 # die with error code 9999
-fi
-cd $1
-
-# Workflows shell scripts
-WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-demultmt.sh'
-WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-modmito.sh'
 
 # Directories
 RUN_DIR=`pwd`
@@ -38,19 +26,16 @@ RUN_ID=`basename $RUN_DIR`
 # Files
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
+# Workflows shell scripts
+WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-demultmt.sh'
+WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-modmito.sh'
+
 # Mail options
 MAIL_USER='marc.ferre@univ-angers.fr'
 MAIL_TYPE_ALL='ALL'
 MAIL_TYPE_END='END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
 MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
 MAIL_TYPE_NONE='NONE'
-
-if [ $# -eq 0 ]
-	then
-		echo "[ERROR] No arguments supplied"
-		exit 9999 # die with error code 9999
-fi
-cd $1
 
 echo "=== Submit workflows to Slurm ==="
 
