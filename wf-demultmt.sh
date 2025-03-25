@@ -5,7 +5,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.23.2'
+VERSION='25.03.25.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -27,7 +27,7 @@ SELECT='both'
 # Directories
 RUN_DIR=`pwd`
 FASTQ_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
-POD5_DIR="$RUN_DIR/pod5"
+POD5_DIR="$RUN_DIR/pod5_chrM"
 PROCESS_DIR="$RUN_DIR/processing"
 OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
@@ -378,7 +378,7 @@ echo "Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
 
 # Write workflow summary file
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)	Status" > $WORKFLOW_SUMMARY_FILE
+	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > $WORKFLOW_SUMMARY_FILE
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
 echo "$RUN_ID	$SAMPLE_ID	demultmt	$HOURS:$MINUTES:$SECONDS" >> $WORKFLOW_SUMMARY_FILE
