@@ -12,7 +12,7 @@
 # wf-modmito.sh /Path/to/run/dir/
 #
 #
-VERSION='25.03.25.1'
+VERSION='25.03.25.3'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -58,6 +58,7 @@ TRIMMED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.trimmed.bam"
 SORTED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.sorted.bam"
 BEDMETHYL_FILE="$OUT_DIR/$BAM_PREFIX.combine.bed"
 PILEUP_LOG_FILE="$OUT_DIR/$BAM_PREFIX.pileup.log"
+SAMPLESHEET_FILE=`readlink -f "$(find $RUN_DIR -type f -name 'sample_sheet_*.csv')"`
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 check_dir () { 
@@ -89,6 +90,7 @@ echo "Run directory: $RUN_DIR"
 echo "Output directory: $OUT_DIR"
 echo "Read selection strategy: $SELECT"
 echo "Pod5 file: $DEMULT_POD5_FILE"
+echo "Sample sheet: $SAMPLESHEET_FILE"
 echo "Model Complex: $MODEL_COMPLEX"
 echo "Reference file: $SELECTED_REF"
 echo "Date: `date`"
@@ -105,8 +107,12 @@ export LC_ALL=en_US.UTF-8
 echo "Dorado version:"
 $DORADO_BIN --version
 
-#$DORADO_BIN basecaller $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $SELECTED_REF > $BAM_FILE
-$DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $SELECTED_REF --min-qscore 9 > $BAM_FILE
+$DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE \
+	--verbose \
+	--sample-sheet $SAMPLESHEET_FILE \
+	--reference $SELECTED_REF \
+	--min-qscore 9 \
+	> $BAM_FILE
 check_file $BAM_FILE
 
 $DORADO_BIN trim $BAM_FILE $TRIMMED_BAM_FILE
