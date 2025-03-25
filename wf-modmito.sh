@@ -50,6 +50,7 @@ BAM_PREFIX="$SAMPLE_ID.chrM.$MODEL_COMPLEX"
 # Files
 DEMULT_POD5_FILE="$SELECT_DIR/$SAMPLE_ID.demultmt.pod5"
 BAM_FILE="$OUT_DIR/$BAM_PREFIX.bam"
+TRIMMED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.trimmed.bam"
 SORTED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.sorted.bam"
 BEDMETHYL_FILE="$OUT_DIR/$BAM_PREFIX.combine.bed"
 PILEUP_LOG_FILE="$OUT_DIR/$BAM_PREFIX.pileup.log"
@@ -100,9 +101,12 @@ export LC_ALL=en_US.UTF-8
 echo "Dorado version:"
 $DORADO_BIN --version
 
-#$DORADO_BIN basecaller $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $REF_MT_3KB > $BAM_FILE
-$DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $SELECTED_REF > $BAM_FILE
+#$DORADO_BIN basecaller $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $SELECTED_REF > $BAM_FILE
+$DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE --reference $SELECTED_REF --min-qscore 9 > $BAM_FILE
 check_file $BAM_FILE
+
+$DORADO_BIN trim $BAM_FILE $TRIMMED_BAM_FILE
+check_file $TRIMMED_BAM_FILE
 
 echo
 echo '****************************'
@@ -114,7 +118,7 @@ conda activate $MODMITO_ENV
 
 echo "`samtools --version`"
 
-samtools sort $BAM_FILE -o $SORTED_BAM_FILE
+samtools sort $TRIMMED_BAM_FILE -o $SORTED_BAM_FILE
 check_file $SORTED_BAM_FILE
 samtools index $SORTED_BAM_FILE
 check_file "${SORTED_BAM_FILE}.bai"
