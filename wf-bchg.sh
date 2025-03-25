@@ -12,7 +12,7 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.03.24.2'
+VERSION='25.03.24.7'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -30,20 +30,19 @@ POD5_DIR="$RUN_DIR/pod5_chrM"
 FASTQ_DIR="$RUN_DIR/fastq_pass"
 PROCESS_DIR="$RUN_DIR/processing"
 
-# Files
-SAMPLESHEET_FILE=`readlink -f "$(find . -type f -name 'sample_sheet_*.csv')"`
-
-# Basecalling model
-MODEL='sup'
-
-# Binary and Conda env
-DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado-0.9.1-linux-x64/bin/dorado'
-
 # Prefixes
 RUN_ID=`basename $RUN_DIR`
 
 # Files
+SAMPLESHEET_FILE=`readlink -f "$(find . -type f -name 'sample_sheet_*.csv')"`
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
+
+# Basecalling options
+MODEL='sup'
+KIT='SQK-NBD114-24'
+
+# Binary and Conda env
+DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado-0.9.1-linux-x64/bin/dorado'
 
 check_dir () { 
 	if [ -d "$1" ]
@@ -69,27 +68,53 @@ START=`date +%s`
 echo "Workflow: wf-bchg v.$VERSION by $AUTHOR"
 echo "Run: $RUN_ID"
 echo "Job: $SLURM_JOB_ID"
-echo "Run directory  : $RUN_DIR"
-echo "Pod5 directory : $POD5_DIR"
-echo "FastQ directory: $FASTQ_DIR"
+echo "Run dir  : $RUN_DIR"
+echo "Pod5 dir : $POD5_DIR"
+echo "FastQ dir: $FASTQ_DIR"
+echo "Sample sheet: $SAMPLESHEET_FILE"
 echo "Model: $MODEL"
+echo "Kit  : $KIT"
 echo "Date : `date`"
 
 echo
-echo '***************'
-echo '* Basecalling *'
-echo '***************'
+echo '*****************************************'
+echo '* Basecalling w/ Barcode Classification *'
+echo '*****************************************'
 
 # To work around the issue https://github.com/nanoporetech/dorado/issues/432
 export LC_ALL=en_US.UTF-8
 
 check_dir $POD5_DIR
+check_file $SAMPLESHEET_FILE
+mkdir -p  $PROCESS_DIR
 
 echo "Dorado version:"
 $DORADO_BIN --version
 
-$DORADO_BIN basecaller $MODEL $POD5_DIR --sample-sheet $SAMPLESHEET_FILE --min-qscore 9 --emit-fastq --output-dir $FASTQ_DIR
+$DORADO_BIN basecaller $MODEL $POD5_DIR --recursive \
+	--verbose \
+	--sample-sheet $SAMPLESHEET_FILE \
+	--kit-name $KIT \
+	--min-qscore 9 \
+	| $DORADO_BIN demux \
+	--sample-sheet $SAMPLESHEET_FILE \
+	--kit-name $KIT \
+	--emit-fastq \
+	--output-dir $FASTQ_DIR
 check_dir $FASTQ_DIR
+
+echo
+echo "Gzip all files gzipped in dir $FASTQ_DIR"
+gzip $FASTQ_DIR/*
+echo
+echo "Organizing files in sample dir in dir $FASTQ_DIR"
+cd $FASTQ_DIR
+for FILE in $(ls -1 $FASTQ_DIR); do
+	DIR=${FILE#*_}
+	DIR=${DIR%%.*}
+	mkdir -p $DIR
+	mv $FILE $FASTQ_DIR/$DIR/$FILE
+done
 
 echo
 echo '***********'
