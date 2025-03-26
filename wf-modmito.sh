@@ -12,7 +12,7 @@
 # wf-modmito.sh /Path/to/run/dir/
 #
 #
-VERSION='25.03.25.5'
+VERSION='25.03.25.6'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -54,7 +54,6 @@ BAM_PREFIX="$SAMPLE_ID.chrM.$MODEL_COMPLEX"
 # Files
 DEMULT_POD5_FILE="$SELECT_DIR/$SAMPLE_ID.demultmt.pod5"
 BAM_FILE="$OUT_DIR/$BAM_PREFIX.bam"
-TRIMMED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.trimmed.bam"
 SORTED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.sorted.bam"
 BEDMETHYL_FILE="$OUT_DIR/$BAM_PREFIX.combine.bed"
 PILEUP_LOG_FILE="$OUT_DIR/$BAM_PREFIX.pileup.log"
@@ -113,9 +112,6 @@ $DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE \
 	> $BAM_FILE
 check_file $BAM_FILE
 
-$DORADO_BIN trim $BAM_FILE $TRIMMED_BAM_FILE
-check_file $TRIMMED_BAM_FILE
-
 echo
 echo '****************************'
 echo '* Sorted BAM and bedMethyl *'
@@ -126,7 +122,7 @@ conda activate $MODMITO_ENV
 
 echo "`samtools --version`"
 
-samtools sort $TRIMMED_BAM_FILE -o $SORTED_BAM_FILE
+samtools sort BAM_FILE -o $SORTED_BAM_FILE
 check_file $SORTED_BAM_FILE
 samtools index $SORTED_BAM_FILE
 check_file "${SORTED_BAM_FILE}.bai"
