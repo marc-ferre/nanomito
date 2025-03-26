@@ -78,19 +78,23 @@ export LC_ALL=en_US.UTF-8
 
 check_dir $POD5_DIR
 check_file $SAMPLESHEET_FILE
+echo "============= Sample Sheet ============="
+column -s, -t < $SAMPLESHEET_FILE
+echo "========================================"
+
 mkdir -p  $PROCESS_DIR
 
 echo "Dorado version:"
 $DORADO_BIN --version
 
+### --kit-name $KIT \ ### removed
+
 $DORADO_BIN basecaller $MODEL $POD5_DIR --recursive \
 	--verbose \
 	--sample-sheet $SAMPLESHEET_FILE \
-	--kit-name $KIT \
 	--min-qscore 9 \
 	| $DORADO_BIN demux \
 	--sample-sheet $SAMPLESHEET_FILE \
-	--kit-name $KIT \
 	--emit-fastq \
 	--output-dir $FASTQ_DIR
 check_dir $FASTQ_DIR
