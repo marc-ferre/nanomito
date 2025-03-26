@@ -10,14 +10,14 @@
 #
 set -e
 
-VERSION='25.03.26.1'
+VERSION='25.03.26.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 # Directories
 RUN_DIR=`pwd`
-FASTQ_DIR='fastq_pass'
-PROCESS_DIR='processing'
+FASTQ_DIR="$RUN_DIR/fastq_pass"
+PROCESS_DIR="$RUN_DIR/processing"
 
 # Prefixes
 RUN_ID=`basename $RUN_DIR`
@@ -36,19 +36,15 @@ MAIL_TYPE_END='END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
 MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
 MAIL_TYPE_NONE='NONE'
 
-echo "=== Submit workflows to Slurm ==="
-
-
-
-
 START=`date +%s`
 
+echo "=== Submit workflows to Slurm ==="
 echo "Workflow: wf-subwf v.$VERSION by $AUTHOR"
 echo "Run: $RUN_ID"
 echo "Job: $SLURM_JOB_ID"
-echo "Run path   : $RUN_DIR"
-echo "FastQ path : $FASTQ_DIR"
-echo "Output path: $PROCESS_DIR"
+echo "Run dir   : $RUN_DIR"
+echo "FastQ dir : $FASTQ_DIR"
+echo "Output dir: $PROCESS_DIR"
 echo "Date: `date`"
 
 SAMPLES_COUNT=0
@@ -61,12 +57,12 @@ for DIR in $(ls -1 -d */); do
 	
 	SAMPLES_COUNT=$((SAMPLES_COUNT+1))
 	
-	OUT_PATH="$PROCESS_DIR/$SAMPLE_ID"
+	OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 	SLURM_PRE="slurm-$SAMPLE_ID"
 	SLURM_EXT='txt'
 	
 	WF_ID='demultmt'
-	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+	SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
 	JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" $WF_DEMULTMT $SAMPLE_ID)
 	echo "> Submitted batch job $JOBID"
 	echo "  Output in $SLURM_FILE"
@@ -74,8 +70,8 @@ for DIR in $(ls -1 -d */); do
 	JOBID_LIST="$JOBID $JOBID_LIST"
 	
 	WF_ID='modmito'
-	SLURM_FILE="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
- 	JOBID=$(sbatch  --parsable --dependency=afterok:${JOBID} --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_MODMITO $SAMPLE_ID)
+	SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+ 	JOBID=$(sbatch  --dependency=afterok:${JOBID} --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_MODMITO $SAMPLE_ID)
 	echo "> Submitted batch job $JOBID"
 	echo "  Output in $SLURM_FILE"
 	JOBS_COUNT=$((JOBS_COUNT+1))
