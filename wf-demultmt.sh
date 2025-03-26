@@ -355,6 +355,10 @@ haplocheck --version
 haplocheck --raw --out $HPLCHK_PREFIX $ANNOTMT_VCF_FILE
 check_file $HPLCHK_RAW_FILE
 
+echo 'Remove others haplocheck files:'
+rm $HPLCHK_PREFIX && [[ ! -e $HPLCHK_PREFIX ]] && echo "[OK] FastQ file removed: $HPLCHK_PREFIX"
+rm $HPLCHK_PREFIX.html && [[ ! -e $HPLCHK_PREFIX.html ]] && echo "[OK] Mapping file removed: $HPLCHK_PREFIX.html"
+
 if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
 	cp $HPLCHK_RAW_FILE $HPLCHK_SUMMARY_FILE
 	echo "[OK] File $HPLCHK_SUMMARY_FILE created (with header)"
