@@ -12,7 +12,7 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.03.26.2'
+VERSION='25.03.26.3'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -82,23 +82,21 @@ echo "============= Sample Sheet ============="
 column -s, -t < $SAMPLESHEET_FILE
 echo "========================================"
 
-mkdir $FASTQ_DIR
 mkdir -p  $PROCESS_DIR
+mkdir $FASTQ_DIR
+check_dir $FASTQ_DIR
 
 echo "Dorado version:"
 $DORADO_BIN --version
 
-### --kit-name $KIT \ ### removed
-
 $DORADO_BIN basecaller $MODEL $POD5_DIR --recursive \
 	--verbose \
 	--sample-sheet $SAMPLESHEET_FILE \
-	--min-qscore 9 \
 	| $DORADO_BIN demux \
+	--kit-name $KIT \
 	--sample-sheet $SAMPLESHEET_FILE \
 	--emit-fastq \
 	--output-dir $FASTQ_DIR
-check_dir $FASTQ_DIR
 
 echo
 echo "Gzip all files gzipped in dir $FASTQ_DIR"
