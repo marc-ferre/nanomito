@@ -124,7 +124,7 @@ echo '* Sorted BAM and bedMethyl *'
 echo '****************************'
 
 . /local/env/envconda.sh
-conda activate $MODMITO_ENV
+conda -v activate $MODMITO_ENV
 
 echo "`samtools --version`"
 
