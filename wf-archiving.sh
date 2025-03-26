@@ -5,7 +5,7 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 
-VERSION='25.03.13.4'
+VERSION='25.03.26.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -26,7 +26,7 @@ ARCHIVING_DIR=$2
 
 # Directories to remove
 FASTQ_DIR="$RUN_DIR/fastq_pass"
-POD5_DIR="$RUN_DIR/pod5"
+POD5_DIR="$RUN_DIR/pod5_chrM"
 
 START=`date +%s`
 
@@ -58,8 +58,8 @@ clean_dir () {
 	fi
 }
 
-clean_dir $FASTQ_DIR
-clean_dir $POD5_DIR
+# clean_dir $FASTQ_DIR
+# clean_dir $POD5_DIR
 
 echo
 echo '************'
