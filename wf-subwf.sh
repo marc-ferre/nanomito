@@ -10,7 +10,7 @@
 #
 set -e
 
-VERSION='25.03.26.2'
+VERSION='25.03.26.3'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -102,5 +102,5 @@ if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
 	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > $WORKFLOW_SUMMARY_FILE
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	subwf	$HOURS:$MINUTES:$SECONDS" >> $WORKFLOW_SUMMARY_FILE
+echo "$RUN_ID		subwf	$HOURS:$MINUTES:$SECONDS" >> $WORKFLOW_SUMMARY_FILE
 echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
