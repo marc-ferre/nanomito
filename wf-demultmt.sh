@@ -5,7 +5,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.25.2'
+VERSION='25.03.25.3'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -128,7 +128,7 @@ echo
 echo '******************************'
 echo '* Mapping Standard Reference *'
 echo '******************************'
-conda -v activate $ONT_DEMULT_ENV
+conda activate $ONT_DEMULT_ENV
 echo "Minimap2 version: `minimap2 --version`"
 
 minimap2 -x map-ont -t 10 $REF_WHOLE $FASTQ_FILE > $MAPPING_FILE
@@ -215,7 +215,7 @@ echo '* Variant Calling *'
 echo '*******************'
 mkdir $VARCALL_DIR
 cd $VARCALL_DIR
-conda -v activate $BALDUR_ENV
+conda activate $BALDUR_ENV
 echo "`$BALDUR_BIN --version`"
 
 # !!!
@@ -250,9 +250,10 @@ echo "Retrieving matching reads (select: $SELECT)..."
 cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
 check_file $IDS_FILE
 
-conda -v activate $POD5_ENV
+conda activate $POD5_ENV
 
 check_dir $POD5_DIR
+pod5 --version
 
 pod5 filter $POD5_DIR --ids $IDS_FILE --missing-ok --output $DEMULT_POD5_FILE
 
@@ -274,7 +275,7 @@ check_file $BALDUR_VCF_FILE
 # # Stats
 # bcftools stats $BALDUR_VCF_FILE
 
-conda -v activate $ANNOTMT_ENV
+conda activate $ANNOTMT_ENV
 
 SnpSift # Get version
 
