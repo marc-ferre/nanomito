@@ -16,11 +16,11 @@ if [ $# -eq 0 ]
 		exit 9999 # die with error code 9999
 fi
 
-echo "Archiving run..."
+echo "=== Submit run archiving ==="
 cd $1
 RUN_DIR=`pwd`
 RUN_ID=$(basename $RUN_DIR)
-echo "Run id : $RUN_ID"
+echo "Run id: $RUN_ID"
 
 ARCHIVING_DIR="$PROJECTS_DIR/$RUN_ID"
 if [ -d "$ARCHIVING_DIR" ]; then
