@@ -6,7 +6,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.25.8'
+VERSION='25.03.25.9'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -366,7 +366,7 @@ if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
 	cp $HPLCHK_RAW_FILE $HPLCHK_SUMMARY_FILE
 	echo "[OK] File $HPLCHK_SUMMARY_FILE created (with header)"
 else
-	tail -n +2 >> $HPLCHK_SUMMARY_FILE
+	tail -n +2 $HPLCHK_RAW_FILE >> $HPLCHK_SUMMARY_FILE
 	echo "[OK] Line added to $HPLCHK_SUMMARY_FILE"
 fi
 
