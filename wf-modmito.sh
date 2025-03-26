@@ -12,7 +12,7 @@
 # wf-modmito.sh /Path/to/run/dir/
 #
 #
-VERSION='25.03.25.4'
+VERSION='25.03.25.5'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -109,9 +109,7 @@ $DORADO_BIN --version
 
 $DORADO_BIN duplex $MODEL_COMPLEX $DEMULT_POD5_FILE \
 	--verbose \
-	--sample-sheet $SAMPLESHEET_FILE \
 	--reference $SELECTED_REF \
-	--min-qscore 9 \
 	> $BAM_FILE
 check_file $BAM_FILE
 
