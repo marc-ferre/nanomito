@@ -12,7 +12,7 @@
 # wf-modmito.sh /Path/to/run/dir/
 #
 #
-VERSION='25.03.25.6'
+VERSION='25.03.25.7'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -122,7 +122,7 @@ conda activate $MODMITO_ENV
 
 echo "`samtools --version`"
 
-samtools sort BAM_FILE -o $SORTED_BAM_FILE
+samtools sort $BAM_FILE -o $SORTED_BAM_FILE
 check_file $SORTED_BAM_FILE
 samtools index $SORTED_BAM_FILE
 check_file "${SORTED_BAM_FILE}.bai"
