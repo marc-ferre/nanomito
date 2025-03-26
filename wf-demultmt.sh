@@ -1,11 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=demultmt
 #SBATCH --cpus-per-task=12
+#SBATCH --constraint avx2
 #SBATCH --mem=150G
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.25.5'
+VERSION='25.03.25.6'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -41,7 +42,7 @@ ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_dem
 ANNOTMT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_annotmt'
 BALDUR_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_baldur'
 ONT_DEMULT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_ont_demult'
-POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5'
+POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.15'
 
 # References
 ANN_GNOMAD='/scratch/mferre/reference/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
