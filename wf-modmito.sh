@@ -12,7 +12,7 @@
 # wf-modmito.sh /Path/to/run/dir/
 #
 #
-VERSION='25.03.25.3'
+VERSION='25.03.25.4'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -124,7 +124,7 @@ echo '* Sorted BAM and bedMethyl *'
 echo '****************************'
 
 . /local/env/envconda.sh
-conda -v activate $MODMITO_ENV
+conda activate $MODMITO_ENV
 
 echo "`samtools --version`"
 
