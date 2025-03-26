@@ -27,45 +27,40 @@ if [ $# -eq 0 ]
 fi
 cd $1
 
+# Directories
+RUN_DIR=`pwd`
+POD5_DIR="$RUN_DIR/$POD5_DIR"
+PROCESS_DIR="$RUN_DIR/$PROCESS_DIR"
+
+# Prefixes
+RUN_ID=`basename $RUN_DIR`
+SLURM_PRE="slurm-$RUN_ID"
+SLURM_EXT='txt'
+
 echo "=== Submit workflows to Slurm ==="
 
-RUN_PATH=`pwd`
-RUN_ID=`basename $RUN_PATH`
-FASTQ_PATH="$RUN_PATH/$FASTQ_DIR"
-POD5_PATH="$RUN_PATH/$POD5_DIR"
-PROCESS_PATH="$RUN_PATH/$PROCESS_DIR"
-
-echo "Run path   : $RUN_PATH"
-echo "FastQ path : $FASTQ_PATH"
-echo "Pod5 path  : $POD5_PATH"
-echo "Output path: $PROCESS_PATH"
+echo "Run dir : $RUN_DIR"
+echo "Pod5 dir: $POD5_DIR"
 
 JOBID_LIST=''
-# cd $FASTQ_PATH
-# for DIR in $(ls -1); do
-# 	SAMPLE_ID=`basename $DIR`
-# 	echo "--- Sample: $SAMPLE_ID"
-	
-	
-	OUT_PATH=$PROCESS_PATH
-	SLURM_PRE="slurm-$RUN_ID"
-	SLURM_EXT='txt'
-	
-	WF_ID='bchg'
-	SLURM_PATH="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-	JOBID=$(sbatch --parsable --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${RUN_ID: -5}" --output="$SLURM_PATH" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" $WF_BCHG $RUN_PATH)
-	echo "> Submitted batch job $JOBID"
-	echo "  Output in $SLURM_PATH"
-	JOBID_LIST="$JOBID $JOBID_LIST"
-	
-	WF_ID='subwf'
-	SLURM_PATH="$OUT_PATH/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-	JOBID=$(sbatch --dependency=afterok:${JOBID} --parsable --chdir="$RUN_PATH" --job-name="${WF_ID:0:1}${RUN_ID: -5}" --output="$SLURM_PATH" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_SUBWF)
-	echo "> Submitted batch job $JOBID"
-	echo "  Output in $SLURM_PATH"
-	JOBID_LIST="$JOBID $JOBID_LIST"
 
-# done
+WF_ID='bchg'
+SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+
+JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" $WF_BCHG $RUN_DIR)
+
+echo "> Submitted batch job $JOBID"
+echo "  Output in $SLURM_FILE"
+JOBID_LIST="$JOBID $JOBID_LIST"
+
+WF_ID='subwf'
+SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+
+JOBID=$(sbatch --dependency=afterok:${JOBID} --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -5}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_SUBWF)
+
+echo "> Submitted batch job $JOBID"
+echo "  Output in $SLURM_FILE"
+JOBID_LIST="$JOBID $JOBID_LIST"
 
 echo "=== $SAMPLES_COUNT sample(s)/$JOBS_COUNT batch job(s) submitted ==="
 echo "|"
