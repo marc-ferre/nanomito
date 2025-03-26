@@ -12,7 +12,7 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.03.24.8'
+VERSION='25.03.26.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -82,6 +82,7 @@ echo "============= Sample Sheet ============="
 column -s, -t < $SAMPLESHEET_FILE
 echo "========================================"
 
+mkdir $FASTQ_DIR
 mkdir -p  $PROCESS_DIR
 
 echo "Dorado version:"
