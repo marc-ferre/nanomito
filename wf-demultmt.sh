@@ -46,7 +46,7 @@ POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.
 
 # References
 ANN_GNOMAD='/scratch/mferre/reference/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
-ANN_MITOMAP_DISEASE='/scratch/mferre/reference/MITOMAP/disease.vcf'
+ANN_MITOMAP_DISEASE='/scratch/mferre/reference/MITOMAP/disease-nosp.vcf'
 ANN_MITOMAP_POLYMORPHISMS='/scratch/mferre/reference/MITOMAP/polymorphisms.vcf'
 REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
 REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
