@@ -5,7 +5,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.25.1'
+VERSION='25.03.25.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -128,7 +128,7 @@ echo
 echo '******************************'
 echo '* Mapping Standard Reference *'
 echo '******************************'
-conda activate $ONT_DEMULT_ENV
+conda -v activate $ONT_DEMULT_ENV
 echo "Minimap2 version: `minimap2 --version`"
 
 minimap2 -x map-ont -t 10 $REF_WHOLE $FASTQ_FILE > $MAPPING_FILE
@@ -206,8 +206,8 @@ check_file $BAM_FILE
 conda deactivate
 
 echo "Remove large files:"
-rm -i $FASTQ_FILE && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
-rm -i $MAPPING_FILE && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $FASTQ_FILE"
+rm $FASTQ_FILE && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
+rm $MAPPING_FILE && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $FASTQ_FILE"
 
 echo
 echo '*******************'
@@ -215,7 +215,7 @@ echo '* Variant Calling *'
 echo '*******************'
 mkdir $VARCALL_DIR
 cd $VARCALL_DIR
-conda activate $BALDUR_ENV
+conda -v activate $BALDUR_ENV
 echo "`$BALDUR_BIN --version`"
 
 # !!!
@@ -250,11 +250,11 @@ echo "Retrieving matching reads (select: $SELECT)..."
 cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
 check_file $IDS_FILE
 
-conda activate $POD5_ENV
+conda -v activate $POD5_ENV
 
 check_dir $POD5_DIR
 
-pod5 filter $POD5_DIR --output $DEMULT_POD5_FILE --ids $IDS_FILE --missing-ok
+pod5 filter $POD5_DIR --ids $IDS_FILE --missing-ok --output $DEMULT_POD5_FILE
 
 check_file $DEMULT_POD5_FILE
 echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
@@ -274,7 +274,7 @@ check_file $BALDUR_VCF_FILE
 # # Stats
 # bcftools stats $BALDUR_VCF_FILE
 
-conda activate $ANNOTMT_ENV
+conda -v activate $ANNOTMT_ENV
 
 SnpSift # Get version
 
