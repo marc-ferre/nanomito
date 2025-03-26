@@ -6,7 +6,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.25.7'
+VERSION='25.03.25.8'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -256,8 +256,11 @@ conda activate $POD5_ENV
 check_dir $POD5_DIR
 pod5 --version
 
-pod5 filter $POD5_DIR -i $IDS_FILE -o $DEMULT_POD5_FILE #--missing-ok 
-# echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
+POD5_DEBUG=1
+echo "Set POD5_DEBUG=1 for for detailed information"
+echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
+
+pod5 filter $POD5_DIR -i $IDS_FILE -o $DEMULT_POD5_FILE --missing-ok
 
 check_file $DEMULT_POD5_FILE
 
@@ -351,7 +354,6 @@ echo
 echo '*******************************************'
 echo '* Determining major and minor haplogroups *'
 echo '*******************************************'
-haplocheck --version
 
 haplocheck --raw --out $HPLCHK_PREFIX $ANNOTMT_VCF_FILE
 check_file $HPLCHK_RAW_FILE
@@ -364,7 +366,7 @@ if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
 	cp $HPLCHK_RAW_FILE $HPLCHK_SUMMARY_FILE
 	echo "[OK] File $HPLCHK_SUMMARY_FILE created (with header)"
 else
-	tail -n 1  >> $HPLCHK_SUMMARY_FILE
+	tail -n +2 >> $HPLCHK_SUMMARY_FILE
 	echo "[OK] Line added to $HPLCHK_SUMMARY_FILE"
 fi
 
