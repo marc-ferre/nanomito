@@ -6,7 +6,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.25.6'
+VERSION='25.03.25.7'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -256,10 +256,10 @@ conda activate $POD5_ENV
 check_dir $POD5_DIR
 pod5 --version
 
-pod5 filter $POD5_DIR --ids $IDS_FILE --missing-ok --output $DEMULT_POD5_FILE
+pod5 filter $POD5_DIR -i $IDS_FILE -o $DEMULT_POD5_FILE #--missing-ok 
+# echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
 
 check_file $DEMULT_POD5_FILE
-echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
 
 conda deactivate
 
