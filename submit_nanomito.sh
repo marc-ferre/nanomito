@@ -6,20 +6,6 @@
 #
 set -e
 
-WF_BCHG='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-bchg.sh'
-WF_SUBWF='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-subwf.sh'
-
-FASTQ_DIR='fastq_pass'
-POD5_DIR='pod5_chrM'
-PROCESS_DIR='processing'
-
-MAIL_TYPE_ALL='ALL'
-MAIL_TYPE_END='END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
-MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
-MAIL_TYPE_NONE='NONE'
-
-MAIL_USER='marc.ferre@univ-angers.fr'
-
 if [ $# -eq 0 ]
 	then
 		echo "[ERROR] No arguments supplied"
@@ -29,19 +15,28 @@ cd $1
 
 # Directories
 RUN_DIR=`pwd`
-POD5_DIR="$RUN_DIR/$POD5_DIR"
-PROCESS_DIR="$RUN_DIR/$PROCESS_DIR"
+PROCESS_DIR="$RUN_DIR/processing"
 
 # Prefixes
 RUN_ID=`basename $RUN_DIR`
 SLURM_PRE="slurm-$RUN_ID"
 SLURM_EXT='txt'
 
+# Workflow files
+WF_BCHG='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-bchg.sh'
+WF_SUBWF='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-subwf.sh'
+
+# Mail parameters
+MAIL_USER='marc.ferre@univ-angers.fr'
+MAIL_TYPE_ALL='ALL'
+MAIL_TYPE_END='END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
+MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
+MAIL_TYPE_NONE='NONE'
+
 echo "=== Submit workflows to Slurm ==="
+echo "Run dir: $RUN_DIR"
 
-echo "Run dir : $RUN_DIR"
-echo "Pod5 dir: $POD5_DIR"
-
+mkdir $PROCESS_DIR
 JOBID_LIST=''
 
 WF_ID='bchg'
