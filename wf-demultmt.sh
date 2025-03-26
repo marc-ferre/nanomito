@@ -5,7 +5,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.25.4'
+VERSION='25.03.25.5'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -342,7 +342,7 @@ rm $VCF_TMP1
 # QUAL:QUAL
 # DP:DP
 bcftools --version
-echo "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP" > $ANNOTMT_TSV_FILE
+echo 'CHROM	POS	ID	REF	ALT	HPL	AC	AF	Disease	DiseaseStatus	HGFL	PubmedIDs	aachange	heteroplasmy	homoplasmy	mitotip_trna_prediction	mitotip_score	AC_het	AC_hom	AF_het	AF_hom	AN	filters	hap_defining_variant	max_hl	pon_ml_probability_of_pathogenicity	pon_mt_trna_prediction	FILTER	ADF	ADR	QUAL	DP' > $ANNOTMT_TSV_FILE
 bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' $ANNOTMT_VCF_FILE >> $ANNOTMT_TSV_FILE
 check_file $ANNOTMT_TSV_FILE
 
