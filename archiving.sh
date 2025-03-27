@@ -41,5 +41,5 @@ fi
 
 SLURM_FILE="$PROJECTS_DIR/slurm-$RUN_ID.txt"
 
-sbatch --job-name="a${RUN_ID: -5}" --output="$SLURM_FILE" $WF_ARCHIVING $RUN_DIR $ARCHIVING_DIR
+sbatch --job-name="a${RUN_ID: -7}" --output="$SLURM_FILE" $WF_ARCHIVING $RUN_DIR $ARCHIVING_DIR
 echo "> Output in $SLURM_FILE"
