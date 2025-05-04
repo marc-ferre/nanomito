@@ -1,7 +1,12 @@
 #!/bin/bash
+#
+# get_pid.sh /Path/to/run/dir
+#
+# Script to filter raw data (Pod5) from nanopore sequencing reads aligned (BAM) to chrM
+#
 set -e
 
-VERSION='25.03.24.5'
+VERSION='25.05.04.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -58,7 +63,7 @@ for DIR in $(ls -1 -d */); do
 		echo "[WARNING]No read matching chrM: skip to next sample"
 	else
 		POD5_PATH="$POD5_MT_PATH/$SAMPLE_ID.chrM.pod5"
-		#pod5 --version
+		pod5 --version
 		pod5 filter $POD5_ALL_PATH --ids $READ_IDS_PATH --missing-ok --output $POD5_PATH
 		echo "[OK] Pod5 chrM only in file $POD5_PATH"
 		pod5 inspect summary $POD5_PATH
