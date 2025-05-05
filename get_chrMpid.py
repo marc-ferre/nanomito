@@ -11,7 +11,7 @@ import pysam
 import pod5
 import subprocess
 
-version = "25.05.04.1"
+version = "25.05.04.2"
 author = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
@@ -84,7 +84,7 @@ def main():
 
     print("\n\n>>> Parent IDs count:       ", len(pids))
     unique_pids = unique(pids)
-    print(">>> Unique parent IDS count:", len(unique_pids), "\n\n\n")
+    print(">>> Unique parent IDS count:", len(unique_pids))
 
     # Write unique ids file
     out_path = Path(opts.output)
@@ -97,7 +97,7 @@ def main():
     print(
         "[OK]",
         written_pids_count,
-        "unique parent IDs of reads aligned to chrM writen to:",
+        "unique parent IDs of reads aligned to chrM written to:",
         out_path,
     )
 
