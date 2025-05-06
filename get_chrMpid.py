@@ -10,8 +10,9 @@ from pathlib import Path
 import pysam
 import pod5
 import subprocess
+import sys
 
-version = "25.05.04.2"
+version = "25.05.05.2"
 author = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
@@ -56,7 +57,12 @@ def main():
     else:
         print("BAM dir:", opts.bam)
 
-    pids = []
+    # Dictionary of reads aligned to chrM
+    #   Key: read id (BAM)
+    #   Value: raw data id (Pod5): parent id if read splitting, else read id
+    pids = {}
+    print("Creating the dictionary with key: Read ID - value: Raw ID")
+
     for root, dirs, files in os.walk(opts.bam):
         for file in files:
             if file.endswith(".bam"):
@@ -66,38 +72,74 @@ def main():
                 samfile = pysam.AlignmentFile(sampath, "rb")
 
                 for read in samfile.fetch("chrM"):
+                    read_id = read.query_name
+                    raw_id = read_id
                     if read.has_tag("pi:Z"):
-                        id = read.get_tag("pi:Z")
-                        pids.append(id)
+                        raw_id = read.get_tag("pi:Z")
                         print(
                             "   [READ SPLITTING] Subread id#",
-                            read.query_name,
+                            read_id,
                             "was generated from Parent read id#",
-                            id,
+                            raw_id,
                         )
                     else:
-                        id = read.query_name
-                        pids.append(id)
-                        print("   Read id#", id)
+                        print("   Read id#", read_id)
+
+                    # Test if entry exist
+                    if read_id in pids:
+                        if pids.get(read_id) == raw_id:
+                            print(
+                                "      [INFO] Existing entry not duplicated: Key read id#",
+                                read_id,
+                                "- Value raw id#",
+                                raw_id,
+                            )
+                        else:
+                            print(
+                                "   [ERROR] Discordant existing entry: Key read id#",
+                                read_id,
+                                "- Value raw id#",
+                                raw_id,
+                            )
+                            print(
+                                "     is different from the new entry: Key read id#",
+                                read_id,
+                                "- Value raw id#",
+                                pids.get(read_id),
+                            )
+                            sys.exit(
+                                "[ERROR] Discordant existing entry: Key read id#",
+                                read_id,
+                                "- Value raw id#",
+                                raw_id,
+                            )
+                    else:
+                        pids.update({read_id: raw_id}
+)
+                        print(
+                            "      Storing: Key read id#",
+                            read_id,
+                            "- Value raw id#",
+                            raw_id,
+                        )
 
                 samfile.close()
 
-    print("\n\n>>> Parent IDs count:       ", len(pids))
-    unique_pids = unique(pids)
-    print(">>> Unique parent IDS count:", len(unique_pids))
+    print("\n>>> Read-Raw IDs count:", len(pids.values()))
+   
+    # Write unique IDS to file
 
-    # Write unique ids file
     out_path = Path(opts.output)
     written_pids_count = 0
     with open(out_path, "w") as f:
-        for id in unique_pids:
-            f.write(f"{id}\n")
+        for read_id, raw_id in pids.items():
+            f.write(f"{read_id}\t{raw_id}\n")
             written_pids_count += 1
 
     print(
         "[OK]",
         written_pids_count,
-        "unique parent IDs of reads aligned to chrM written to:",
+        "parent IDs of reads aligned to chrM written to:",
         out_path,
     )
 
