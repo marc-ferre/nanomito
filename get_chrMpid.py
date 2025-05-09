@@ -11,7 +11,7 @@ import pysam
 import pod5
 import subprocess
 
-version = "25.05.09.1"
+version = "25.05.09.2"
 author = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
@@ -47,7 +47,7 @@ def main():
         exit(66)
     else:
         print("BAM dir:", opts.bam)
-    
+
     bam_count = 0
     read_chrM_count = 0
     read_split_count = 0
@@ -75,10 +75,11 @@ def main():
                         read_split_count += 1
                         pid = read.get_tag("pi:Z")
                         print(
-                            "   [READ SPLITTING] Subread id#",
+                            "   Subread id#",
                             id,
                             "was generated from Parent read id#",
                             pid,
+                            "[READ SPLITTING]",
                         )
                     else:
                         pid = id
@@ -87,21 +88,23 @@ def main():
                     # Test if entry exist
                     if pid in pids:
                         read_duplicate_count += 1
-                        print("   [INFO] Existing entry not duplicated: id#", id)
+                        print(
+                            "      Existing entry not duplicated: id#",
+                            id,
+                            "[DUPLICATE]",
+                        )
                     else:
                         read_unique_count += 1
                         pids.append(id)
-                        print("   Storing entry: id#", id)
+                        print("      Storing entry: id#", id)
 
                 samfile.close()
 
-    print("\n\n")
-    print("| BAM files processed:", bam_count)
+    print("\n| BAM files processed:", bam_count)
     print("| Reads aligned to chrM:", read_chrM_count)
     print("| Split reads:", read_split_count)
     print("| Duplicate reads ignored:", read_duplicate_count)
-    print("| Unique reads:", read_unique_count)
-    
+    print("| Unique Pod5 IDs:", read_unique_count)
 
     # Write unique IDS to file
     out_path = Path(opts.output)
@@ -111,10 +114,11 @@ def main():
             f.write(f"{id}\n")
             f_pids_count += 1
     print(
-        "[OK]",
+        "\n[OK]",
         f_pids_count,
-        "unique parent IDs of reads aligned to chrM written to:",
+        "unique Pod5 IDs of reads aligned to chrM written to:",
         out_path,
+        "\n",
     )
 
 
