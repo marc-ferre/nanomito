@@ -10,18 +10,9 @@ from pathlib import Path
 import pysam
 import pod5
 import subprocess
-import sys
 
-version = "25.05.05.2"
+version = "25.05.09.1"
 author = "Marc FERRE <marc.ferre@univ-angers.fr>"
-
-
-def unique(list):
-    unique_list = []
-    for id in list:
-        if id not in unique_list:
-            unique_list.append(id)
-    return unique_list
 
 
 #
@@ -42,7 +33,7 @@ def main():
         "--output",
         type="string",
         default="chrM_pids.txt",
-        help="a file containing a list of parent ids of reads matching to chrM",
+        help="a file containing a list of unique parent ids of reads matching to chrM",
     )
     (opts, args) = parser.parse_args()
 
@@ -56,90 +47,73 @@ def main():
         exit(66)
     else:
         print("BAM dir:", opts.bam)
-
-    # Dictionary of reads aligned to chrM
-    #   Key: read id (BAM)
-    #   Value: raw data id (Pod5): parent id if read splitting, else read id
-    pids = {}
-    print("Creating the dictionary with key: Read ID - value: Raw ID")
+    
+    bam_count = 0
+    read_chrM_count = 0
+    read_split_count = 0
+    read_duplicate_count = 0
+    read_unique_count = 0
+    # List fo raw data ID (Pod5) of reads aligned to chrM:
+    #   Parent ID (pid) if read splitting,
+    #   else Read ID
+    pids = []
 
     for root, dirs, files in os.walk(opts.bam):
         for file in files:
             if file.endswith(".bam"):
+                bam_count += 1
                 sampath = os.path.join(root, file)
                 print("Process file: ", sampath)
 
                 samfile = pysam.AlignmentFile(sampath, "rb")
 
                 for read in samfile.fetch("chrM"):
-                    read_id = read.query_name
-                    raw_id = read_id
+                    read_chrM_count += 1
+                    id = read.query_name
+                    pid = ""
                     if read.has_tag("pi:Z"):
-                        raw_id = read.get_tag("pi:Z")
+                        read_split_count += 1
+                        pid = read.get_tag("pi:Z")
                         print(
                             "   [READ SPLITTING] Subread id#",
-                            read_id,
+                            id,
                             "was generated from Parent read id#",
-                            raw_id,
+                            pid,
                         )
                     else:
-                        print("   Read id#", read_id)
+                        pid = id
+                        print("   Read id#", pid)
 
                     # Test if entry exist
-                    if read_id in pids:
-                        if pids.get(read_id) == raw_id:
-                            print(
-                                "      [INFO] Existing entry not duplicated: Key read id#",
-                                read_id,
-                                "- Value raw id#",
-                                raw_id,
-                            )
-                        else:
-                            print(
-                                "   [ERROR] Discordant existing entry: Key read id#",
-                                read_id,
-                                "- Value raw id#",
-                                raw_id,
-                            )
-                            print(
-                                "     is different from the new entry: Key read id#",
-                                read_id,
-                                "- Value raw id#",
-                                pids.get(read_id),
-                            )
-                            sys.exit(
-                                "[ERROR] Discordant existing entry: Key read id#",
-                                read_id,
-                                "- Value raw id#",
-                                raw_id,
-                            )
+                    if pid in pids:
+                        read_duplicate_count += 1
+                        print("   [INFO] Existing entry not duplicated: id#", id)
                     else:
-                        pids.update({read_id: raw_id}
-)
-                        print(
-                            "      Storing: Key read id#",
-                            read_id,
-                            "- Value raw id#",
-                            raw_id,
-                        )
+                        read_unique_count += 1
+                        pids.append(id)
+                        print("   Storing entry: id#", id)
 
                 samfile.close()
 
-    print("\n>>> Read-Raw IDs count:", len(pids.values()))
-   
+    print("\n\n")
+    print("| BAM files processed:", bam_count)
+    print("| Reads aligned to chrM:", read_chrM_count)
+    print("| Split reads:", read_split_count)
+    print("| Duplicate reads ignored:", read_duplicate_count)
+    print("| Unique reads:", read_unique_count)
+    
+
     # Write unique IDS to file
-
     out_path = Path(opts.output)
-    written_pids_count = 0
+    f_pids_count = 0
     with open(out_path, "w") as f:
-        for read_id, raw_id in pids.items():
-            f.write(f"{read_id}\t{raw_id}\n")
-            written_pids_count += 1
-
+        for id in pids:
+            f.write(f"{id}\n")
+            f_pids_count += 1
     print(
         "[OK]",
-        written_pids_count,
-        "parent IDs of reads aligned to chrM written to:",
+        f_pids_count,
+        "unique parent IDs of reads aligned to chrM written to:",
         out_path,
     )
 
