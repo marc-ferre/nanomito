@@ -4,6 +4,17 @@
 #
 # Script to get unique parent IDs (pid) of reads aligned (BAM) to chrM from nanopore sequencing
 #
+# Requires conda environment
+#    name: /home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_getmt
+#    channels:
+#      - anaconda
+#      - conda-forge
+#      - bioconda
+#      - nodefaults
+#    dependencies:
+#      - pod5
+#      - pysam
+#
 import optparse
 import os
 from pathlib import Path
@@ -11,7 +22,7 @@ import pysam
 import pod5
 import subprocess
 
-version = "25.05.09.2"
+version = "25.05.09.3"
 author = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
