@@ -9,16 +9,16 @@ set -e
 if [ $# -eq 0 ]
 	then
 		echo "[ERROR] No arguments supplied"
-		exit 9999 # die with error code 9999
+		exit 128 # die with error code 9999
 fi
-cd $1
+cd "$1"
 
 # Directories
-RUN_DIR=`pwd`
+RUN_DIR=$(pwd)
 PROCESS_DIR="$RUN_DIR/processing"
 
 # Prefixes
-RUN_ID=`basename $RUN_DIR`
+RUN_ID=$(basename "$RUN_DIR")
 SLURM_PRE="slurm-$RUN_ID"
 SLURM_EXT='txt'
 
@@ -36,13 +36,13 @@ MAIL_TYPE_NONE='NONE'
 echo "=== Submit workflows to Slurm ==="
 echo "Run dir: $RUN_DIR"
 
-mkdir $PROCESS_DIR
+mkdir "$PROCESS_DIR"
 JOBID_LIST=''
 
 WF_ID='bchg'
 SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
 
-JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" $WF_BCHG $RUN_DIR)
+JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" $WF_BCHG "$RUN_DIR")
 
 echo "> Submitted batch job $JOBID"
 echo "  Output in $SLURM_FILE"
@@ -51,7 +51,7 @@ JOBID_LIST="$JOBID $JOBID_LIST"
 WF_ID='subwf'
 SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
 
-JOBID=$(sbatch --dependency=afterok:${JOBID} --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_SUBWF)
+JOBID=$(sbatch --dependency=afterok:"${JOBID}" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_SUBWF)
 
 echo "> Submitted batch job $JOBID"
 echo "  Output in $SLURM_FILE"
