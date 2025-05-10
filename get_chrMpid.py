@@ -22,7 +22,7 @@ import pysam
 import pod5
 import subprocess
 
-version = "25.05.09.3"
+version = "25.05.09.4"
 author = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
@@ -31,13 +31,13 @@ author = "Marc FERRE <marc.ferre@univ-angers.fr>"
 #
 def main():
 
-    print("Script: get_pid v.", version, " by ", author, sep="")
+    print("Script: get_chrMpid.py v.", version, " by ", author, sep="")
 
     # Arguments
 
     parser = optparse.OptionParser()
     parser.add_option(
-        "-b", "--bam", type="string", default="bam_pass", help="BAM alignment dir"
+        "-b", "--bam", type="string", default="bam_pass", help="BAM alignments dir"
     )
     parser.add_option(
         "-o",
