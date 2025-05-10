@@ -6,7 +6,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.03.25.9'
+VERSION='25.05.10.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -31,6 +31,7 @@ FASTQ_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
 POD5_DIR="$RUN_DIR/pod5_chrM"
 PROCESS_DIR="$RUN_DIR/processing"
 OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
+REF_MT_DIR='/scratch/mferre/reference'
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 VARCALL_DIR="$OUT_DIR/varcall"
 
@@ -48,16 +49,18 @@ POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.
 ANN_GNOMAD='/scratch/mferre/reference/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
 ANN_MITOMAP_DISEASE='/scratch/mferre/reference/MITOMAP/disease-nosp.vcf'
 ANN_MITOMAP_POLYMORPHISMS='/scratch/mferre/reference/MITOMAP/polymorphisms.vcf'
-REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
-REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
-REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
+# REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
+# REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
+# REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
 REF_MT='/scratch/mferre/reference/chrM.fa'
 REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.fa'
 
-# Prefixes
+# Pre/Sufixes
 BALDUR_PREFIX="$SAMPLE_ID.baldur"
 DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
 HPLCHK_PREFIX="$OUT_DIR/$SAMPLE_ID-haplocheck"
+REF_MT_PREFIX='chrM-'
+REF_MT_SUFIX='.fa'
 
 # Files
 ANNOTMT_TSV_FILE="$OUT_DIR/$SAMPLE_ID.ann.tsv"
@@ -187,28 +190,34 @@ fi
 echo "$RUN_ID	$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> $DEMULT_SUMMARY_FILE
 echo "[OK] Line added to $DEMULT_SUMMARY_FILE"
 
-minimap2 -ax map-ont $REF_MT_2KB ${DEMULT_PREFIX}_mt_2kb.fastq.gz > alignment_mt_2kb.sam
-minimap2 -ax map-ont $REF_MT_3KB ${DEMULT_PREFIX}_mt_3kb.fastq.gz > alignment_mt_3kb.sam
-minimap2 -ax map-ont $REF_MT_10KB ${DEMULT_PREFIX}_mt_10kb.fastq.gz > alignment_mt_10kb.sam
-
 echo "`samtools --version`"
-samtools view -b alignment_mt_2kb.sam > alignment_mt_2kb.bam
-samtools view -b alignment_mt_3kb.sam > alignment_mt_3kb.bam
-samtools view -b alignment_mt_10kb.sam > alignment_mt_10kb.bam
-rm *.sam
+ALN_PREFIX='alignment_'
+for ID in $(cut -f3 cut.txt) ; do
+	REF="${REF_MT_DIR}/${REF_MT_PREFIX}${ID}${REF_MT_SUFIX}"
+	FASTQ="${DEMULT_PREFIX}_${ID}.fastq.gz"
+	SAM="${ALN_PREFIX}${ID}.sam"
+	BAM="${ALN_PREFIX}${ID}.bam"
+	
+	minimap2 -ax map-ont "$REF" "$FASTQ" > "$SAM"
+	samtools view -b "$SAM" > "$BAM"
+	
+	rm "$SAM" && [[ ! -e "$SAM" ]] && echo "[OK] SAM file removed: $SAM"
 
-samtools merge $BAM_FILE alignment_mt_2kb.bam alignment_mt_3kb.bam alignment_mt_10kb.bam
+done
+
+samtools merge $BAM_FILE ${ALN_PREFIX}*.bam
 check_file $BAM_FILE
-# samtools sort $BAM_FILE -o $SORTED_BAM_FILE
-# check_file $SORTED_BAM_FILE
-# samtools index $SORTED_BAM_FILE
-# check_file "${SORTED_BAM_FILE}.bai"
 
 conda deactivate
 
-echo "Remove large files:"
+echo "Remove large or merged files:"
+for ID in $(cut -f3 cut.txt) ; do
+	BAM="${ALN_PREFIX}${ID}.bam"
+	rm "$BAM" && [[ ! -e "$BAM" ]] && echo "[OK] Merged BAM file removed: $BAM"
+done
+echo "> A single BAM file remain in dir $SELECT_DIR: $BAM_FILE"
 rm $FASTQ_FILE && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
-rm $MAPPING_FILE && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $FASTQ_FILE"
+rm $MAPPING_FILE && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $MAPPING_FILE"
 
 echo
 echo '*******************'
