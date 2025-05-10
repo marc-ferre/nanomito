@@ -6,7 +6,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.05.10.1'
+VERSION='25.05.10.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -18,7 +18,7 @@ RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
 if [ $# -eq 0 ]
 	then
 		echo "[ERROR] No arguments supplied"
-		exit 9999 # die with error code 9999
+		exit 128
 fi
 SAMPLE_ID=$1
 
@@ -26,7 +26,7 @@ SAMPLE_ID=$1
 SELECT='both' 
 
 # Directories
-RUN_DIR=`pwd`
+RUN_DIR=$(pwd)
 FASTQ_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
 POD5_DIR="$RUN_DIR/pod5_chrM"
 PROCESS_DIR="$RUN_DIR/processing"
@@ -76,7 +76,6 @@ HPLCHK_RAW_FILE="$HPLCHK_PREFIX.raw.txt"
 HPLCHK_SUMMARY_FILE="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
 IDS_FILE="$SELECT_DIR/$SAMPLE_ID.read_ids.txt"
 MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"
-SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 check_dir () { 
@@ -85,7 +84,7 @@ check_dir () {
    		echo "[OK] Directory $1 exists"
    	else
 		echo "[ERROR] Directory $1 doesn't exist"
-		exit 9999 # die with error code 9999
+		exit 2
 	fi
 }
 check_file () { 
@@ -94,11 +93,11 @@ check_file () {
    		echo "[OK] File $1 exists and is not empty"
    	else
 		echo "[ERROR] File $1 is empty or doesn't exist"
-		exit 9999 # die with error code 9999
+		exit 2
 	fi
 }
 
-START=`date +%s`
+START=$(date +%s)
 
 echo "Workflow: wf-demultmt v.$VERSION by $AUTHOR"
 echo "Run: $RUN_ID"
@@ -109,23 +108,24 @@ echo "Pod5 directory: $POD5_DIR"
 echo "FastQ directory: $FASTQ_DIR"
 echo "Output directory: $OUT_DIR"
 echo "Read selection strategy: $SELECT"
-echo "Date: `date`"
+echo "Date: $(date)"
 
 echo
 echo '*****************'
 echo '* Preprocessing *'
 echo '*****************'
-check_dir $FASTQ_DIR
-mkdir -p $OUT_DIR
+check_dir "$FASTQ_DIR"
+mkdir -p "$OUT_DIR"
 FASTQ_FILE="$OUT_DIR/$SAMPLE_ID.fastq.gz"
 echo "FastQ file: $FASTQ_FILE"
 MAPPING_FILE="$OUT_DIR/$SAMPLE_ID.paf"
 echo "Mapping file: $MAPPING_FILE"
 
-cat $FASTQ_DIR/*.fastq.gz > $FASTQ_FILE
-check_file $FASTQ_FILE
-COUNT_TOTAL=$(expr $(zcat $FASTQ_FILE|wc -l)/4|bc)
+cat "$FASTQ_DIR"/*.fastq.gz > "$FASTQ_FILE"
+check_file "$FASTQ_FILE"
+COUNT_TOTAL=$(( $(zcat "$FASTQ_FILE" | wc -l) / 4 ))
 
+# Source Conda, to use it on a Genouest cluster compute node
 . /local/env/envconda.sh
 
 echo
@@ -133,22 +133,22 @@ echo '******************************'
 echo '* Mapping Standard Reference *'
 echo '******************************'
 conda activate $ONT_DEMULT_ENV
-echo "Minimap2 version: `minimap2 --version`"
+echo "Minimap2 version: $(minimap2 --version)"
 
-minimap2 -x map-ont -t 10 $REF_WHOLE $FASTQ_FILE > $MAPPING_FILE
-check_file $MAPPING_FILE
+minimap2 -x map-ont -t 10 $REF_WHOLE "$FASTQ_FILE" > "$MAPPING_FILE"
+check_file "$MAPPING_FILE"
 
 echo
 echo '******************'
 echo '* Demultiplexing *'
 echo '******************'
-echo "`$ONT_DEMULT_BIN --version`"
+$ONT_DEMULT_BIN --version
 
-mkdir $SELECT_DIR
-check_dir $SELECT_DIR
-cd $SELECT_DIR
+mkdir "$SELECT_DIR"
+check_dir "$SELECT_DIR"
+cd "$SELECT_DIR" || exit
 
-check_file $MAPPING_FILE
+check_file "$MAPPING_FILE"
 
 $ONT_DEMULT_BIN --select $SELECT \
 	--loglevel info \
@@ -156,27 +156,27 @@ $ONT_DEMULT_BIN --select $SELECT \
 	--max-distance 100 \
 	--max-unmatched 200 \
 	--margin 10 \
-	--cut-file $CUT_FILE \
-	--fastq $FASTQ_FILE \
-	--prefix ${DEMULT_PREFIX} \
+	--cut-file "$CUT_FILE" \
+	--fastq "$FASTQ_FILE" \
+	--prefix "${DEMULT_PREFIX}" \
 	--matched-only \
 	--compress \
-	$MAPPING_FILE
-check_file $DEMULT_FILE
+	"$MAPPING_FILE"
+check_file "$DEMULT_FILE"
 
-COUNT_ALIGN=$((`zcat $DEMULT_FILE | wc -l` - 1))
+COUNT_ALIGN=$(($(zcat "$DEMULT_FILE" | wc -l) - 1))
 
-zcat $DEMULT_FILE | head -1 > $CHRM_ONLY_FILE
-zcat $DEMULT_FILE | grep -P 'chrM\t' >> $CHRM_ONLY_FILE
-check_file $CHRM_ONLY_FILE
-COUNT_CHRM_ONLY=$((`cat $CHRM_ONLY_FILE | wc -l` - 1))
+zcat "$DEMULT_FILE" | head -1 > "$CHRM_ONLY_FILE"
+zcat "$DEMULT_FILE" | grep -P 'chrM\t' >> "$CHRM_ONLY_FILE"
+check_file "$CHRM_ONLY_FILE"
+COUNT_CHRM_ONLY=$(($(wc -l < "$CHRM_ONLY_FILE") - 1))
 
-zcat $DEMULT_FILE | head -1 > $MATCH_FILE
-zcat $DEMULT_FILE | grep -P 'Matched\tmt_' >> $MATCH_FILE
-check_file $MATCH_FILE
-COUNT_MATCHED=$((`cat $MATCH_FILE | wc -l` - 1))
+zcat "$DEMULT_FILE" | head -1 > "$MATCH_FILE"
+zcat "$DEMULT_FILE" | grep -P 'Matched\tmt_' >> "$MATCH_FILE"
+check_file "$MATCH_FILE"
+COUNT_MATCHED=$(($(wc -l < "$MATCH_FILE") - 1))
 
-COUNT_CHRM=$(($COUNT_CHRM_ONLY+$COUNT_MATCHED))
+COUNT_CHRM=$(( COUNT_CHRM_ONLY +  COUNT_MATCHED ))
 
 echo "=> Reads generated: $COUNT_TOTAL"
 echo "==> Reads aligned to reference: $COUNT_ALIGN"
@@ -184,15 +184,16 @@ echo "===> Reads aligned to chrM: $COUNT_CHRM"
 echo "====> Reads matching $SELECT: $COUNT_MATCHED"
 
 if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" > $DEMULT_SUMMARY_FILE
+	echo "Run id	Sample id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" \
+		> "$DEMULT_SUMMARY_FILE"
 	echo "[OK] File $DEMULT_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> $DEMULT_SUMMARY_FILE
+echo "$RUN_ID	$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
 echo "[OK] Line added to $DEMULT_SUMMARY_FILE"
 
-echo "`samtools --version`"
+samtools --version
 ALN_PREFIX='alignment_'
-for ID in $(cut -f3 cut.txt) ; do
+for ID in $(cut -f3 "$CUT_FILE") ; do
 	REF="${REF_MT_DIR}/${REF_MT_PREFIX}${ID}${REF_MT_SUFIX}"
 	FASTQ="${DEMULT_PREFIX}_${ID}.fastq.gz"
 	SAM="${ALN_PREFIX}${ID}.sam"
@@ -202,13 +203,10 @@ for ID in $(cut -f3 cut.txt) ; do
 	samtools view -b "$SAM" > "$BAM"
 	
 	rm "$SAM" && [[ ! -e "$SAM" ]] && echo "[OK] SAM file removed: $SAM"
-
 done
 
-samtools merge $BAM_FILE ${ALN_PREFIX}*.bam
-check_file $BAM_FILE
-
-conda deactivate
+samtools merge "$BAM_FILE" ${ALN_PREFIX}*.bam
+check_file "$BAM_FILE"
 
 echo "Remove large or merged files:"
 for ID in $(cut -f3 cut.txt) ; do
@@ -216,17 +214,21 @@ for ID in $(cut -f3 cut.txt) ; do
 	rm "$BAM" && [[ ! -e "$BAM" ]] && echo "[OK] Merged BAM file removed: $BAM"
 done
 echo "> A single BAM file remain in dir $SELECT_DIR: $BAM_FILE"
-rm $FASTQ_FILE && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
-rm $MAPPING_FILE && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $MAPPING_FILE"
+rm "$FASTQ_FILE" && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
+rm "$MAPPING_FILE" && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $MAPPING_FILE"
+
+conda deactivate
 
 echo
 echo '*******************'
 echo '* Variant Calling *'
 echo '*******************'
-mkdir $VARCALL_DIR
-cd $VARCALL_DIR
+mkdir "$VARCALL_DIR"
+cd "$VARCALL_DIR" || exit
+
 conda activate $BALDUR_ENV
-echo "`$BALDUR_BIN --version`"
+
+$BALDUR_BIN --version
 
 # !!!
 # BUG: Presumed endless command
@@ -240,9 +242,9 @@ $BALDUR_BIN --mapq-threshold 20 \
 	--adjust 5 \
 	--view \
 	--output-deletions \
-	--output-prefix $BALDUR_PREFIX \
-	--sample $SAMPLE_ID \
-	$BAM_FILE &
+	--output-prefix "$BALDUR_PREFIX" \
+	--sample "$SAMPLE_ID" \
+	"$BAM_FILE" &
 
 conda deactivate
 
@@ -253,25 +255,24 @@ echo
 echo '***********************'
 echo '* Retrieving Raw Data *'
 echo '***********************'
-cd $VARCALL_DIR
-check_file $MATCH_FILE
+cd "$VARCALL_DIR" || exit
+check_file "$MATCH_FILE"
 
 echo "Retrieving matching reads (select: $SELECT)..."
-cut -f1 $MATCH_FILE | tail -n +2 > $IDS_FILE
-check_file $IDS_FILE
+cut -f1 "$MATCH_FILE" | tail -n +2 > "$IDS_FILE"
+check_file "$IDS_FILE"
 
 conda activate $POD5_ENV
 
-check_dir $POD5_DIR
+check_dir "$POD5_DIR"
 pod5 --version
 
-POD5_DEBUG=1
+export POD5_DEBUG=1
 echo "Set POD5_DEBUG=1 for for detailed information"
-echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
+#echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
 
-pod5 filter $POD5_DIR -i $IDS_FILE -o $DEMULT_POD5_FILE --missing-ok
-
-check_file $DEMULT_POD5_FILE
+pod5 filter "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
+check_file "$DEMULT_POD5_FILE"
 
 conda deactivate
 
@@ -279,11 +280,11 @@ echo
 echo '**********************'
 echo '* Variant Annotating *'
 echo '**********************'
-cd $VARCALL_DIR
-check_file $BALDUR_VCF_FILE
-gunzip $BALDUR_VCF_FILE
-BALDUR_VCF_FILE=`basename $BALDUR_VCF_FILE .gz`
-check_file $BALDUR_VCF_FILE
+cd "$VARCALL_DIR" || exit
+check_file "$BALDUR_VCF_FILE"
+gunzip "$BALDUR_VCF_FILE"
+BALDUR_VCF_FILE=$(basename "$BALDUR_VCF_FILE" .gz)
+check_file "$BALDUR_VCF_FILE"
 
 # # Stats
 # bcftools stats $BALDUR_VCF_FILE
@@ -298,24 +299,24 @@ VCF_TMP2="$ANNOTMT_VCF_FILE.1.tmp"
 # MITOMAP
 SnpSift annotate -v \
 	$ANN_MITOMAP_DISEASE \
-	$BALDUR_VCF_FILE \
-	> $VCF_TMP2
-mv $VCF_TMP2 $VCF_TMP1
+	"$BALDUR_VCF_FILE" \
+	> "$VCF_TMP2"
+mv "$VCF_TMP2" "$VCF_TMP1"
 	
 SnpSift annotate -v \
 	$ANN_MITOMAP_POLYMORPHISMS \
-	$VCF_TMP1 \
-	> $VCF_TMP2
-mv $VCF_TMP2 $VCF_TMP1
+	"$VCF_TMP1" \
+	> "$VCF_TMP2"
+mv "$VCF_TMP2" "$VCF_TMP1"
 
 # GnomAD including MitoTIP
 SnpSift annotate -v \
 	$ANN_GNOMAD \
-	$VCF_TMP1 \
-	> $ANNOTMT_VCF_FILE
-check_file $ANNOTMT_VCF_FILE
+	"$VCF_TMP1" \
+	> "$ANNOTMT_VCF_FILE"
+check_file "$ANNOTMT_VCF_FILE"
 
-rm $VCF_TMP1
+rm "$VCF_TMP1"
 
 #
 # Export to TSV
@@ -355,27 +356,27 @@ rm $VCF_TMP1
 # QUAL:QUAL
 # DP:DP
 bcftools --version
-echo 'CHROM	POS	ID	REF	ALT	HPL	AC	AF	Disease	DiseaseStatus	HGFL	PubmedIDs	aachange	heteroplasmy	homoplasmy	mitotip_trna_prediction	mitotip_score	AC_het	AC_hom	AF_het	AF_hom	AN	filters	hap_defining_variant	max_hl	pon_ml_probability_of_pathogenicity	pon_mt_trna_prediction	FILTER	ADF	ADR	QUAL	DP' > $ANNOTMT_TSV_FILE
-bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' $ANNOTMT_VCF_FILE >> $ANNOTMT_TSV_FILE
-check_file $ANNOTMT_TSV_FILE
+echo 'CHROM	POS	ID	REF	ALT	HPL	AC	AF	Disease	DiseaseStatus	HGFL	PubmedIDs	aachange	heteroplasmy	homoplasmy	mitotip_trna_prediction	mitotip_score	AC_het	AC_hom	AF_het	AF_hom	AN	filters	hap_defining_variant	max_hl	pon_ml_probability_of_pathogenicity	pon_mt_trna_prediction	FILTER	ADF	ADR	QUAL	DP' > "$ANNOTMT_TSV_FILE"
+bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$ANNOTMT_VCF_FILE" >> "$ANNOTMT_TSV_FILE"
+check_file "$ANNOTMT_TSV_FILE"
 
 echo
 echo '*******************************************'
 echo '* Determining major and minor haplogroups *'
 echo '*******************************************'
 
-haplocheck --raw --out $HPLCHK_PREFIX $ANNOTMT_VCF_FILE
-check_file $HPLCHK_RAW_FILE
+haplocheck --raw --out "$HPLCHK_PREFIX" "$ANNOTMT_VCF_FILE"
+check_file "$HPLCHK_RAW_FILE"
 
 echo 'Remove others haplocheck files:'
-rm $HPLCHK_PREFIX && [[ ! -e $HPLCHK_PREFIX ]] && echo "[OK] FastQ file removed: $HPLCHK_PREFIX"
-rm $HPLCHK_PREFIX.html && [[ ! -e $HPLCHK_PREFIX.html ]] && echo "[OK] Mapping file removed: $HPLCHK_PREFIX.html"
+rm "$HPLCHK_PREFIX" && [[ ! -e $HPLCHK_PREFIX ]] && echo "[OK] FastQ file removed: $HPLCHK_PREFIX"
+rm "$HPLCHK_PREFIX".html && [[ ! -e $HPLCHK_PREFIX.html ]] && echo "[OK] Mapping file removed: $HPLCHK_PREFIX.html"
 
 if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
-	cp $HPLCHK_RAW_FILE $HPLCHK_SUMMARY_FILE
+	cp "$HPLCHK_RAW_FILE" "$HPLCHK_SUMMARY_FILE"
 	echo "[OK] File $HPLCHK_SUMMARY_FILE created (with header)"
 else
-	tail -n +2 $HPLCHK_RAW_FILE >> $HPLCHK_SUMMARY_FILE
+	tail -n +2 "$HPLCHK_RAW_FILE" >> "$HPLCHK_SUMMARY_FILE"E
 	echo "[OK] Line added to $HPLCHK_SUMMARY_FILE"
 fi
 
@@ -386,8 +387,8 @@ echo '***********'
 echo '* Ending  *'
 echo '***********'
 
-END=`date +%s`
-RUNTIME=$(echo "$END - $START")
+END=$(date +%s)
+RUNTIME=$((END - START))
 HOURS=$((RUNTIME / 3600))
 MINUTES=$(( (RUNTIME % 3600) / 60 ))
 SECONDS=$(( (RUNTIME % 3600) % 60 ))
@@ -395,8 +396,8 @@ echo "Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
 
 # Write workflow summary file
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > $WORKFLOW_SUMMARY_FILE
+	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	demultmt	$HOURS:$MINUTES:$SECONDS" >> $WORKFLOW_SUMMARY_FILE
+echo "$RUN_ID	$SAMPLE_ID	demultmt	$HOURS:$MINUTES:$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
 echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
