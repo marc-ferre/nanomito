@@ -4,80 +4,81 @@
 #
 # Script to filter raw data (Pod5) from nanopore sequencing reads aligned (BAM) to chrM
 #
+# Requires conda environment
+#    name: /home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_getmt
+#    channels:
+#      - anaconda
+#      - conda-forge
+#      - bioconda
+#      - nodefaults
+#    dependencies:
+#      - pod5
+#      - pysam
+#
+# Requires Python script: get_chrMpid.py
+#
 set -e
 
-VERSION='25.05.04.1'
+VERSION='25.05.09.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
-ALN_DIR='alignment'
-POD5_ALL_DIR='pod5'
-POD5_MT_DIR='pod5_chrM'
-IDS_DIR='read_ids'
-
+# Run id = Argument
 if [ $# -eq 0 ]
 	then
 		echo "[ERROR] No arguments supplied"
-		exit 9999 # die with error code 9999
+		exit 128 # die with error code 9999
 fi
-cd $1
+cd "$1"
+RUN_ID=${PWD##*/} # Assign directory name to run id
+RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
 
-echo "Workflow: wf-getmt v.$VERSION by $AUTHOR"
-echo "=== Get chrM data only for Nanomito ==="
+# Directories
+RUN_DIR_PATH=$(pwd)
+BAM_DIR="$RUN_DIR_PATH/alignment"
+POD5_ALL_DIR="$RUN_DIR_PATH/pod5"
+POD5_MT_DIR="$RUN_DIR_PATH/pod5_chrM"
 
-RUN_PATH=`pwd`
-ALN_PATH="$RUN_PATH/$ALN_DIR"
-POD5_ALL_PATH="$RUN_PATH/$POD5_ALL_DIR"
-POD5_MT_PATH="$RUN_PATH/$POD5_MT_DIR"
-IDS_PATH="$RUN_PATH/$IDS_DIR"
+# Scripts
+CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/get_chrMpid.py'
 
-echo "Run path       : $RUN_PATH"
-echo "Alignments path: $ALN_PATH"
-echo "Pod5 path      : $POD5_ALL_PATH"
-echo "Output path    : $POD5_MT_PATH"
+# Files
+CHRMPIDS_FILE="$POD5_MT_DIR/$RUN_ID.chrM_pids.txt"
+POD5_MT_FILE="$POD5_MT_DIR/$RUN_ID.chrM.pod5"
 
-mkdir $IDS_PATH
-echo "[OK] Read ids directory $IDS_PATH created"
+echo "Workflow  : wf-getmt v.$VERSION by $AUTHOR"
+echo "——————————— Get IDs of Pod5 reads matching chrM for Nanomito ———————————"
+echo "Run       : $RUN_ID"
+echo "Run dir   : $RUN_DIR_PATH"
+echo "BAM dir   : $BAM_DIR"
+echo "POD5 dir  : $POD5_ALL_DIR"
+echo "Output dir: $POD5_MT_DIR"
 
-#samtools --version
-SAMPLES_COUNT=0
-cd $ALN_PATH
-for DIR in $(ls -1 -d */); do
-	SAMPLES_COUNT=$((SAMPLES_COUNT+1))
-	
-	SAMPLE_ID=`basename $DIR`
-	READ_IDS_PATH="$IDS_PATH/$SAMPLE_ID.read_ids.txt"
-	READ_IDS_TMP_PATH="$READ_IDS_PATH.tmp"
-	echo "--- Sample: $SAMPLE_ID"
-	
-	for BAM in $DIR/*.bam ; do 
-		samtools view $BAM chrM | cut -f1
-	done > $READ_IDS_TMP_PATH
-	READ_IDS_TMP_COUNT=`wc -l --total=only $READ_IDS_TMP_PATH`
-	
-	sort -u $READ_IDS_TMP_PATH > $READ_IDS_PATH
-	READ_IDS_COUNT=`wc -l --total=only $READ_IDS_PATH`
-	echo "[OK] $READ_IDS_COUNT (from $READ_IDS_TMP_COUNT) in file $READ_IDS_PATH"
-	
-	if [ $READ_IDS_COUNT -eq 0 ] ; then
-		echo "[WARNING]No read matching chrM: skip to next sample"
-	else
-		POD5_PATH="$POD5_MT_PATH/$SAMPLE_ID.chrM.pod5"
-		pod5 --version
-		pod5 filter $POD5_ALL_PATH --ids $READ_IDS_PATH --missing-ok --output $POD5_PATH
-		echo "[OK] Pod5 chrM only in file $POD5_PATH"
-		pod5 inspect summary $POD5_PATH
-	fi
+mkdir "$POD5_MT_DIR"
+echo "[OK] chrM POD5 directory created: $POD5_MT_DIR"
 
-done
+# Get unique parent IDs (pid) of reads aligned to chrM 
+python3 $CHRMPIDS_SCRIPT -b "$BAM_DIR" -o "$CHRMPIDS_FILE"
 
-rm -rf $IDS_PATH
-echo "[OK] Read ids directory $IDS_PATH removed"
+READ_IDS_COUNT=$(wc -l --total=only "$CHRMPIDS_FILE")
+echo "[OK] $READ_IDS_COUNT IDs of Pod5 reads matching chrM in file $CHRMPIDS_FILE"
+
+# Get Pod5 raw data of reads aligned to chrM
+if [ "$READ_IDS_COUNT" -eq 0 ] ; then
+	echo '[WARNING] No read matching chrM: ending without Pod5 file of reads matching chrM'
+else
+	pod5 --version
+	pod5 filter "$POD5_ALL_DIR" --ids "$CHRMPIDS_FILE" --output "$POD5_MT_FILE"
+	echo "[OK] Pod5 reads matching chrM in file: $POD5_PATH"
+	pod5 inspect summary "$POD5_MT_FILE"
+fi
+
+# rm $CHRMPIDS_FILE
+# echo "[OK] IDs fiel of Pod5 reads matching chrM removed: $CHRMPIDS_FILE"
 
 echo '|'
 echo '|'
 echo "| Workflow finished successfully. Pod5 data generated:"
-echo "| `du -hs $POD5_MT_PATH`"
+echo "| $(du -hs "$POD5_MT_DIR")"
 echo '|'
 echo '|'
-echo "=== $SAMPLES_COUNT sample(s) processed ==="
