@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# get_pid.sh /Path/to/run/dir
+# getmt.sh /Path/to/run/dir
 #
 # Script to filter raw data (Pod5) from nanopore sequencing reads aligned (BAM) to chrM
 #
