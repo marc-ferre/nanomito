@@ -59,11 +59,11 @@ mkdir -p "$POD5_MT_DIR"
 echo "[OK] chrM POD5 directory created: $POD5_MT_DIR"
 
 pod5 --version
-export POD5_DEBUG=1
-echo "Set POD5_DEBUG=1 for for detailed information"
+# export POD5_DEBUG=1
+# echo "Set POD5_DEBUG=1 for for detailed information"
 
 # Get unique parent IDs (pid) of reads aligned to chrM 
-python3 $CHRMPIDS_SCRIPT -b "$BAM_DIR" -o "$MT_PIDS_FILE"
+python3 $CHRMPIDS_SCRIPT -b "$BAM_DIR" -p "$POD5_ALL_DIR" -o "$MT_PIDS_FILE"
 
 READ_IDS_COUNT=$(wc -l < "$MT_PIDS_FILE")
 echo "[OK] $READ_IDS_COUNT IDs of Pod5 reads matching chrM in file $MT_PIDS_FILE"
