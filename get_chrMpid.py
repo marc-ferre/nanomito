@@ -22,7 +22,7 @@ import pysam
 import pod5
 import subprocess
 
-version = "25.05.11.1"
+version = "25.05.11.2"
 author = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
@@ -88,26 +88,26 @@ def main():
                         print(
                             "   Subread id#",
                             id,
-                            "was generated from Parent read id#",
+                            "was generated from Parent read pid#",
                             pid,
                             "[READ SPLITTING]",
                         )
                     else:
                         pid = id
-                        print("   Read id#", pid)
+                        print("   Read pid#", pid)
 
                     # Test if entry exist
                     if pid in pids:
                         read_duplicate_count += 1
                         print(
-                            "      Existing entry not duplicated: id#",
-                            id,
+                            "      Existing entry not duplicated: pid#",
+                            pid,
                             "[DUPLICATE]",
                         )
                     else:
                         read_unique_count += 1
-                        pids.append(id)
-                        print("      Storing entry: id#", id)
+                        pids.append(pid)
+                        print("      Storing entry: pid#", pid)
 
                 samfile.close()
 
@@ -121,8 +121,8 @@ def main():
     out_path = Path(opts.output)
     f_pids_count = 0
     with open(out_path, "w") as f:
-        for id in pids:
-            f.write(f"{id}\n")
+        for pid in pids:
+            f.write(f"{pid}\n")
             f_pids_count += 1
     print(
         "\n[OK]",
