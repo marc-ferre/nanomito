@@ -22,7 +22,7 @@ import pysam
 import pod5
 import subprocess
 
-version = "25.05.09.4"
+version = "25.05.11.1"
 author = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
