@@ -270,8 +270,7 @@ pod5 --version
 export POD5_DEBUG=1
 echo "Set POD5_DEBUG=1 for for detailed information"
 #echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
-
-pod5 filter "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
+pod5 filter --recursive --force-overwrite --threads 10 "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
 check_file "$DEMULT_POD5_FILE"
 
 conda deactivate
