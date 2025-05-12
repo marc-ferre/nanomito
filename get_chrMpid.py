@@ -22,7 +22,7 @@ import pysam
 import pod5
 import subprocess
 
-version = "25.05.12.1"
+version = "25.05.12.2"
 author = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
@@ -40,7 +40,7 @@ def main():
         "-b", "--bam", type="string", default="bam_pass", help="BAM alignments dir"
     )
     parser.add_option(
-        "-p", "--pod5", type="string", default="pod5", help="POD5 raw data dir"
+        "-p", "--pod5", type="string", default="pod5", help="Pod5 raw data dir"
     )
     parser.add_option(
         "-o",
@@ -51,15 +51,15 @@ def main():
     )
     (opts, args) = parser.parse_args()
 
-    # Get IDS of all raw reads (POD5)
+    # Get IDS of all raw reads (Pod5)
     pod5_path = Path(opts.pod5)
     try:
         my_abs_path = pod5_path.resolve(strict=True)
     except FileNotFoundError:
-        print("[ERROR] POD5 dir does not exist:", opts.pod5)
+        print("[ERROR] Pod5 dir does not exist:", opts.pod5)
         exit(66)
     else:
-        print("POD5 dir:", opts.pod5)
+        print("Pod5 dir:", opts.pod5)
 
     allids = set()
     with pod5.DatasetReader(opts.pod5, recursive=True) as dataset:
@@ -112,10 +112,10 @@ def main():
                             pid,
                             "[READ SPLITTING]",
                         )
-                        print("   SAM read:")
-                        print("---------------------------------------------------")
-                        print(read)
-                        print("---------------------------------------------------")
+                    # print("   SAM read:")
+                    # print("---------------------------------------------------")
+                    # print(read)
+                    # print("---------------------------------------------------")
                     else:
                         pid = id
                         print("   Read pid#", pid)
@@ -124,21 +124,19 @@ def main():
                     if pid in pids:
                         read_duplicate_count += 1
                         print(
-                            "      Duplicate entry (not re-stored): pid#",
-                            pid,
-                            "[DUPLICATE]",
+                            "      Duplicate entry (not re-stored) [DUPLICATE]",
                         )
                     else:
                         pids.append(pid)
-                        print("      Storing entry: pid#", pid)
+                        print("      [OK] Storing entry")
 
-                        # Check if BAM ID match POD5 ID
+                        # Check if BAM ID match Pod5 ID
                         if pid in allids:
                             print("      [OK] pid in Pod5 raw reads")
                         else:
                             read_missing_count += 1
                             print(
-                                "      [WARNING] pid (BAM ID) missing from POD5 IDs [MISSING]",
+                                "      [WARNING] pid (BAM ID) missing from Pod5 IDs [MISSING]",
                             )
                             print("                SAM read:")
                             print("---------------------------------------------------")
