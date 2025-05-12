@@ -22,7 +22,7 @@ import pysam
 import pod5
 import subprocess
 
-version = "25.05.11.3"
+version = "25.05.12.1"
 author = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
@@ -62,13 +62,11 @@ def main():
         print("POD5 dir:", opts.pod5)
 
     allids = set()
-    allids_count = 0
     with pod5.DatasetReader(opts.pod5, recursive=True) as dataset:
         for read_record in dataset:
-            allids_count += 1
-            allids.add(read_record.read_id)
+            allids.add(str(read_record.read_id))
 
-    print("Raw reads (Pod5) stored:", allids_count)
+    print("Raw reads (Pod5) stored:", len(allids))
 
     # Get parent IDs of reads matching chrM
     bam_path = Path(opts.bam)
@@ -84,7 +82,6 @@ def main():
     read_chrM_count = 0
     read_split_count = 0
     read_duplicate_count = 0
-    read_unique_count = 0
     read_missing_count = 0
 
     # List fo raw data ID (Pod5) of reads aligned to chrM:
@@ -115,6 +112,10 @@ def main():
                             pid,
                             "[READ SPLITTING]",
                         )
+                        print("   SAM read:")
+                        print("---------------------------------------------------")
+                        print(read)
+                        print("---------------------------------------------------")
                     else:
                         pid = id
                         print("   Read pid#", pid)
@@ -128,32 +129,31 @@ def main():
                             "[DUPLICATE]",
                         )
                     else:
-                        read_unique_count += 1
                         pids.append(pid)
                         print("      Storing entry: pid#", pid)
 
-                    # Check if BAM ID match POD5 ID
-                    if pid in allids:
-                        read_missing_count += 1
-                        print(
-                            "      [WARNING] BAM ID missing from POD5 IDs: pid#",
-                            pid,
-                            "[MISSING]",
-                        )
-                        print("                SAM read:")
-                        print("-------------------------------------------------------")
-                        print(read)
-                        print("-------------------------------------------------------")
+                        # Check if BAM ID match POD5 ID
+                        if pid in allids:
+                            print("      [OK] pid in Pod5 raw reads")
+                        else:
+                            read_missing_count += 1
+                            print(
+                                "      [WARNING] pid (BAM ID) missing from POD5 IDs [MISSING]",
+                            )
+                            print("                SAM read:")
+                            print("---------------------------------------------------")
+                            print(read)
+                            print("---------------------------------------------------")
 
                 samfile.close()
 
-    print("\n| Raw reads (Pod5):", allids_count)
+    print("\n| Pod5 reads:", len(allids))
     print("| BAM files processed:", bam_count)
     print("| Reads aligned to chrM:", read_chrM_count)
-    print("| Split reads:", read_split_count)
-    print("| Duplicate reads ignored:", read_duplicate_count)
-    print("| Unique Pod5 IDs:", read_unique_count)
-    print("| Missing reads:", read_missing_count)
+    print("|   Split reads:", read_split_count)
+    print("|   Duplicate reads ignored:", read_duplicate_count)
+    print("|   Unique reads pIDs:", len(pids))
+    print("|   Missing reads pIDs:", read_missing_count)
 
     # Write unique IDS to file
     out_path = Path(opts.output)
