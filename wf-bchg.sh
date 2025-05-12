@@ -12,7 +12,7 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.05.12.2'
+VERSION='25.05.12.3'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -42,7 +42,7 @@ check_dir () {
    		echo "[OK] Directory $1 exists"
    	else
 		echo "[ERROR] Directory $1 doesn't exist"
-		exit 128 # die with error code 9999
+		exit 128 # die with error code
 	fi
 }
 check_file () { 
@@ -51,7 +51,7 @@ check_file () {
    		echo "[OK] File $1 exists and is not empty"
    	else
 		echo "[ERROR] File $1 is empty or doesn't exist"
-		exit 128 # die with error code 9999
+		exit 128 # die with error code
 	fi
 }
 
