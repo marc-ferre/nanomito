@@ -12,21 +12,21 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.03.26.3'
+VERSION='25.05.12.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 # Directories
-RUN_DIR=`pwd`
+RUN_DIR=$(pwd)
 POD5_DIR="$RUN_DIR/pod5_chrM"
 FASTQ_DIR="$RUN_DIR/fastq_pass"
 PROCESS_DIR="$RUN_DIR/processing"
 
 # Prefixes
-RUN_ID=`basename $RUN_DIR`
+RUN_ID=$(basename "$RUN_DIR")
 
 # Files
-SAMPLESHEET_FILE=`readlink -f "$(find . -type f -name 'sample_sheet_*.csv')"`
+SAMPLESHEET_FILE=$(readlink -f "$(find . -type f -name 'sample_sheet_*.csv')")
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 # Basecalling options
@@ -42,7 +42,7 @@ check_dir () {
    		echo "[OK] Directory $1 exists"
    	else
 		echo "[ERROR] Directory $1 doesn't exist"
-		exit 9999 # die with error code 9999
+		exit 128 # die with error code 9999
 	fi
 }
 check_file () { 
@@ -51,11 +51,11 @@ check_file () {
    		echo "[OK] File $1 exists and is not empty"
    	else
 		echo "[ERROR] File $1 is empty or doesn't exist"
-		exit 9999 # die with error code 9999
+		exit 128 # die with error code 9999
 	fi
 }
 
-START=`date +%s`
+START=$(date +%s)
 
 echo "Workflow: wf-bchg v.$VERSION by $AUTHOR"
 echo "Run: $RUN_ID"
@@ -66,7 +66,7 @@ echo "FastQ dir: $FASTQ_DIR"
 echo "Sample sheet: $SAMPLESHEET_FILE"
 echo "Model: $MODEL"
 echo "Kit  : $KIT"
-echo "Date : `date`"
+echo "Date : $(date)"
 
 echo
 echo '*****************************************'
@@ -76,39 +76,40 @@ echo '*****************************************'
 # To work around the issue https://github.com/nanoporetech/dorado/issues/432
 export LC_ALL=en_US.UTF-8
 
-check_dir $POD5_DIR
-check_file $SAMPLESHEET_FILE
+check_dir "$POD5_DIR"
+check_file "$SAMPLESHEET_FILE"
 echo "============= Sample Sheet ============="
-column -s, -t < $SAMPLESHEET_FILE
+column -s, -t < "$SAMPLESHEET_FILE"
 echo "========================================"
 
-mkdir -p  $PROCESS_DIR
-mkdir $FASTQ_DIR
-check_dir $FASTQ_DIR
+mkdir -p  "$PROCESS_DIR"
+mkdir "$FASTQ_DIR"
+check_dir "$FASTQ_DIR"
 
 echo "Dorado version:"
 $DORADO_BIN --version
 
-$DORADO_BIN basecaller $MODEL $POD5_DIR --recursive \
+$DORADO_BIN basecaller $MODEL "$POD5_DIR" --recursive \
 	--verbose \
-	--sample-sheet $SAMPLESHEET_FILE \
+	--sample-sheet "$SAMPLESHEET_FILE" \
 	| $DORADO_BIN demux \
 	--kit-name $KIT \
-	--sample-sheet $SAMPLESHEET_FILE \
+	--sample-sheet "$SAMPLESHEET_FILE" \
 	--emit-fastq \
-	--output-dir $FASTQ_DIR
+	--output-dir "$FASTQ_DIR"
 
 echo
 echo "Gzip all files gzipped in dir $FASTQ_DIR"
-gzip $FASTQ_DIR/*
+gzip "$FASTQ_DIR"/*
 echo
 echo "Organizing files in sample dir in dir $FASTQ_DIR"
-cd $FASTQ_DIR
-for FILE in $(ls -1 $FASTQ_DIR); do
+cd "$FASTQ_DIR" || exit
+for FILE in "$FASTQ_DIR"/*.fastq.gz; do
+	[[ -e "$FILE" ]] || break  # handle the case of no *.wav files
 	DIR=${FILE#*_}
 	DIR=${DIR%%.*}
-	mkdir -p $DIR
-	mv $FILE $FASTQ_DIR/$DIR/$FILE
+	mkdir -p "$DIR"
+	mv "$FILE" "$FASTQ_DIR"/"$DIR"/"$FILE"
 done
 
 echo
@@ -116,8 +117,8 @@ echo '***********'
 echo '* Ending  *'
 echo '***********'
 
-END=`date +%s`
-RUNTIME=$(echo "$END - $START")
+END=$(date +%s)
+RUNTIME=$((END - START))
 HOURS=$((RUNTIME / 3600))
 MINUTES=$(( (RUNTIME % 3600) / 60 ))
 SECONDS=$(( (RUNTIME % 3600) % 60 ))
@@ -125,8 +126,8 @@ echo "Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
 
 # Write workflow summary file
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > $WORKFLOW_SUMMARY_FILE
+	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	bchg	$HOURS:$MINUTES:$SECONDS" >> $WORKFLOW_SUMMARY_FILE
+echo "$RUN_ID	$SAMPLE_ID	bchg	$HOURS:$MINUTES:$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
 echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
