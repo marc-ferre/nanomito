@@ -19,7 +19,7 @@
 #
 set -e
 
-VERSION='25.05.11.2'
+VERSION='25.05.12.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -66,7 +66,6 @@ pod5 --version
 python3 $CHRMPIDS_SCRIPT -b "$BAM_DIR" -p "$POD5_ALL_DIR" -o "$MT_PIDS_FILE"
 
 READ_IDS_COUNT=$(wc -l < "$MT_PIDS_FILE")
-echo "[OK] $READ_IDS_COUNT IDs of Pod5 reads matching chrM in file $MT_PIDS_FILE"
 
 # Get Pod5 raw data of reads aligned to chrM
 if [ "$READ_IDS_COUNT" -eq 0 ] ; then
@@ -75,7 +74,7 @@ else
 	echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
 	pod5 filter --missing-ok --recursive --force-overwrite "$POD5_ALL_DIR" --ids "$MT_PIDS_FILE" --output "$POD5_MT_IDS_FILE"
 	
-	echo "[OK] Pod5 reads matching chrM in file: $POD5_PATH"
+	echo "[OK] Pod5 reads matching chrM filtered in file: $POD5_PATH"
 	pod5 inspect summary "$POD5_MT_IDS_FILE"
 fi
 
