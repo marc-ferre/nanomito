@@ -6,7 +6,7 @@
 #SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.05.10.2'
+VERSION='25.05.12.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -42,8 +42,12 @@ ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_dem
 # Conda envs
 ANNOTMT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_annotmt'
 BALDUR_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_baldur'
+GETMT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_getmt'
 ONT_DEMULT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_ont_demult'
 POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.15'
+
+# Scripts
+CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/get_chrMpid.py'
 
 # References
 ANN_GNOMAD='/scratch/mferre/reference/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
@@ -259,7 +263,15 @@ cd "$VARCALL_DIR" || exit
 check_file "$MATCH_FILE"
 
 echo "Retrieving matching reads (select: $SELECT)..."
-cut -f1 "$MATCH_FILE" | tail -n +2 > "$IDS_FILE"
+#cut -f1 "$MATCH_FILE" | tail -n +2 > "$IDS_FILE"
+
+conda activate $GETMT_ENV
+
+# Get unique parent IDs (pid) of reads aligned to chrM 
+python3 $CHRMPIDS_SCRIPT -b "$BAM_FILE" -p "$POD5_DIR" -o "$IDS_FILE"
+
+conda deactivate
+
 check_file "$IDS_FILE"
 
 conda activate $POD5_ENV
