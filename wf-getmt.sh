@@ -4,22 +4,12 @@
 #
 # Script to filter raw data (Pod5) from nanopore sequencing reads aligned (BAM) to chrM
 #
-# Requires conda environment
-#    name: /home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_getmt
-#    channels:
-#      - anaconda
-#      - conda-forge
-#      - bioconda
-#      - nodefaults
-#    dependencies:
-#      - pod5
-#      - pysam
 #
 # Requires Python script: get_chrMpid.py
 #
 set -e
 
-VERSION='25.05.12.1'
+VERSION='25.05.12.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -39,6 +29,9 @@ BAM_DIR="$RUN_DIR_PATH/bam_pass"
 POD5_ALL_DIR="$RUN_DIR_PATH/pod5"
 POD5_MT_DIR="$RUN_DIR_PATH/pod5_chrM"
 
+# Conda envs
+GETMT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_getmt'
+
 # Scripts
 CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/get_chrMpid.py'
 
@@ -54,6 +47,11 @@ echo "Run dir   : $RUN_DIR_PATH"
 echo "BAM dir   : $BAM_DIR"
 echo "POD5 dir  : $POD5_ALL_DIR"
 echo "Output dir: $POD5_MT_DIR"
+
+# Source Conda, to use it on a Genouest cluster compute node
+. /local/env/envconda.sh
+
+conda activate $GETMT_ENV
 
 mkdir -p "$POD5_MT_DIR"
 echo "[OK] chrM POD5 directory created: $POD5_MT_DIR"
@@ -80,6 +78,8 @@ fi
 
 # rm $MT_PIDS_FILE
 # echo "[OK] IDs file of Pod5 reads matching chrM removed: $MT_PIDS_FILE"
+
+conda deactivate
 
 echo '|'
 echo '|'
