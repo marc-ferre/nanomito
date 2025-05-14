@@ -4,7 +4,7 @@
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=50G
-#SBATCH --time 120
+#SBATCH --time 1200
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_80
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 #
@@ -12,7 +12,7 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.05.12.3'
+VERSION='25.05.14.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -105,7 +105,7 @@ echo
 echo "Organizing files in sample dir in dir $FASTQ_DIR"
 cd "$FASTQ_DIR" || exit
 for FILE in "$FASTQ_DIR"/*.fastq.gz; do
-	[[ -e "$FILE" ]] || break  # handle the case of no *.wav files
+	[[ -e "$FILE" ]] || break  # handle the case of no *.fastq.gz files
 	DIR=${FILE#*_}
 	DIR=${DIR%%.*}
 	mkdir -p "$DIR"
