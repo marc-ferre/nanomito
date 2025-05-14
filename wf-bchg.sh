@@ -12,7 +12,7 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.05.14.1'
+VERSION='25.05.14.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -34,7 +34,7 @@ MODEL='sup'
 KIT='SQK-NBD114-24'
 
 # Binary and Conda env
-DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado'
+DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado-0.9.6-linux-x64/bin/dorado'
 
 check_dir () { 
 	if [ -d "$1" ]
