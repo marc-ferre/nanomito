@@ -42,7 +42,7 @@ SELECT_DIR="$OUT_DIR/select-$SELECT"
 # MODBASE_DIR="$OUT_DIR/modbase"
 
 # Binary and Conda env
-DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado-0.9.6-linux-x64/bin/dorado'
+DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado'
 MODMITO_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_modmito'
 
 # Reference
