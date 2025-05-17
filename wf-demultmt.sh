@@ -6,7 +6,7 @@
 #SBATCH --time 120
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.05.17.1'
+VERSION='25.05.17.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -213,7 +213,7 @@ samtools merge "$BAM_FILE" ${ALN_PREFIX}*.bam
 check_file "$BAM_FILE"
 
 echo "Remove large or merged files:"
-for ID in $(cut -f3 cut.txt) ; do
+for ID in $(cut -f3 "$CUT_FILE") ; do
 	BAM="${ALN_PREFIX}${ID}.bam"
 	rm "$BAM" && [[ ! -e "$BAM" ]] && echo "[OK] Merged BAM file removed: $BAM"
 done
@@ -268,7 +268,7 @@ echo "Retrieving matching reads (select: $SELECT)..."
 conda activate $GETMT_ENV
 
 # Get unique parent IDs (pid) of reads aligned to chrM 
-python3 $CHRMPIDS_SCRIPT -b "$BAM_FILE" -p "$POD5_DIR" -o "$IDS_FILE"
+python3 $CHRMPIDS_SCRIPT -b "$SELECT_DIR" -p "$POD5_DIR" -o "$IDS_FILE"
 
 conda deactivate
 
