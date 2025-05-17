@@ -4,7 +4,7 @@
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=50G
-#SBATCH --time 30
+#SBATCH --time 60
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 #
@@ -12,7 +12,7 @@
 # wf-modmito.sh /Path/to/run/dir/
 #
 #
-VERSION='25.05.14.1'
+VERSION='25.05.17.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
