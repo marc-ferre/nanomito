@@ -12,7 +12,7 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.05.17.1'
+VERSION='25.05.17.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -104,7 +104,7 @@ gzip "$FASTQ_DIR"/*
 echo
 echo "Organizing files in sample dir in dir $FASTQ_DIR"
 cd "$FASTQ_DIR" || exit
-for FILE in "$FASTQ_DIR"/*.fastq.gz; do
+for FILE in *.fastq.gz; do
 	[[ -e "$FILE" ]] || break  # handle the case of no *.fastq.gz files
 	DIR=${FILE#*_}
 	DIR=${DIR%%.*}
