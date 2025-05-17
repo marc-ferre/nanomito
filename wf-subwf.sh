@@ -10,7 +10,7 @@
 #
 set -e
 
-VERSION='25.05.17.1'
+VERSION='25.05.17.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -50,10 +50,11 @@ echo "Date: $(date)"
 SAMPLES_COUNT=0
 JOBS_COUNT=0
 JOBID_LIST=''
+
 cd "$FASTQ_DIR"
-for DIR in $(ls -1 -d ./*/)
+shopt -u dotglob
+while IFS= read -r DIR
 do
-	[[ -d "$DIR" ]] || break
 	SAMPLE_ID=$(basename "$DIR")
 	echo "--- Sample: $SAMPLE_ID"
 	
@@ -78,7 +79,7 @@ do
 	echo "  Output in $SLURM_FILE"
 	JOBS_COUNT=$((JOBS_COUNT+1))
 	JOBID_LIST="$JOBID $JOBID_LIST"
-done
+done < <(find ./* -prune -type d)
 
 echo "=== $SAMPLES_COUNT sample(s)/$JOBS_COUNT batch job(s) submitted ==="
 
