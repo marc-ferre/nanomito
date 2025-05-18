@@ -12,7 +12,7 @@
 # wf-modmito.sh /Path/to/run/dir/
 #
 #
-VERSION='25.05.17.1'
+VERSION='25.05.18.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -129,7 +129,7 @@ samtools index "$SORTED_BAM_FILE"
 check_file "${SORTED_BAM_FILE}.bai"
 
 echo "Remove unsorted BAM file:"
-rm -i "$BAM_FILE" && [[ ! -e $BAM_FILE ]] && echo "[OK] BAM file removed: $BAM_FILE"
+rm "$BAM_FILE" && [[ ! -e $BAM_FILE ]] && echo "[OK] BAM file removed: $BAM_FILE"
 
 echo "Modkit version: $(modkit --version)"
 
