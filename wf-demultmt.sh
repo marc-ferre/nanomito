@@ -6,7 +6,7 @@
 #SBATCH --time 120
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.05.17.2'
+VERSION='25.05.18.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -80,6 +80,7 @@ HPLCHK_RAW_FILE="$HPLCHK_PREFIX.raw.txt"
 HPLCHK_SUMMARY_FILE="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
 IDS_FILE="$SELECT_DIR/$SAMPLE_ID.read_ids.txt"
 MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"
+SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 check_dir () { 
@@ -136,6 +137,7 @@ echo
 echo '******************************'
 echo '* Mapping Standard Reference *'
 echo '******************************'
+
 conda activate $ONT_DEMULT_ENV
 echo "Minimap2 version: $(minimap2 --version)"
 
@@ -197,7 +199,8 @@ echo "[OK] Line added to $DEMULT_SUMMARY_FILE"
 
 samtools --version
 ALN_PREFIX='alignment_'
-for ID in $(cut -f3 "$CUT_FILE") ; do
+for ID in $(cut -f3 "$CUT_FILE")
+do
 	REF="${REF_MT_DIR}/${REF_MT_PREFIX}${ID}${REF_MT_SUFIX}"
 	FASTQ="${DEMULT_PREFIX}_${ID}.fastq.gz"
 	SAM="${ALN_PREFIX}${ID}.sam"
@@ -211,13 +214,16 @@ done
 
 samtools merge "$BAM_FILE" ${ALN_PREFIX}*.bam
 check_file "$BAM_FILE"
+samtools sort "$BAM_FILE" -o "$SORTED_BAM_FILE"
+check_file "$SORTED_BAM_FILE"
+samtools index "$SORTED_BAM_FILE"
 
 echo "Remove large or merged files:"
-for ID in $(cut -f3 "$CUT_FILE") ; do
+for ID in $(cut -f3 "$CUT_FILE")
+do
 	BAM="${ALN_PREFIX}${ID}.bam"
-	rm "$BAM" && [[ ! -e "$BAM" ]] && echo "[OK] Merged BAM file removed: $BAM"
+	rm "$BAM" && [[ ! -e "$BAM" ]] && echo "[OK] Delete BAM file that have been merged: $BAM"
 done
-echo "> A single BAM file remain in dir $SELECT_DIR: $BAM_FILE"
 rm "$FASTQ_FILE" && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
 rm "$MAPPING_FILE" && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $MAPPING_FILE"
 
@@ -227,6 +233,7 @@ echo
 echo '*******************'
 echo '* Variant Calling *'
 echo '*******************'
+
 mkdir "$VARCALL_DIR"
 cd "$VARCALL_DIR" || exit
 
@@ -259,20 +266,20 @@ echo
 echo '***********************'
 echo '* Retrieving Raw Data *'
 echo '***********************'
-cd "$VARCALL_DIR" || exit
-check_file "$MATCH_FILE"
 
+rm "$BAM_FILE" && [[ ! -e $BAM_FILE ]] && echo "[OK] Unsorted BAM file removed: $BAM_FILE"
+echo "     > A single BAM file with index remain in dir $SELECT_DIR: $SORTED_BAM_FILE"
+
+cd "$VARCALL_DIR" || exit
 echo "Retrieving matching reads (select: $SELECT)..."
-#cut -f1 "$MATCH_FILE" | tail -n +2 > "$IDS_FILE"
 
 conda activate $GETMT_ENV
 
 # Get unique parent IDs (pid) of reads aligned to chrM 
 python3 $CHRMPIDS_SCRIPT -b "$SELECT_DIR" -p "$POD5_DIR" -o "$IDS_FILE"
+check_file "$IDS_FILE"
 
 conda deactivate
-
-check_file "$IDS_FILE"
 
 conda activate $POD5_ENV
 
@@ -292,6 +299,7 @@ echo
 echo '**********************'
 echo '* Variant Annotating *'
 echo '**********************'
+
 cd "$VARCALL_DIR" || exit
 check_file "$BALDUR_VCF_FILE"
 gunzip "$BALDUR_VCF_FILE"
