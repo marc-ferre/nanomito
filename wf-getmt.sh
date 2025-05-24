@@ -9,7 +9,7 @@
 #
 set -e
 
-VERSION='25.05.12.2'
+VERSION='25.05.24.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
