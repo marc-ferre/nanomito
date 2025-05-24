@@ -25,7 +25,7 @@ RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
 
 # Directories
 RUN_DIR_PATH=$(pwd)
-BAM_DIR="$RUN_DIR_PATH/bam_pass"
+BAM_DIR="$RUN_DIR_PATH/bam"
 POD5_ALL_DIR="$RUN_DIR_PATH/pod5"
 POD5_MT_DIR="$RUN_DIR_PATH/pod5_chrM"
 
@@ -37,7 +37,6 @@ CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/get
 
 # Files
 MT_PIDS_FILE="$POD5_MT_DIR/$RUN_ID.chrM_pids.txt"
-POD5_IDS_FILE="$POD5_MT_DIR/$RUN_ID.pod5_ids.txt"
 POD5_MT_IDS_FILE="$POD5_MT_DIR/$RUN_ID.chrM.pod5"
 
 echo "Workflow  : wf-getmt v.$VERSION by $AUTHOR"
