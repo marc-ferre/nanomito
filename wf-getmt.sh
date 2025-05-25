@@ -9,7 +9,7 @@
 #
 set -e
 
-VERSION='25.05.24.1'
+VERSION='25.05.25.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -71,7 +71,7 @@ else
 	echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
 	pod5 filter --missing-ok --recursive --force-overwrite "$POD5_ALL_DIR" --ids "$MT_PIDS_FILE" --output "$POD5_MT_IDS_FILE"
 	
-	echo "[OK] Pod5 reads matching chrM filtered in file: $POD5_PATH"
+	echo "[OK] Pod5 reads matching chrM filtered in file: $POD5_MT_IDS_FILE"
 	pod5 inspect summary "$POD5_MT_IDS_FILE"
 fi
 
