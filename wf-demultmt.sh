@@ -6,7 +6,7 @@
 #SBATCH --time 120
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.05.18.2'
+VERSION='25.05.25.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -273,13 +273,9 @@ echo "     > A single BAM file with index remain in dir $SELECT_DIR: $SORTED_BAM
 cd "$VARCALL_DIR" || exit
 echo "Retrieving matching reads (select: $SELECT)..."
 
-conda activate $GETMT_ENV
-
 # Get unique parent IDs (pid) of reads aligned to chrM 
-python3 $CHRMPIDS_SCRIPT -b "$SELECT_DIR" -p "$POD5_DIR" -o "$IDS_FILE"
+conda run -p $GETMT_ENV python "$CHRMPIDS_SCRIPT" -b "$SELECT_DIR" -p "$POD5_DIR" -o "$IDS_FILE"
 check_file "$IDS_FILE"
-
-conda deactivate
 
 conda activate $POD5_ENV
 
