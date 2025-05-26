@@ -7,7 +7,7 @@
 #
 set -euo pipefail
 
-VERSION='25.05.26.2'
+VERSION='25.05.26.3'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 GETMT_ENV='nanomito'
 CHRMPIDS_SCRIPT='/home/mferre/workflows/get_chrMpid.py'
@@ -131,7 +131,7 @@ main() {
     echo '|'
     echo '|'
     echo "| Workflow finished successfully. Pod5 data generated:"
-    echo "| $(du -hs "$POD5_MT_DIR")"
+    echo "| $(du -hs $POD5_MT_DIR)"
     echo '|'
     echo '|'
 }
