@@ -7,7 +7,7 @@
 #
 set -euo pipefail
 
-VERSION='25.05.26.1'
+VERSION='25.05.26.2'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 GETMT_ENV='nanomito'
 CHRMPIDS_SCRIPT='/home/mferre/workflows/get_chrMpid.py'
@@ -77,6 +77,10 @@ init_conda() {
 main() {
     parse_args "$@"
     redirect_log
+    
+    ULIMIT=4096
+    echo "[INFO] Maximum number of user processes set to $ULIMIT"
+    ulimit -n $ULIMIT
 
     cd "$RUN_DIR" || error_exit "Cannot cd to $RUN_DIR"
     RUN_ID="${PWD##*/}"
@@ -102,7 +106,7 @@ main() {
     mkdir -p "$POD5_MT_DIR"
     echo "[OK] chrM POD5 directory created: $POD5_MT_DIR"
 
-	echo "[INFO] pod5 version: $(pod5 --version)"
+	echo "[INFO] $(pod5 --version)"
 
     # Get unique parent IDs (pid) of reads aligned to chrM
 	conda run -n getmt python "$CHRMPIDS_SCRIPT" -b "$BAM_DIR" -p "$POD5_ALL_DIR" -o "$MT_PIDS_FILE"
