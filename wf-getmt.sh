@@ -7,7 +7,7 @@
 #
 set -euo pipefail
 
-VERSION='25.05.26.3'
+VERSION='25.05.26.4'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 GETMT_ENV='nanomito'
 CHRMPIDS_SCRIPT='/home/mferre/workflows/get_chrMpid.py'
@@ -116,8 +116,8 @@ main() {
     if [[ "$READ_IDS_COUNT" -eq 0 ]]; then
         echo '[WARNING] No read matching chrM: ending without Pod5 file of reads matching chrM'
     else
-        echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
-        pod5 filter --missing-ok --recursive --force-overwrite "$POD5_ALL_DIR" --ids "$MT_PIDS_FILE" --output "$POD5_MT_IDS_FILE"
+        # echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
+        pod5 filter --recursive --force-overwrite "$POD5_ALL_DIR" --ids "$MT_PIDS_FILE" --output "$POD5_MT_IDS_FILE"
         echo
         echo "[OK] Pod5 reads matching chrM filtered in file: $POD5_MT_IDS_FILE"
         pod5 inspect summary "$POD5_MT_IDS_FILE"
