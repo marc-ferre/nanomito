@@ -9,7 +9,7 @@ set -e
 if [ $# -eq 0 ]
 	then
 		echo "[ERROR] No arguments supplied"
-		exit 128 # die with error code 9999
+		exit 128 # die with error
 fi
 cd "$1"
 
@@ -28,10 +28,10 @@ WF_SUBWF='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-subwf.s
 
 # Mail parameters
 MAIL_USER='marc.ferre@univ-angers.fr'
-MAIL_TYPE_ALL='ALL'
 MAIL_TYPE_END='END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
 MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
-MAIL_TYPE_NONE='NONE'
+# MAIL_TYPE_NONE='NONE'
+# MAIL_TYPE_ALL='ALL'
 
 echo "=== Submit workflows to Slurm ==="
 echo "Run dir: $RUN_DIR"

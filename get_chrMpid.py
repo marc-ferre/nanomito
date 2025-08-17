@@ -24,6 +24,7 @@ import pod5
 VERSION = "25.05.25.4"
 AUTHOR = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Get unique parent IDs (pIDs) of reads aligned to chrM from BAM files."
@@ -35,10 +36,14 @@ def parse_args():
         "-p", "--pod5", type=str, required=True, help="Pod5 raw data directory"
     )
     parser.add_argument(
-        "-o", "--output", type=str, default="chrM_pids.txt",
-        help="Output file for unique parent IDs"
+        "-o",
+        "--output",
+        type=str,
+        default="chrM_pids.txt",
+        help="Output file for unique parent IDs",
     )
     return parser.parse_args()
+
 
 def get_pod5_ids(pod5_dir: str) -> set[str]:
     """Return set of all Pod5 read IDs in the directory."""
@@ -53,7 +58,10 @@ def get_pod5_ids(pod5_dir: str) -> set[str]:
     print(f"[INFO] Pod5 dir: {pod5_dir} | Raw reads (Pod5) stored: {len(allids)}")
     return allids
 
-def get_chrM_pids(bam_dir: str, pod5_ids: set[str]) -> tuple[set[str], list[str], int, int, int, int]:
+
+def get_chrM_pids(
+    bam_dir: str, pod5_ids: set[str]
+) -> tuple[set[str], list[str], int, int, int, int]:
     """Return set of unique parent IDs for reads aligned to chrM."""
     bam_path = Path(bam_dir)
     if not bam_path.is_dir():
@@ -93,7 +101,9 @@ def get_chrM_pids(bam_dir: str, pod5_ids: set[str]) -> tuple[set[str], list[str]
                     if read.has_tag("pi:Z"):
                         read_split_count += 1
                         pid = read.get_tag("pi:Z")
-                        print("[INFO]    Subread ID# {id} was generated from Parent read pID# {pid} [READ SPLITTING]")
+                        print(
+                            "[INFO]    Subread ID# {id} was generated from Parent read pID# {pid} [READ SPLITTING]"
+                        )
                     else:
                         pid = id
                         print("[INFO]    Read pID#", pid)
@@ -101,7 +111,9 @@ def get_chrM_pids(bam_dir: str, pod5_ids: set[str]) -> tuple[set[str], list[str]
                     # Store pID if not duplicate
                     if pid in pids:
                         read_duplicate_count += 1
-                        print("[INFO]       Duplicate entry (not re-stored) [DUPLICATE]")
+                        print(
+                            "[INFO]       Duplicate entry (not re-stored) [DUPLICATE]"
+                        )
                     else:
                         pids.append(pid)
                         print("      [OK] Storing entry")
@@ -121,19 +133,37 @@ def get_chrM_pids(bam_dir: str, pod5_ids: set[str]) -> tuple[set[str], list[str]
 
                 samfile.close()
     print(f"[INFO] Finished scanning all BAM files.")
-    return pids, missingids, bam_count, read_chrM_count, read_split_count, read_duplicate_count
+    return (
+        pids,
+        missingids,
+        bam_count,
+        read_chrM_count,
+        read_split_count,
+        read_duplicate_count,
+    )
+
 
 def write_ids(ids: set[str], output_file: str) -> None:
     with open(output_file, "w") as f:
         for pid in ids:
             f.write(f"{pid}\n")
-    print(f"[OK] {len(ids)} unique Pod5 IDs of reads aligned to chrM written in file: {output_file}")
+    print(
+        f"[OK] {len(ids)} unique Pod5 IDs of reads aligned to chrM written in file: {output_file}"
+    )
+
 
 def main():
     print(f"Script: get_chrMpid.py v.{VERSION} by {AUTHOR}")
     args = parse_args()
     pod5_ids = get_pod5_ids(args.pod5)
-    pids, missingids, bam_count, read_chrM_count, read_split_count, read_duplicate_count = get_chrM_pids(args.bam, pod5_ids)
+    (
+        pids,
+        missingids,
+        bam_count,
+        read_chrM_count,
+        read_split_count,
+        read_duplicate_count,
+    ) = get_chrM_pids(args.bam, pod5_ids)
 
     print("\n| Pod5 reads:", len(pod5_ids))
     print("| BAM files processed:", bam_count)
@@ -145,6 +175,7 @@ def main():
     if missingids:
         print("\nMissing IDs:", missingids)
     write_ids(pids, args.output)
+
 
 if __name__ == "__main__":
     main()

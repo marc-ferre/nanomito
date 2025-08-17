@@ -6,7 +6,7 @@
 #SBATCH --time 120
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.05.25.1'
+VERSION='25.08.17.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -37,6 +37,7 @@ VARCALL_DIR="$OUT_DIR/varcall"
 
 # Binaries
 BALDUR_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/baldur-1.2.2/target/release/baldur'
+DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado'
 ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_demult/target/release/ont_demult'
 
 # Conda envs
@@ -138,16 +139,20 @@ echo '******************************'
 echo '* Mapping Standard Reference *'
 echo '******************************'
 
-conda activate $ONT_DEMULT_ENV
-echo "Minimap2 version: $(minimap2 --version)"
+#conda activate $ONT_DEMULT_ENV
+# echo "Minimap2 version: $(minimap2 --version)"
+# minimap2 -x map-ont -t 10 $REF_WHOLE "$FASTQ_FILE" > "$MAPPING_FILE"
 
-minimap2 -x map-ont -t 10 $REF_WHOLE "$FASTQ_FILE" > "$MAPPING_FILE"
+$DORADO_BIN aligner $REF_WHOLE "$FASTQ_FILE" > "$MAPPING_FILE"
 check_file "$MAPPING_FILE"
 
 echo
 echo '******************'
 echo '* Demultiplexing *'
 echo '******************'
+
+conda activate $ONT_DEMULT_ENV
+
 $ONT_DEMULT_BIN --version
 
 mkdir "$SELECT_DIR"
@@ -206,8 +211,9 @@ do
 	SAM="${ALN_PREFIX}${ID}.sam"
 	BAM="${ALN_PREFIX}${ID}.bam"
 	
-	minimap2 -ax map-ont "$REF" "$FASTQ" > "$SAM"
-	samtools view -b "$SAM" > "$BAM"
+	# minimap2 -ax map-ont "$REF" "$FASTQ" > "$SAM"
+	# samtools view -b "$SAM" > "$BAM"
+	$DORADO_BIN aligner "$REF" "$FASTQ" > "$BAM" 
 	
 	rm "$SAM" && [[ ! -e "$SAM" ]] && echo "[OK] SAM file removed: $SAM"
 done
@@ -285,8 +291,8 @@ pod5 --version
 # export POD5_DEBUG=1
 # echo "Set POD5_DEBUG=1 for for detailed information"
 
-echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
-pod5 filter --missing-ok --recursive --force-overwrite --threads 10 "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
+#echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
+pod5 filter --recursive --force-overwrite --threads 10 "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
 check_file "$DEMULT_POD5_FILE"
 
 conda deactivate

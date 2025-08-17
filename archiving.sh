@@ -13,21 +13,21 @@ PROJECTS_DIR='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/projects'
 if [ $# -eq 0 ]
 	then
 		echo "[ERROR] No arguments supplied"
-		exit 9999 # die with error code 9999
+		exit 22 # die with error
 fi
 
 echo "=== Submit run archiving ==="
-cd $1
-RUN_DIR=`pwd`
-RUN_ID=$(basename $RUN_DIR)
+cd "$1"
+RUN_DIR=$(pwd)
+RUN_ID=$(basename "$RUN_DIR")
 echo "Run id: $RUN_ID"
 
 ARCHIVING_DIR="$PROJECTS_DIR/$RUN_ID"
 if [ -d "$ARCHIVING_DIR" ]; then
     echo "[WARNING] Archiving directory already exist: $ARCHIVING_DIR exist"
     echo "Do you want overwrite it? (y/n)"
-    read YN
-    if [ $YN = "y" ];
+    read -r YN
+    if [ "$YN" = "y" ];
     then
         echo "Overwritting..."
     else
@@ -35,11 +35,11 @@ if [ -d "$ARCHIVING_DIR" ]; then
         exit 0
     fi
 else
-	mkdir $ARCHIVING_DIR
+	mkdir "$ARCHIVING_DIR"
 fi    
 
 
 SLURM_FILE="$PROJECTS_DIR/slurm-$RUN_ID.txt"
 
-sbatch --job-name="a${RUN_ID: -7}" --output="$SLURM_FILE" $WF_ARCHIVING $RUN_DIR $ARCHIVING_DIR
+sbatch --job-name="a${RUN_ID: -7}" --output="$SLURM_FILE" $WF_ARCHIVING "$RUN_DIR" "$ARCHIVING_DIR"
 echo "> Output in $SLURM_FILE"
