@@ -10,7 +10,7 @@
 #
 set -e
 
-VERSION='25.05.18.1'
+VERSION='25.08.18.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -62,7 +62,7 @@ do
 	
 	OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 	SLURM_PRE="slurm-$SAMPLE_ID"
-	SLURM_EXT='txt'
+	SLURM_EXT='log'
 	
 	WF_ID='demultmt'
 	SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
