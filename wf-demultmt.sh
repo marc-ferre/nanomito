@@ -6,7 +6,7 @@
 #SBATCH --time 120
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.08.18.1'
+VERSION='25.08.18.2'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -238,10 +238,11 @@ do
 	BAM="${ALN_PREFIX}${ID}.bam"
 	rm "$BAM" && [[ ! -e "$BAM" ]] && echo "[OK] Delete BAM file that have been merged: $BAM"
 done
-rm "$FASTQ_FILE" && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
-rm "$MAPPING_BAM_FILE" && [[ ! -e $MAPPING_BAM_FILE ]] && echo "[OK] Mapping BAM file removed: $MAPPING_BAM_FILE"
-rm "$MAPPING_SAM_FILE" && [[ ! -e $MAPPING_SAM_FILE ]] && echo "[OK] Mapping SAM file removed: $MAPPING_SAM_FILE"
-rm "$MAPPING_PAF_FILE" && [[ ! -e $MAPPING_PAF_FILE ]] && echo "[OK] Mapping PAF file removed: $MAPPING_PAF_FILE"
+### DEBUG: Uncomment to remove files
+# rm "$FASTQ_FILE" && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
+# rm "$MAPPING_BAM_FILE" && [[ ! -e $MAPPING_BAM_FILE ]] && echo "[OK] Mapping BAM file removed: $MAPPING_BAM_FILE"
+# rm "$MAPPING_SAM_FILE" && [[ ! -e $MAPPING_SAM_FILE ]] && echo "[OK] Mapping SAM file removed: $MAPPING_SAM_FILE"
+# rm "$MAPPING_PAF_FILE" && [[ ! -e $MAPPING_PAF_FILE ]] && echo "[OK] Mapping PAF file removed: $MAPPING_PAF_FILE"
 
 conda deactivate
 

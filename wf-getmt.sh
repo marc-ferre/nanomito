@@ -7,7 +7,7 @@
 #
 set -euo pipefail
 
-VERSION='25.05.26.4'
+VERSION='25.08.18.1'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 GETMT_ENV='nanomito'
 CHRMPIDS_SCRIPT='/home/mferre/workflows/get_chrMpid.py'
@@ -78,7 +78,7 @@ main() {
     parse_args "$@"
     redirect_log
     
-    ULIMIT=4096
+    ULIMIT=8182
     echo "[INFO] Maximum number of user processes set to $ULIMIT"
     ulimit -n $ULIMIT
 
