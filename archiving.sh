@@ -39,7 +39,7 @@ else
 fi    
 
 
-SLURM_FILE="$PROJECTS_DIR/slurm-$RUN_ID.txt"
+SLURM_FILE="$PROJECTS_DIR/slurm-$RUN_ID.log"
 
 sbatch --job-name="a${RUN_ID: -7}" --output="$SLURM_FILE" $WF_ARCHIVING "$RUN_DIR" "$ARCHIVING_DIR"
 echo "> Output in $SLURM_FILE"

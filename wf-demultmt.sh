@@ -6,7 +6,7 @@
 #SBATCH --time 120
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.08.17.1'
+VERSION='25.08.18.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -27,7 +27,7 @@ SELECT='both'
 
 # Directories
 RUN_DIR=$(pwd)
-FASTQ_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
+BAM_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
 POD5_DIR="$RUN_DIR/pod5_chrM"
 PROCESS_DIR="$RUN_DIR/processing"
 OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
@@ -111,7 +111,7 @@ echo "Sample: $SAMPLE_ID"
 echo "Job: $SLURM_JOB_ID"
 echo "Run directory: $RUN_DIR"
 echo "Pod5 directory: $POD5_DIR"
-echo "FastQ directory: $FASTQ_DIR"
+echo "BAM directory: $BAM_DIR"
 echo "Output directory: $OUT_DIR"
 echo "Read selection strategy: $SELECT"
 echo "Date: $(date)"
@@ -120,14 +120,18 @@ echo
 echo '*****************'
 echo '* Preprocessing *'
 echo '*****************'
-check_dir "$FASTQ_DIR"
+check_dir "$BAM_DIR"
 mkdir -p "$OUT_DIR"
 FASTQ_FILE="$OUT_DIR/$SAMPLE_ID.fastq.gz"
 echo "FastQ file: $FASTQ_FILE"
-MAPPING_FILE="$OUT_DIR/$SAMPLE_ID.paf"
-echo "Mapping file: $MAPPING_FILE"
+MAPPING_BAM_FILE="$OUT_DIR/$SAMPLE_ID.bam"
+echo "Mapping BAM file: $MAPPING_BAM_FILE"
+MAPPING_SAM_FILE="$OUT_DIR/$SAMPLE_ID.sam"
+echo "Mapping SAM file: $MAPPING_SAM_FILE"
+MAPPING_PAF_FILE="$OUT_DIR/$SAMPLE_ID.paf"
+echo "Mapping PAF file: $MAPPING_PAF_FILE"
 
-cat "$FASTQ_DIR"/*.fastq.gz > "$FASTQ_FILE"
+cat "$BAM_DIR"/*.fastq.gz > "$FASTQ_FILE"
 check_file "$FASTQ_FILE"
 COUNT_TOTAL=$(( $(zcat "$FASTQ_FILE" | wc -l) / 4 ))
 
@@ -139,12 +143,8 @@ echo '******************************'
 echo '* Mapping Standard Reference *'
 echo '******************************'
 
-#conda activate $ONT_DEMULT_ENV
-# echo "Minimap2 version: $(minimap2 --version)"
-# minimap2 -x map-ont -t 10 $REF_WHOLE "$FASTQ_FILE" > "$MAPPING_FILE"
-
-$DORADO_BIN aligner $REF_WHOLE "$FASTQ_FILE" > "$MAPPING_FILE"
-check_file "$MAPPING_FILE"
+$DORADO_BIN aligner $REF_WHOLE "$FASTQ_FILE" > "$MAPPING_BAM_FILE"
+check_file "$MAPPING_BAM_FILE"
 
 echo
 echo '******************'
@@ -153,13 +153,19 @@ echo '******************'
 
 conda activate $ONT_DEMULT_ENV
 
+samtools view -h $MAPPING_BAM_FILE > $MAPPING_SAM_FILE
+check_file "$MAPPING_SAM_FILE"
+
+echo "Minimap2 version: $(minimap2 --version)"
+
+paftools.js sam2paf $MAPPING_SAM_FILE > $MAPPING_PAF_FILE
+check_file "$MAPPING_PAF_FILE"
+
 $ONT_DEMULT_BIN --version
 
 mkdir "$SELECT_DIR"
 check_dir "$SELECT_DIR"
 cd "$SELECT_DIR" || exit
-
-check_file "$MAPPING_FILE"
 
 $ONT_DEMULT_BIN --select $SELECT \
 	--loglevel info \
@@ -172,7 +178,7 @@ $ONT_DEMULT_BIN --select $SELECT \
 	--prefix "${DEMULT_PREFIX}" \
 	--matched-only \
 	--compress \
-	"$MAPPING_FILE"
+	"$MAPPING_PAF_FILE"
 check_file "$DEMULT_FILE"
 
 COUNT_ALIGN=$(($(zcat "$DEMULT_FILE" | wc -l) - 1))
@@ -208,14 +214,16 @@ for ID in $(cut -f3 "$CUT_FILE")
 do
 	REF="${REF_MT_DIR}/${REF_MT_PREFIX}${ID}${REF_MT_SUFIX}"
 	FASTQ="${DEMULT_PREFIX}_${ID}.fastq.gz"
-	SAM="${ALN_PREFIX}${ID}.sam"
 	BAM="${ALN_PREFIX}${ID}.bam"
 	
-	# minimap2 -ax map-ont "$REF" "$FASTQ" > "$SAM"
-	# samtools view -b "$SAM" > "$BAM"
 	$DORADO_BIN aligner "$REF" "$FASTQ" > "$BAM" 
+
+	if [ -s "$BAM" ]; then
+        echo "[OK] BAM file not empty: $BAM"
+	else
+        rm "$BAM" && [[ ! -e $BAM ]] && echo "[OK] Empty BAM file removed: $BAM"
+	fi
 	
-	rm "$SAM" && [[ ! -e "$SAM" ]] && echo "[OK] SAM file removed: $SAM"
 done
 
 samtools merge "$BAM_FILE" ${ALN_PREFIX}*.bam
@@ -231,7 +239,9 @@ do
 	rm "$BAM" && [[ ! -e "$BAM" ]] && echo "[OK] Delete BAM file that have been merged: $BAM"
 done
 rm "$FASTQ_FILE" && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
-rm "$MAPPING_FILE" && [[ ! -e $MAPPING_FILE ]] && echo "[OK] Mapping file removed: $MAPPING_FILE"
+rm "$MAPPING_BAM_FILE" && [[ ! -e $MAPPING_BAM_FILE ]] && echo "[OK] Mapping BAM file removed: $MAPPING_BAM_FILE"
+rm "$MAPPING_SAM_FILE" && [[ ! -e $MAPPING_SAM_FILE ]] && echo "[OK] Mapping SAM file removed: $MAPPING_SAM_FILE"
+rm "$MAPPING_PAF_FILE" && [[ ! -e $MAPPING_PAF_FILE ]] && echo "[OK] Mapping PAF file removed: $MAPPING_PAF_FILE"
 
 conda deactivate
 
