@@ -6,7 +6,7 @@
 #SBATCH --time 120
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.08.18.2'
+VERSION='25.08.18.6'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -58,7 +58,7 @@ ANN_MITOMAP_POLYMORPHISMS='/scratch/mferre/reference/MITOMAP/polymorphisms.vcf'
 # REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
 # REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
 REF_MT='/scratch/mferre/reference/chrM.fa'
-REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.fa'
+REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.mmi'
 
 # Pre/Sufixes
 BALDUR_PREFIX="$SAMPLE_ID.baldur"
@@ -124,10 +124,10 @@ check_dir "$BAM_DIR"
 mkdir -p "$OUT_DIR"
 FASTQ_FILE="$OUT_DIR/$SAMPLE_ID.fastq.gz"
 echo "FastQ file: $FASTQ_FILE"
-MAPPING_BAM_FILE="$OUT_DIR/$SAMPLE_ID.bam"
-echo "Mapping BAM file: $MAPPING_BAM_FILE"
-MAPPING_SAM_FILE="$OUT_DIR/$SAMPLE_ID.sam"
-echo "Mapping SAM file: $MAPPING_SAM_FILE"
+# MAPPING_BAM_FILE="$OUT_DIR/$SAMPLE_ID.bam"
+# echo "Mapping BAM file: $MAPPING_BAM_FILE"
+# MAPPING_SAM_FILE="$OUT_DIR/$SAMPLE_ID.sam"
+# echo "Mapping SAM file: $MAPPING_SAM_FILE"
 MAPPING_PAF_FILE="$OUT_DIR/$SAMPLE_ID.paf"
 echo "Mapping PAF file: $MAPPING_PAF_FILE"
 
@@ -143,22 +143,26 @@ echo '******************************'
 echo '* Mapping Standard Reference *'
 echo '******************************'
 
-$DORADO_BIN aligner $REF_WHOLE "$FASTQ_FILE" > "$MAPPING_BAM_FILE"
-check_file "$MAPPING_BAM_FILE"
+# $DORADO_BIN aligner "$REF_WHOLE" "$FASTQ_FILE" > "$MAPPING_BAM_FILE"
+# check_file "$MAPPING_BAM_FILE"
+
+conda activate "$ONT_DEMULT_ENV"
+
+echo "Minimap2 version: $(minimap2 --version)"
+
+minimap2 -x map-ont -t 10 "$REF_WHOLE" "$FASTQ_FILE" > "$MAPPING_PAF_FILE"
+check_file "$MAPPING_PAF_FILE"
 
 echo
 echo '******************'
 echo '* Demultiplexing *'
 echo '******************'
 
-conda activate $ONT_DEMULT_ENV
 
-samtools view -h $MAPPING_BAM_FILE > $MAPPING_SAM_FILE
-check_file "$MAPPING_SAM_FILE"
+# samtools view -h "$MAPPING_BAM_FILE" > "$MAPPING_SAM_FILE"
+# check_file "$MAPPING_SAM_FILE"
 
-echo "Minimap2 version: $(minimap2 --version)"
-
-paftools.js sam2paf $MAPPING_SAM_FILE > $MAPPING_PAF_FILE
+# paftools.js sam2paf "$MAPPING_SAM_FILE" > "$MAPPING_PAF_FILE"
 check_file "$MAPPING_PAF_FILE"
 
 $ONT_DEMULT_BIN --version
@@ -216,14 +220,15 @@ do
 	FASTQ="${DEMULT_PREFIX}_${ID}.fastq.gz"
 	BAM="${ALN_PREFIX}${ID}.bam"
 	
-	$DORADO_BIN aligner "$REF" "$FASTQ" > "$BAM" 
+	# $DORADO_BIN aligner "$REF" "$FASTQ" > "$BAM" 
 
-	if [ -s "$BAM" ]; then
-        echo "[OK] BAM file not empty: $BAM"
-	else
-        rm "$BAM" && [[ ! -e $BAM ]] && echo "[OK] Empty BAM file removed: $BAM"
-	fi
-	
+	# if [ -s "$BAM" ]; then
+    #     echo "[OK] BAM file not empty: $BAM"
+	# else
+    #     rm "$BAM" && [[ ! -e $BAM ]] && echo "[OK] Empty BAM file removed: $BAM"
+	# fi
+
+	minimap2 -ax map-ont "$REF" "$FASTQ" | samtools view -b - > "$BAM"
 done
 
 samtools merge "$BAM_FILE" ${ALN_PREFIX}*.bam
@@ -302,8 +307,8 @@ pod5 --version
 # export POD5_DEBUG=1
 # echo "Set POD5_DEBUG=1 for for detailed information"
 
-#echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
-pod5 filter --recursive --force-overwrite --threads 10 "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
+echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
+pod5 filter --missing-ok --recursive --force-overwrite --threads 10 "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
 check_file "$DEMULT_POD5_FILE"
 
 conda deactivate
