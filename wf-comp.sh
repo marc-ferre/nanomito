@@ -27,8 +27,10 @@ check_dependencies() {
 validate_directory() {
     local dir="$1"
     if [[ ! -d "$dir" ]]; then
-        echo "Error: The specified directory '$dir' does not exist." >&2
-        exit 1
+        handle_error "The specified directory '$dir' does not exist."
+    fi
+    if [[ ! -r "$dir" || ! -w "$dir" ]]; then
+        handle_error "The specified directory '$dir' is not readable or writable."
     fi
 }
 
@@ -147,7 +149,77 @@ export_vcf_to_tsv_Illumina() {
     echo "TSV file generated: $output_tsv"
 }
 
-# Main script
+# Add new error handling function
+handle_error() {
+    local error_msg="$1"
+    echo "Error: $error_msg" >&2
+    exit 1
+}
+
+# Add new function to check file existence and permissions
+check_file() {
+    local file="$1"
+    local type="$2"
+    
+    if [[ ! -f "$file" ]]; then
+        handle_error "$type file not found: $file"
+    fi
+    if [[ ! -r "$file" ]]; then
+        handle_error "$type file not readable: $file"
+    fi
+}
+
+# Add new function to create directory
+create_directory() {
+    local dir="$1"
+    local dir_name="$2"
+    
+    if ! mkdir -p "$dir"; then
+        handle_error "Failed to create $dir_name directory: $dir"
+    fi
+    echo "Created $dir_name directory: $dir"
+}
+
+# Modify validate_directory function
+validate_directory() {
+    local dir="$1"
+    if [[ ! -d "$dir" ]]; then
+        handle_error "The specified directory '$dir' does not exist."
+    fi
+    if [[ ! -r "$dir" || ! -w "$dir" ]]; then
+        handle_error "The specified directory '$dir' is not readable or writable."
+    fi
+}
+
+# Haplogroup processing
+process_haplocheck() {
+    local vcf_file="$1"
+    local summary_file="$2"
+    local hplchk_dir="$3"
+    
+    prefix="${hplchk_dir}/hplchk_tmp"
+
+    echo "Processing haplocheck for $vcf_file..."
+    
+    if ! java -jar "$HAPLOCHECK_BIN" --raw --out "$prefix" "$vcf_file"; then
+        handle_error "haplocheck failed"
+    fi
+    
+    # Update summary file
+    local raw_file="${prefix}.raw.txt"
+    if [[ ! -e "$summary_file" ]]; then
+        cp "$raw_file" "$summary_file"
+        echo "[OK] File $summary_file created (with header)"
+    else
+        tail -n +2 "$raw_file" >> "$summary_file"
+        echo "[OK] Line added to $summary_file"
+    fi
+
+    # Cleanup files
+    rm -f "$prefix" "${prefix}.html" "$raw_file" 
+}
+
+# Main function
 main() {
     # Define the working directory
     WORKDIR=$(cd "${1:-$(pwd)}" && pwd)
@@ -207,9 +279,26 @@ main() {
     annotate_vcf "$VCF_ILLUMINA" "$VCF_ILLUMINA_ANNOTMT"
 
     echo
-    echo '************'
-    echo '* Analysis *'
-    echo '************'
+    echo '*************************'
+    echo '* Haplogroup Comparison *'
+    echo '*************************'
+
+    # Create output directory for haplocheck
+    HPLCHK_DIR="$WORKDIR/hplchk-${PREFIX}"
+    mkdir -p "$HPLCHK_DIR"
+    
+    HPLCHK_SUMMARY_FILE="${HPLCHK_DIR}/haplocheck_summary.${PREFIX}.tsv"
+
+    # Process haplocheck for Nanopore and Illumina
+    echo "Comparing haplogroups using haplocheck..."
+
+    process_haplocheck "$VCF_NANOPORE" "$HPLCHK_SUMMARY_FILE" "$HPLCHK_DIR"
+    process_haplocheck "$VCF_ILLUMINA_ANNOTMT" "$HPLCHK_SUMMARY_FILE" "$HPLCHK_DIR"
+
+    echo
+    echo '***********************'
+    echo '* Variants Comparison *'
+    echo '***********************'
 
     # Compress and index files
     compress_and_index "$VCF_NANOPORE"
@@ -219,12 +308,13 @@ main() {
     ISEC_DIR="$WORKDIR/isec-$PREFIX"
     mkdir -p "$ISEC_DIR"
 
-    # File analysis with error handling
-    if ! bcftools isec "${VCF_NANOPORE}.gz" "${VCF_ILLUMINA_ANNOTMT}.gz" \
-        --prefix "$ISEC_DIR" --apply-filters PASS; then
+    # Compare VCF files using bcftools isec
+    echo "Comparing VCF files using bcftools isec..."
+    if ! bcftools isec "${VCF_NANOPORE}.gz" "${VCF_ILLUMINA_ANNOTMT}.gz" --prefix "$ISEC_DIR" --apply-filters PASS; then
         echo "Error: bcftools isec failed" >&2
         exit 1
     fi
+
 
     # Decompress and cleanup
     cleanup_compressed_files "$VCF_NANOPORE"
@@ -284,10 +374,23 @@ main() {
 }
 
 # References
-SNPSIFT_BIN="/Users/marcferre/Documents/Recherche/Projets/Nanomito/Apps/snpEff/SnpSift.jar"
+HAPLOCHECK_BIN='/Users/marcferre/Documents/Recherche/Projets/Nanomito/Apps/haplocheck/haplocheck.jar'   
+SNPSIFT_BIN='/Users/marcferre/Documents/Recherche/Projets/Nanomito/Apps/snpEff/SnpSift.jar'
 ANN_GNOMAD='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
 ANN_MITOMAP_DISEASE='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/MITOMAP/disease-nosp.vcf'
 ANN_MITOMAP_POLYMORPHISMS='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/MITOMAP/polymorphisms.vcf'
+
+# Add cleanup function at the end of the script, before main()
+cleanup_on_exit() {
+    if [[ $? -ne 0 ]]; then
+        echo "Script failed with errors. Check the log file for details: $LOGFILE"
+    fi
+    
+    # Cleanup temporary files
+    rm -f "$VCF_ILLUMINA_ANNOTMT"
+    cleanup_compressed_files "$VCF_NANOPORE"
+    cleanup_compressed_files "$VCF_ILLUMINA_ANNOTMT"
+}
 
 # Run the main function
 main "$@"

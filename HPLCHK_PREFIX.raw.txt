@@ -1,0 +1,2 @@
+"Sample"	"Contamination Status"	"Contamination Level"	"Distance"	"Sample Coverage"	"Overall Homoplasmies"	"Overall Heteroplasmies"	"Major Heteroplasmy Level"	"Minor Heteroplasmy Level"	"Major Haplogroup"	"Major Haplogroup Quality"	"Minor Haplogroup"	"Minor Haplogroup Quality"	"Major Homoplasmies Count"	"Minor Homoplasmies Count"	"Major Heteroplasmies Count"	"Minor Heteroplasmies Count"	"Clusters"
+"240503_BAU"	"ND"	"ND"	"0"	"0"	"5"	"0"	"0,000"	"0,000"	"H2"	"0,908"	"H2"	"0,908"	"4"	"4"	"0"	"0"	""
