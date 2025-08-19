@@ -117,6 +117,36 @@ cleanup_compressed_files() {
     rm -f "${vcf_file}.gz.tbi"
 }
 
+export_vcf_to_tsv_Nanopore() {
+    local input_vcf="$1"
+    local output_tsv="${input_vcf%.vcf}.tsv"
+
+    echo "Exporting VCF to TSV (Nanopore): $input_vcf -> $output_tsv"
+
+    # Add header to the TSV file
+    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP" > "$output_tsv"
+
+    # Convert VCF to TSV using bcftools query
+    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$input_vcf" >> "$output_tsv"
+
+    echo "TSV file generated: $output_tsv"
+}
+
+export_vcf_to_tsv_Illumina() {
+    local input_vcf="$1"
+    local output_tsv="${input_vcf%.vcf}.tsv"
+
+    echo "Exporting VCF to TSV (Illumina): $input_vcf -> $output_tsv"
+
+    # Add header to the TSV file
+    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tQUAL\tDP" > "$output_tsv"
+
+    # Convert VCF to TSV using bcftools query
+    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %AF]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t%QUAL\t[ %DP]\n' "$input_vcf" >> "$output_tsv"
+
+    echo "TSV file generated: $output_tsv"
+}
+
 # Main script
 main() {
     # Define the working directory
@@ -203,6 +233,41 @@ main() {
     # Remove annotated Illumina VCF
     echo "Removing annotated Illumina VCF file: $VCF_ILLUMINA_ANNOTMT"
     rm -f "$VCF_ILLUMINA_ANNOTMT"
+
+    # Export VCF files to TSV
+    echo
+    echo '*******************'
+    echo '* TSV Conversion *'
+    echo '*******************'
+    
+    # Export specific VCF files in ISEC_DIR
+    if [[ -d "$ISEC_DIR" ]]; then
+        echo "Converting specific VCF files to TSV in: $ISEC_DIR"
+        for vcf_num in "0000" "0002"; do
+            vcf_file="$ISEC_DIR/$vcf_num.vcf"
+            if [[ -f "$vcf_file" ]]; then
+                export_vcf_to_tsv_Nanopore "$vcf_file"
+            else
+                echo "Warning: File $vcf_file not found"
+            fi
+        done
+    else
+        echo "Warning: Directory $ISEC_DIR not found. Skipping TSV conversion."
+    fi
+
+    if [[ -d "$ISEC_DIR" ]]; then
+        echo "Converting specific VCF files to TSV in: $ISEC_DIR"
+        for vcf_num in "0001" "0003"; do
+            vcf_file="$ISEC_DIR/$vcf_num.vcf"
+            if [[ -f "$vcf_file" ]]; then
+                export_vcf_to_tsv_Illumina "$vcf_file"
+            else
+                echo "Warning: File $vcf_file not found"
+            fi
+        done
+    else
+        echo "Warning: Directory $ISEC_DIR not found. Skipping TSV conversion."
+    fi
 
     # End timing
     END=$(date +%s)
