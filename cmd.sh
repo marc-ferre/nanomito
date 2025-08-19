@@ -1,2 +1,0 @@
-rsync -av --stats --progress --delete /mnt/c/data/250303_run01_solene mferre@genossh.genouest.org:/scratch/mferre/workbench/
-rsync -av --stats --progress --delete /mnt/c/data/250401_run02_solene mferre@genossh.genouest.org:/scratch/mferre/workbench/
