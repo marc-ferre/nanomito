@@ -32,21 +32,54 @@ validate_directory() {
     fi
 }
 
+validate_reference_files() {
+    echo "Checking reference files..."
+    local ref_files=(
+        "$SNPSIFT_BIN"
+        "$ANN_GNOMAD"
+        "$ANN_MITOMAP_DISEASE"
+        "$ANN_MITOMAP_POLYMORPHISMS"
+    )
+    for ref in "${ref_files[@]}"; do
+        if [[ ! -f "$ref" ]]; then
+            echo "Error: Reference file not found: $ref" >&2
+            exit 1
+        fi
+        if [[ ! -r "$ref" ]]; then
+            echo "Error: Reference file not readable: $ref" >&2
+            exit 1
+        fi
+    done
+    echo "All reference files are valid."
+}
+
 find_vcf_files() {
     local dir="$1"
-    local nanopore_files=("$dir"/*.ann.vcf)
-    local illumina_files=("$dir"/i---*.vcf)
+    local debug_msg="Searching for VCF files in: $dir" >&2
 
-    if [[ ! -e "${nanopore_files[1]}" ]]; then
-        echo "Error: No Nanopore VCF file found in $dir." >&2
+    # Utilisation de find pour plus de fiabilité
+    local nanopore_file=$(find "$dir" -maxdepth 1 -name "*.ann.vcf" -print -quit)
+    local illumina_file=$(find "$dir" -maxdepth 1 -name "i---*.vcf" -print -quit)
+
+    if [[ -z "$nanopore_file" ]]; then
+        echo "Error: No Nanopore VCF file (*.ann.vcf) found in $dir" >&2
+        ls -l "$dir" >&2
         exit 1
     fi
-    if [[ ! -e "${illumina_files[1]}" ]]; then
-        echo "Error: No Illumina VCF file found in $dir." >&2
+
+    if [[ -z "$illumina_file" ]]; then
+        echo "Error: No Illumina VCF file (i---*.vcf) found in $dir" >&2
+        ls -l "$dir" >&2
         exit 1
     fi
 
-    echo "${nanopore_files[1]}" "${illumina_files[1]}"
+    # Afficher les messages de débogage sur stderr
+    echo "Found:" >&2
+    echo "- Nanopore: $nanopore_file" >&2
+    echo "- Illumina: $illumina_file" >&2
+
+    # Retourner uniquement les chemins des fichiers sur stdout
+    printf "%s\n%s\n" "$nanopore_file" "$illumina_file"
 }
 
 annotate_vcf() {
@@ -87,24 +120,42 @@ cleanup_compressed_files() {
 # Main script
 main() {
     # Define the working directory
-    WORKDIR=${1:-$(pwd)}
+    WORKDIR=$(cd "${1:-$(pwd)}" && pwd)
+    echo "Working directory: $WORKDIR"
     validate_directory "$WORKDIR"
+
+    # Create logs directory
+    LOGDIR="$WORKDIR/logs"
+    mkdir -p "$LOGDIR"
 
     # Define the prefix
     PREFIX=${WORKDIR##*/}
     PREFIX=${PREFIX:-/}
 
-    # Redirect output to a log file
-    LOGFILE="${WORKDIR}/${PREFIX}-wf-comp.log"
-    exec > >(tee -a "$LOGFILE") 2>&1
+    # Redirect output to a log file (without append)
+    LOGFILE="$LOGDIR/${PREFIX}-wf-comp.log"
+    exec > >(tee "$LOGFILE") 2>&1
 
-    # Check dependencies
+    # Check dependencies and reference files
     check_dependencies
+    validate_reference_files
 
-   
+    # Find VCF files with improved error handling
+    local vcf_output
+    vcf_output=$(find_vcf_files "$WORKDIR")
+    
+    # Créer le tableau à partir de la sortie
+    VCF_FILES=("${(f)vcf_output}")
+    
+    # Vérification du nombre de fichiers trouvés
+    if [[ ${#VCF_FILES[@]} -ne 2 ]]; then
+        echo "Error: Expected exactly 2 VCF files, found ${#VCF_FILES[@]}" >&2
+        exit 1
+    fi
 
-    # Find VCF files
-    read -r VCF_NANOPORE VCF_ILLUMINA <<< "$(find_vcf_files "$WORKDIR")"
+    # Attribution des fichiers trouvés
+    VCF_NANOPORE="${VCF_FILES[1]}"  # En Zsh, les tableaux commencent à 1
+    VCF_ILLUMINA="${VCF_FILES[2]}"   # En Zsh, les tableaux commencent à 1
 
     # Workflow information
     echo "Workflow: wf-comp v.$VERSION by $AUTHOR"
@@ -134,18 +185,37 @@ main() {
     compress_and_index "$VCF_NANOPORE"
     compress_and_index "$VCF_ILLUMINA_ANNOTMT"
 
-    # File analysis
-    bcftools isec "${VCF_NANOPORE}.gz" "${VCF_ILLUMINA_ANNOTMT}.gz" \
-        --prefix "$WORKDIR/isec-$PREFIX" --apply-filters PASS
+    # Create output directory for bcftools isec
+    ISEC_DIR="$WORKDIR/isec-$PREFIX"
+    mkdir -p "$ISEC_DIR"
+
+    # File analysis with error handling
+    if ! bcftools isec "${VCF_NANOPORE}.gz" "${VCF_ILLUMINA_ANNOTMT}.gz" \
+        --prefix "$ISEC_DIR" --apply-filters PASS; then
+        echo "Error: bcftools isec failed" >&2
+        exit 1
+    fi
 
     # Decompress and cleanup
     cleanup_compressed_files "$VCF_NANOPORE"
     cleanup_compressed_files "$VCF_ILLUMINA_ANNOTMT"
+    
+    # Remove annotated Illumina VCF
+    echo "Removing annotated Illumina VCF file: $VCF_ILLUMINA_ANNOTMT"
+    rm -f "$VCF_ILLUMINA_ANNOTMT"
 
     # End timing
     END=$(date +%s)
     RUNTIME=$((END - START))
     echo ">>> Execution time: $(printf '%02d:%02d:%02d' $((RUNTIME/3600)) $((RUNTIME%3600/60)) $((RUNTIME%60))) (hh:mm:ss)"
+
+    # Add summary information
+    echo
+    echo "Summary:"
+    echo "- Input directory: $WORKDIR"
+    echo "- Log file: $LOGFILE"
+    echo "- Output directory: $ISEC_DIR"
+    echo "- Execution time: $(printf '%02d:%02d:%02d' $((RUNTIME/3600)) $((RUNTIME%3600/60)) $((RUNTIME%60)))"
 }
 
 # References
