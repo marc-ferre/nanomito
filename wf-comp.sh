@@ -21,22 +21,46 @@ readonly ANN_GNOMAD='/Users/marcferre/Documents/Recherche/Projets/Nanomito/Refer
 readonly ANN_MITOMAP_DISEASE='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/MITOMAP/disease-nosp.vcf'
 readonly ANN_MITOMAP_POLYMORPHISMS='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/MITOMAP/polymorphisms.vcf'
 
+# ANSI color codes (no change needed)
+readonly COLOR_RESET='\033[0m'
+readonly COLOR_GREEN='\033[0;32m'   # Info
+readonly COLOR_YELLOW='\033[0;33m'  # Warning
+readonly COLOR_RED='\033[0;31m'     # Error
+readonly COLOR_BLUE='\033[0;34m'    # Section
+readonly COLOR_MAGENTA='\033[0;35m' # High
+
 # Enable strict error handling
 set -euo pipefail
 
 # Functions (in alphabetical order)
 _log() {
-  local color_reset='\033[0m'
-  case "$1" in
-    INFO) color='\033[0;32m';;
-    WARN) color='\033[0;33m';;
-    ERROR) color='\033[0;31m';;
-    SECTION) color='\033[0;34m';;
-    HIGH)    color='\033[0;35m';;
-    *) color='';;
-  esac
+  local level="$1"
   shift
-  echo -e "${color}[$(date '+%F %T')] $*${color_reset}" >&2
+  local message="$*"
+  local timestamp="[$(date '+%F %T')]"
+  local log_line="$timestamp [$level] $message"
+  
+  # Select color based on level
+  local color=""
+  case "$level" in
+      INFO)    color="$COLOR_GREEN";;
+      WARN)    color="$COLOR_YELLOW";;
+      ERROR)   color="$COLOR_RED";;
+      SECTION) color="$COLOR_BLUE";;
+      HIGH)    color="$COLOR_MAGENTA";;
+  esac
+
+  # Write to log file (plain text)
+  if [[ -n "${LOGFILE:-}" ]]; then
+      printf '%s\n' "$log_line" >> "$LOGFILE"
+  fi
+
+  # Write to terminal (with colors)
+  if [[ -t 1 && -n "$color" ]]; then
+      printf "${color}%s${COLOR_RESET}\n" "$log_line"
+  else
+      printf '%s\n' "$log_line"
+  fi
 }
 
 annotate_vcf() {
@@ -81,7 +105,7 @@ check_dependencies() {
             exit 1
         fi
     done
-    echo "All dependencies are installed."
+    _log INFO "All dependencies are installed."
 }
 
 check_file() {
@@ -251,10 +275,10 @@ process_haplocheck() {
     local raw_file="${prefix}.raw.txt"
     if [[ ! -e "$summary_file" ]]; then
         cp "$raw_file" "$summary_file"
-        echo "[OK] File $summary_file created (with header)"
+        _log INFO "File $summary_file created (with header)"
     else
         tail -n +2 "$raw_file" >> "$summary_file"
-        echo "[OK] Line added to $summary_file"
+        _log INFO "Line added to $summary_file"
     fi
 
     # Cleanup files
@@ -301,28 +325,27 @@ main() {
     # Start timing
     START=$(date +%s)
 
-    # Workflow information
-    _log SECTION "Workflow: wf-comp v.$VERSION by $AUTHOR"
-    _log SECTION "Date: $(LC_TIME=C date '+%b %d, %Y %H:%M:%S')"
-
     # Initialize working directory and validate
     WORKDIR=$(cd "${1:-$(pwd)}" && pwd)
     validate_directory "$WORKDIR"
-    _log SECTION "Working directory: $WORKDIR"
-
+    
     # Extract prefix from directory name
     PREFIX=${WORKDIR##*/}
     PREFIX=${PREFIX:-/}
-    _log SECTION "Sample: $PREFIX"
 
     # Create directory structure
     LOGDIR="$WORKDIR/logs"
     mkdir -p "$LOGDIR"
 
-
     # Setup logging without append
     LOGFILE="$LOGDIR/${PREFIX}-wf-comp.log"
     exec > >(tee "$LOGFILE") 2>&1
+
+    # Workflow information
+    _log SECTION "Workflow: wf-comp v.$VERSION by $AUTHOR"
+    _log SECTION "Date: $(LC_TIME=C date '+%b %d, %Y %H:%M:%S')"
+    _log SECTION "Working directory: $WORKDIR"
+    _log SECTION "Sample: $PREFIX"
 
     # Check dependencies and reference files
     check_dependencies
