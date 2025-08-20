@@ -1,10 +1,10 @@
-#!/bin/zsh
-VERSION='2025-08-20.1'
+#!/bin/bash
+VERSION='2025-08-20.2'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 # Description:
 # This script compares VCF files generated from Nanopore and Illumina sequencing.
-# It performs the following tasks:
+# It performs the following tasks
 # 1. Annotates VCF files with MITOMAP and gnomAD databases
 # 2. Compares variants between Nanopore and Illumina
 # 3. Performs haplogroup analysis
@@ -26,18 +26,18 @@ readonly COLOR_RESET='\033[0m'
 readonly COLOR_GREEN='\033[0;32m'   # Info
 readonly COLOR_YELLOW='\033[0;33m'  # Warning
 readonly COLOR_RED='\033[0;31m'     # Error
-readonly COLOR_BLUE='\033[0;34m'    # Section
-readonly COLOR_MAGENTA='\033[0;35m' # High
 
 # Enable strict error handling
 set -euo pipefail
 
-# Functions (in alphabetical order)
+# --- Functions (in alphabetical order) ---
+# Log function to handle colored output and logging
 _log() {
   local level="$1"
   shift
   local message="$*"
-  local timestamp="[$(date '+%F %T')]"
+  local timestamp
+  timestamp="[$(date '+%F %T')]"
   local log_line="$timestamp [$level] $message"
   
   # Select color based on level
@@ -46,8 +46,6 @@ _log() {
       INFO)    color="$COLOR_GREEN";;
       WARN)    color="$COLOR_YELLOW";;
       ERROR)   color="$COLOR_RED";;
-      SECTION) color="$COLOR_BLUE";;
-      HIGH)    color="$COLOR_MAGENTA";;
   esac
 
   # Write to log file (plain text)
@@ -69,7 +67,7 @@ annotate_vcf() {
     local tmp_vcf1="${output_vcf}.tmp1"
     local tmp_vcf2="${output_vcf}.tmp2"
 
-    _log INFO "Annotating VCF file: $input_vcf"
+    _log INFO "Annotating VCF file: '$input_vcf'"
 
     # Check input file
     check_file "$input_vcf" "Input VCF"
@@ -93,7 +91,7 @@ annotate_vcf() {
 
     # Cleanup temporary files
     rm -f "$tmp_vcf1" "$tmp_vcf2"
-    _log INFO "Annotation completed: $output_vcf"
+    _log INFO "Annotation completed: '$output_vcf'"
 }
 
 check_dependencies() {
@@ -130,7 +128,7 @@ check_output_dir() {
 
 cleanup_compressed_files() {
     local vcf_file="$1"
-    _log INFO "Decompressing and cleaning up: $vcf_file"
+    _log INFO "Decompressing and cleaning up: '$vcf_file'"
     bgzip -d -f "${vcf_file}.gz"
     rm -f "${vcf_file}.gz.tbi"
 }
@@ -148,9 +146,9 @@ cleanup_on_exit() {
     for file in "${files_to_remove[@]}"; do
         if [[ -f "$file" ]]; then
             if rm -f "$file"; then
-                _log INFO "Removed temporary file: $file"
+                _log INFO "Removed temporary file: '$file'"
             else
-                _log WARN "Warning: Failed to remove temporary file: $file" >&2
+                _log WARN "Warning: Failed to remove temporary file: '$file'" >&2
             fi
         fi
     done
@@ -158,7 +156,7 @@ cleanup_on_exit() {
 
 compress_and_index() {
     local vcf_file="$1"
-    _log INFO "Compressing and indexing: $vcf_file"
+    _log INFO "Compressing and indexing: '$vcf_file'"
     bgzip -f "$vcf_file"
     tabix -p vcf -f "${vcf_file}.gz"
 }
@@ -170,14 +168,14 @@ create_directory() {
     if ! mkdir -p "$dir"; then
         handle_error "Failed to create $dir_name directory: $dir"
     fi
-    _log INFO "Created $dir_name directory: $dir"
+    _log INFO "Created '$dir_name' directory: '$dir'"
 }
 
 export_vcf_to_tsv_Illumina() {
     local input_vcf="$1"
     local output_tsv="${input_vcf%.vcf}.tsv"
 
-    _log INFO "Exporting VCF to TSV (Illumina): $input_vcf -> $output_tsv"
+    _log INFO "Exporting VCF to TSV (Illumina): '$input_vcf' -> '$output_tsv'"
 
     # Add header to the TSV file
     echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tQUAL\tDP" > "$output_tsv"
@@ -185,14 +183,14 @@ export_vcf_to_tsv_Illumina() {
     # Convert VCF to TSV using bcftools query
     bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %AF]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t%QUAL\t[ %DP]\n' "$input_vcf" >> "$output_tsv"
 
-    _log INFO "TSV file generated: $output_tsv"
+    _log INFO "TSV file generated: '$output_tsv'"
 }
 
 export_vcf_to_tsv_Nanopore() {
     local input_vcf="$1"
     local output_tsv="${input_vcf%.vcf}.tsv"
 
-    _log INFO "Exporting VCF to TSV (Nanopore): $input_vcf -> $output_tsv"
+    _log INFO "Exporting VCF to TSV (Nanopore): '$input_vcf' -> '$output_tsv'"
 
     # Add header to the TSV file
     echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP" > "$output_tsv"
@@ -200,16 +198,17 @@ export_vcf_to_tsv_Nanopore() {
     # Convert VCF to TSV using bcftools query
     bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$input_vcf" >> "$output_tsv"
 
-    _log INFO "TSV file generated: $output_tsv"
+    _log INFO "TSV file generated: '$output_tsv'"
 }
 
 find_vcf_files() {
     local dir="$1"
-    local debug_msg="Searching for VCF files in: $dir" >&2
 
     # Use find command for reliable file discovery
-    local nanopore_file=$(find "$dir" -maxdepth 1 -name "*.ann.vcf" -print -quit)
-    local illumina_file=$(find "$dir" -maxdepth 1 -name "i---*.vcf" -print -quit)
+    local nanopore_file
+    local illumina_file
+    nanopore_file=$(find "$dir" -maxdepth 1 -name "*.ann.vcf" -print -quit)
+    illumina_file=$(find "$dir" -maxdepth 1 -name "i---*.vcf" -print -quit)
 
     # Validate Nanopore file existence
     if [[ -z "$nanopore_file" ]]; then
@@ -227,8 +226,8 @@ find_vcf_files() {
 
     # Display debug messages on stderr
     _log INFO "Found:" >&2
-    _log INFO "- Nanopore: $nanopore_file" >&2
-    _log INFO "- Illumina: $illumina_file" >&2
+    _log INFO "- Nanopore: '$nanopore_file'" >&2
+    _log INFO "- Illumina: '$illumina_file'" >&2
 
     # Return file paths on stdout
     printf "%s\n%s\n" "$nanopore_file" "$illumina_file"
@@ -236,7 +235,7 @@ find_vcf_files() {
 
 handle_error() {
     local error_msg="$1"
-    _log ERROR "Error: $error_msg" >&2
+    _log ERROR "$error_msg" >&2
     exit 1
 }
 
@@ -250,12 +249,12 @@ print_summary() {
     local end_time="$2"
     local runtime=$((end_time - start_time))
     
-    _log HIGH "Summary:"
-    _log HIGH "- Input directory: $WORKDIR"
-    _log HIGH "- Log file: $LOGFILE"
-    _log HIGH "- Bcftools isec directory: $ISEC_DIR"
-    _log HIGH "- Haplocheck directory: $HPLCHK_DIR"
-    _log HIGH "- Execution time: $(printf '%02d:%02d:%02d' $((runtime/3600)) $((runtime%3600/60)) $((runtime%60)))"
+    _log INFO "Summary:"
+    _log INFO "- Input directory: '$WORKDIR'"
+    _log INFO "- Log file: '$LOGFILE'"
+    _log INFO "- Bcftools isec directory: '$ISEC_DIR'"
+    _log INFO "- Haplocheck directory: '$HPLCHK_DIR'"
+    _log INFO "- Execution time: $(printf '%02d:%02d:%02d' $((runtime/3600)) $((runtime%3600/60)) $((runtime%60)))"
 }
 
 process_haplocheck() {
@@ -265,7 +264,7 @@ process_haplocheck() {
     
     prefix="${hplchk_dir}/hplchk_tmp"
 
-    _log INFO "Processing haplocheck for $vcf_file..."
+    _log INFO "Processing haplocheck for '$vcf_file'..."
     
     if ! java -jar "$HAPLOCHECK_BIN" --raw --out "$prefix" "$vcf_file"; then
         handle_error "haplocheck failed"
@@ -275,10 +274,10 @@ process_haplocheck() {
     local raw_file="${prefix}.raw.txt"
     if [[ ! -e "$summary_file" ]]; then
         cp "$raw_file" "$summary_file"
-        _log INFO "File $summary_file created (with header)"
+        _log INFO "File '$summary_file' created (with header)"
     else
         tail -n +2 "$raw_file" >> "$summary_file"
-        _log INFO "Line added to $summary_file"
+        _log INFO "Line added to '$summary_file'"
     fi
 
     # Cleanup files
@@ -305,18 +304,18 @@ validate_reference_files() {
     )
     for ref in "${ref_files[@]}"; do
         if [[ ! -f "$ref" ]]; then
-            _log ERROR "Error: Reference file not found: $ref" >&2
+            _log ERROR "Error: Reference file not found: '$ref'" >&2
             exit 1
         fi
         if [[ ! -r "$ref" ]]; then
-            _log ERROR "Error: Reference file not readable: $ref" >&2
+            _log ERROR "Error: Reference file not readable: '$ref'" >&2
             exit 1
         fi
     done
     _log INFO "All reference files are valid."
 }
 
-# Main function
+# --- Main function ---
 main() {
     # Setup error handling and cleanup
     trap cleanup_on_exit EXIT
@@ -342,10 +341,10 @@ main() {
     exec > >(tee "$LOGFILE") 2>&1
 
     # Workflow information
-    _log SECTION "Workflow: wf-comp v.$VERSION by $AUTHOR"
-    _log SECTION "Date: $(LC_TIME=C date '+%b %d, %Y %H:%M:%S')"
-    _log SECTION "Working directory: $WORKDIR"
-    _log SECTION "Sample: $PREFIX"
+    _log INFO "Workflow: wf-comp v.$VERSION by $AUTHOR"
+    _log INFO "Date: $(LC_TIME=C date '+%b %d, %Y %H:%M:%S')"
+    _log INFO "Sample: '$PREFIX'"
+    _log INFO "Working directory: '$WORKDIR'"
 
     # Check dependencies and reference files
     check_dependencies
@@ -355,30 +354,33 @@ main() {
     local vcf_output
     vcf_output=$(find_vcf_files "$WORKDIR")
     
-    # Créer le tableau à partir de la sortie
-    VCF_FILES=("${(f)vcf_output}")
+    # Create the table from the output (compatible with bash 3.2 macOS)
+    VCF_FILES=()
+    while IFS= read -r line; do
+        VCF_FILES+=("$line")
+    done <<< "$vcf_output"
     
-    # Vérification du nombre de fichiers trouvés
+    # Verifying the number of files found
     if [[ ${#VCF_FILES[@]} -ne 2 ]]; then
         _log ERROR "Error: Expected exactly 2 VCF files, found ${#VCF_FILES[@]}" >&2
         exit 1
     fi
 
-    # Attribution des fichiers trouvés
-    VCF_NANOPORE="${VCF_FILES[1]}"  # En Zsh, les tableaux commencent à 1
-    VCF_ILLUMINA="${VCF_FILES[2]}"   # En Zsh, les tableaux commencent à 1
+    # Assigning found files (compatible with bash)
+    VCF_NANOPORE="${VCF_FILES[0]}"
+    VCF_ILLUMINA="${VCF_FILES[1]}"
 
-    _log SECTION '**********************'
-    _log SECTION '* Variant Annotation *'
-    _log SECTION '**********************'
+    _log INFO '**********************'
+    _log INFO '* Variant Annotation *'
+    _log INFO '**********************'
 
     # Annotate Illumina VCF
     VCF_ILLUMINA_ANNOTMT="${VCF_ILLUMINA%.vcf}.ann.vcf"
     annotate_vcf "$VCF_ILLUMINA" "$VCF_ILLUMINA_ANNOTMT"
 
-    _log SECTION '*************************'
-    _log SECTION '* Haplogroup Comparison *'
-    _log SECTION '*************************'
+    _log INFO '*************************'
+    _log INFO '* Haplogroup Comparison *'
+    _log INFO '*************************'
 
     # Create output directory for haplocheck
     HPLCHK_DIR="$WORKDIR/hplchk-${PREFIX}"
@@ -392,9 +394,9 @@ main() {
     process_haplocheck "$VCF_NANOPORE" "$HPLCHK_SUMMARY_FILE" "$HPLCHK_DIR"
     process_haplocheck "$VCF_ILLUMINA_ANNOTMT" "$HPLCHK_SUMMARY_FILE" "$HPLCHK_DIR"
 
-    _log SECTION '***********************'
-    _log SECTION '* Variants Comparison *'
-    _log SECTION '***********************'
+    _log INFO '***********************'
+    _log INFO '* Variants Comparison *'
+    _log INFO '***********************'
 
     # Compress and index files
     compress_and_index "$VCF_NANOPORE"
@@ -410,54 +412,54 @@ main() {
         _log ERROR "Error: bcftools isec failed" >&2
         exit 1
     fi
-
-
-    # # Decompress and cleanup
-    # cleanup_compressed_files "$VCF_NANOPORE"
-    # cleanup_compressed_files "$VCF_ILLUMINA_ANNOTMT"
     
     # Remove annotated Illumina VCF
-    _log INFO "Removing annotated Illumina VCF file: $VCF_ILLUMINA_ANNOTMT"
+    _log INFO "Removing annotated Illumina VCF file: '$VCF_ILLUMINA_ANNOTMT'"
     rm -f "$VCF_ILLUMINA_ANNOTMT"
 
     # Export VCF files to TSV
-    _log SECTION '*******************'
-    _log SECTION '* TSV Conversion *'
-    _log SECTION '*******************'
+    _log INFO '*******************'
+    _log INFO '* TSV Conversion *'
+    _log INFO '*******************'
     
     # Export specific VCF files in ISEC_DIR
     if [[ -d "$ISEC_DIR" ]]; then
-        _log INFO "Converting specific VCF files to TSV in: $ISEC_DIR"
+        _log INFO "Converting specific VCF files to TSV in: '$ISEC_DIR'"
         for vcf_num in "0000" "0002"; do
             vcf_file="$ISEC_DIR/$vcf_num.vcf"
             if [[ -f "$vcf_file" ]]; then
                 export_vcf_to_tsv_Nanopore "$vcf_file"
             else
-                _log WARN "Warning: File $vcf_file not found"
+                _log WARN "Warning: File '$vcf_file' not found"
             fi
         done
     else
-        _log WARN "Warning: Directory $ISEC_DIR not found. Skipping TSV conversion."
+        _log WARN "Warning: Directory '$ISEC_DIR' not found. Skipping TSV conversion."
     fi
 
     if [[ -d "$ISEC_DIR" ]]; then
-        _log INFO "Converting specific VCF files to TSV in: $ISEC_DIR"
+        _log INFO "Converting specific VCF files to TSV in: '$ISEC_DIR'"
         for vcf_num in "0001" "0003"; do
             vcf_file="$ISEC_DIR/$vcf_num.vcf"
             if [[ -f "$vcf_file" ]]; then
                 export_vcf_to_tsv_Illumina "$vcf_file"
             else
-                _log WARN "Warning: File $vcf_file not found"
+                _log WARN "Warning: File '$vcf_file' not found"
             fi
         done
     else
         _log WARN "Warning: Directory $ISEC_DIR not found. Skipping TSV conversion."
     fi
 
+    # Print final messages
+    _log INFO '**********'
+    _log INFO '* ENDING *'
+    _log INFO '**********'
+
     # End timing
     END=$(date +%s)
-    RUNTIME=$((END - START))
     
+    # Print summary
     print_summary "$START" "$END"
 }
 
