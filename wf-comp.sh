@@ -3,85 +3,40 @@ VERSION='2025-08-18.3'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 # Description:
-# This script compares VCF files generated from Nanopore and Illumina.
+# This script compares VCF files generated from Nanopore and Illumina sequencing.
+# It performs the following tasks:
+# 1. Annotates VCF files with MITOMAP and gnomAD databases
+# 2. Compares variants between Nanopore and Illumina
+# 3. Performs haplogroup analysis
+# 4. Exports results in TSV format
+#
 # Usage:
 #   ./wf-comp.sh /path/to/directory
 # If no argument is provided, the current directory will be used by default.
 
-# Exit on error
+# Constants and reference paths
+readonly HAPLOCHECK_BIN='/Users/marcferre/Documents/Recherche/Projets/Nanomito/Apps/haplocheck/haplocheck.jar'   
+readonly SNPSIFT_BIN='/Users/marcferre/Documents/Recherche/Projets/Nanomito/Apps/snpEff/SnpSift.jar'
+readonly ANN_GNOMAD='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
+readonly ANN_MITOMAP_DISEASE='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/MITOMAP/disease-nosp.vcf'
+readonly ANN_MITOMAP_POLYMORPHISMS='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/MITOMAP/polymorphisms.vcf'
+
+# Enable strict error handling
 set -euo pipefail
 
-# Functions
-check_dependencies() {
-    echo "Checking dependencies..."
-    local dependencies=("bgzip" "tabix" "bcftools" "bedtools" "java")
-    for cmd in "${dependencies[@]}"; do
-        if ! command -v "$cmd" >/dev/null 2>&1; then
-            echo "Error: $cmd is not installed or not in PATH." >&2
-            exit 1
-        fi
-    done
-    echo "All dependencies are installed."
-}
-
-validate_directory() {
-    local dir="$1"
-    if [[ ! -d "$dir" ]]; then
-        handle_error "The specified directory '$dir' does not exist."
-    fi
-    if [[ ! -r "$dir" || ! -w "$dir" ]]; then
-        handle_error "The specified directory '$dir' is not readable or writable."
-    fi
-}
-
-validate_reference_files() {
-    echo "Checking reference files..."
-    local ref_files=(
-        "$SNPSIFT_BIN"
-        "$ANN_GNOMAD"
-        "$ANN_MITOMAP_DISEASE"
-        "$ANN_MITOMAP_POLYMORPHISMS"
-    )
-    for ref in "${ref_files[@]}"; do
-        if [[ ! -f "$ref" ]]; then
-            echo "Error: Reference file not found: $ref" >&2
-            exit 1
-        fi
-        if [[ ! -r "$ref" ]]; then
-            echo "Error: Reference file not readable: $ref" >&2
-            exit 1
-        fi
-    done
-    echo "All reference files are valid."
-}
-
-find_vcf_files() {
-    local dir="$1"
-    local debug_msg="Searching for VCF files in: $dir" >&2
-
-    # Utilisation de find pour plus de fiabilité
-    local nanopore_file=$(find "$dir" -maxdepth 1 -name "*.ann.vcf" -print -quit)
-    local illumina_file=$(find "$dir" -maxdepth 1 -name "i---*.vcf" -print -quit)
-
-    if [[ -z "$nanopore_file" ]]; then
-        echo "Error: No Nanopore VCF file (*.ann.vcf) found in $dir" >&2
-        ls -l "$dir" >&2
-        exit 1
-    fi
-
-    if [[ -z "$illumina_file" ]]; then
-        echo "Error: No Illumina VCF file (i---*.vcf) found in $dir" >&2
-        ls -l "$dir" >&2
-        exit 1
-    fi
-
-    # Afficher les messages de débogage sur stderr
-    echo "Found:" >&2
-    echo "- Nanopore: $nanopore_file" >&2
-    echo "- Illumina: $illumina_file" >&2
-
-    # Retourner uniquement les chemins des fichiers sur stdout
-    printf "%s\n%s\n" "$nanopore_file" "$illumina_file"
+# Functions (in alphabetical order)
+_log() {
+  local color_reset='\033[0m'
+  case "$1" in
+    INFO) color='\033[0;32m';;
+    WARN) color='\033[0;33m';;
+    ERROR) color='\033[0;31m';;
+    SECTION) color='\033[0;34m';;
+    HIGH)    color='\033[0;35m';;
+    *) color='';;
+  esac
+  shift
+  echo -e "${color}[$(date '+%F %T')] $*${color_reset}" >&2
 }
 
 annotate_vcf() {
@@ -90,73 +45,45 @@ annotate_vcf() {
     local tmp_vcf1="${output_vcf}.tmp1"
     local tmp_vcf2="${output_vcf}.tmp2"
 
-    echo "Annotating VCF file: $input_vcf"
+    _log INFO "Annotating VCF file: $input_vcf"
+
+    # Check input file
+    check_file "$input_vcf" "Input VCF"
 
     # Annotate with MITOMAP Disease
-    java -jar "$SNPSIFT_BIN" annotate -v "$ANN_MITOMAP_DISEASE" "$input_vcf" > "$tmp_vcf1"
+    if ! java -jar "$SNPSIFT_BIN" annotate -v "$ANN_MITOMAP_DISEASE" "$input_vcf" > "$tmp_vcf1"; then
+        handle_error "Failed to annotate with MITOMAP Disease"
+    fi
 
     # Annotate with MITOMAP Polymorphisms
-    java -jar "$SNPSIFT_BIN" annotate -v "$ANN_MITOMAP_POLYMORPHISMS" "$tmp_vcf1" > "$tmp_vcf2"
+    if ! java -jar "$SNPSIFT_BIN" annotate -v "$ANN_MITOMAP_POLYMORPHISMS" "$tmp_vcf1" > "$tmp_vcf2"; then
+        rm -f "$tmp_vcf1"
+        handle_error "Failed to annotate with MITOMAP Polymorphisms"
+    fi
 
     # Annotate with gnomAD
-    java -jar "$SNPSIFT_BIN" annotate -v "$ANN_GNOMAD" "$tmp_vcf2" > "$output_vcf"
+    if ! java -jar "$SNPSIFT_BIN" annotate -v "$ANN_GNOMAD" "$tmp_vcf2" > "$output_vcf"; then
+        rm -f "$tmp_vcf1" "$tmp_vcf2"
+        handle_error "Failed to annotate with gnomAD"
+    fi
 
     # Cleanup temporary files
     rm -f "$tmp_vcf1" "$tmp_vcf2"
+    _log INFO "Annotation completed: $output_vcf"
 }
 
-compress_and_index() {
-    local vcf_file="$1"
-    echo "Compressing and indexing: $vcf_file"
-    bgzip -f "$vcf_file"
-    tabix -p vcf -f "${vcf_file}.gz"
+check_dependencies() {
+    _log INFO "Checking dependencies..."
+    local dependencies=("bgzip" "tabix" "bcftools" "bedtools" "java")
+    for cmd in "${dependencies[@]}"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            _log ERROR "Error: $cmd is not installed or not in PATH." >&2
+            exit 1
+        fi
+    done
+    echo "All dependencies are installed."
 }
 
-cleanup_compressed_files() {
-    local vcf_file="$1"
-    echo "Decompressing and cleaning up: $vcf_file"
-    bgzip -d -f "${vcf_file}.gz"
-    rm -f "${vcf_file}.gz.tbi"
-}
-
-export_vcf_to_tsv_Nanopore() {
-    local input_vcf="$1"
-    local output_tsv="${input_vcf%.vcf}.tsv"
-
-    echo "Exporting VCF to TSV (Nanopore): $input_vcf -> $output_tsv"
-
-    # Add header to the TSV file
-    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP" > "$output_tsv"
-
-    # Convert VCF to TSV using bcftools query
-    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$input_vcf" >> "$output_tsv"
-
-    echo "TSV file generated: $output_tsv"
-}
-
-export_vcf_to_tsv_Illumina() {
-    local input_vcf="$1"
-    local output_tsv="${input_vcf%.vcf}.tsv"
-
-    echo "Exporting VCF to TSV (Illumina): $input_vcf -> $output_tsv"
-
-    # Add header to the TSV file
-    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tQUAL\tDP" > "$output_tsv"
-
-    # Convert VCF to TSV using bcftools query
-    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %AF]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t%QUAL\t[ %DP]\n' "$input_vcf" >> "$output_tsv"
-
-    echo "TSV file generated: $output_tsv"
-}
-
-# Add new error handling function
-handle_error() {
-    local error_msg="$1"
-    echo "Error: $error_msg" >&2
-    exit 1
-}
-
-# Add new function to check file existence and permissions
 check_file() {
     local file="$1"
     local type="$2"
@@ -169,7 +96,49 @@ check_file() {
     fi
 }
 
-# Add new function to create directory
+check_output_dir() {
+    local dir="$1"
+    local name="$2"
+    if ! mkdir -p "$dir"; then
+        handle_error "Failed to create $name directory: $dir"
+    fi
+}
+
+cleanup_compressed_files() {
+    local vcf_file="$1"
+    _log INFO "Decompressing and cleaning up: $vcf_file"
+    bgzip -d -f "${vcf_file}.gz"
+    rm -f "${vcf_file}.gz.tbi"
+}
+
+cleanup_on_exit() {
+    if [[ $? -ne 0 ]]; then
+        _log ERROR "Script failed with errors. Check the log file for details: $LOGFILE"
+    fi
+    
+    # Cleanup temporary files
+    cleanup_compressed_files "$VCF_NANOPORE"
+    cleanup_compressed_files "$VCF_ILLUMINA_ANNOTMT"
+    
+    local files_to_remove=("$VCF_ILLUMINA_ANNOTMT")
+    for file in "${files_to_remove[@]}"; do
+        if [[ -f "$file" ]]; then
+            if rm -f "$file"; then
+                _log INFO "Removed temporary file: $file"
+            else
+                _log WARN "Warning: Failed to remove temporary file: $file" >&2
+            fi
+        fi
+    done
+}
+
+compress_and_index() {
+    local vcf_file="$1"
+    _log INFO "Compressing and indexing: $vcf_file"
+    bgzip -f "$vcf_file"
+    tabix -p vcf -f "${vcf_file}.gz"
+}
+
 create_directory() {
     local dir="$1"
     local dir_name="$2"
@@ -177,21 +146,94 @@ create_directory() {
     if ! mkdir -p "$dir"; then
         handle_error "Failed to create $dir_name directory: $dir"
     fi
-    echo "Created $dir_name directory: $dir"
+    _log INFO "Created $dir_name directory: $dir"
 }
 
-# Modify validate_directory function
-validate_directory() {
+export_vcf_to_tsv_Illumina() {
+    local input_vcf="$1"
+    local output_tsv="${input_vcf%.vcf}.tsv"
+
+    _log INFO "Exporting VCF to TSV (Illumina): $input_vcf -> $output_tsv"
+
+    # Add header to the TSV file
+    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tQUAL\tDP" > "$output_tsv"
+
+    # Convert VCF to TSV using bcftools query
+    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %AF]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t%QUAL\t[ %DP]\n' "$input_vcf" >> "$output_tsv"
+
+    _log INFO "TSV file generated: $output_tsv"
+}
+
+export_vcf_to_tsv_Nanopore() {
+    local input_vcf="$1"
+    local output_tsv="${input_vcf%.vcf}.tsv"
+
+    _log INFO "Exporting VCF to TSV (Nanopore): $input_vcf -> $output_tsv"
+
+    # Add header to the TSV file
+    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP" > "$output_tsv"
+
+    # Convert VCF to TSV using bcftools query
+    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$input_vcf" >> "$output_tsv"
+
+    _log INFO "TSV file generated: $output_tsv"
+}
+
+find_vcf_files() {
     local dir="$1"
-    if [[ ! -d "$dir" ]]; then
-        handle_error "The specified directory '$dir' does not exist."
+    local debug_msg="Searching for VCF files in: $dir" >&2
+
+    # Use find command for reliable file discovery
+    local nanopore_file=$(find "$dir" -maxdepth 1 -name "*.ann.vcf" -print -quit)
+    local illumina_file=$(find "$dir" -maxdepth 1 -name "i---*.vcf" -print -quit)
+
+    # Validate Nanopore file existence
+    if [[ -z "$nanopore_file" ]]; then
+        _log ERROR "Error: No Nanopore VCF file (*.ann.vcf) found in $dir" >&2
+        ls -l "$dir" >&2
+        exit 1
     fi
-    if [[ ! -r "$dir" || ! -w "$dir" ]]; then
-        handle_error "The specified directory '$dir' is not readable or writable."
+
+    # Validate Illumina file existence
+    if [[ -z "$illumina_file" ]]; then
+        _log ERROR "Error: No Illumina VCF file (i---*.vcf) found in $dir" >&2
+        ls -l "$dir" >&2
+        exit 1
     fi
+
+    # Display debug messages on stderr
+    _log INFO "Found:" >&2
+    _log INFO "- Nanopore: $nanopore_file" >&2
+    _log INFO "- Illumina: $illumina_file" >&2
+
+    # Return file paths on stdout
+    printf "%s\n%s\n" "$nanopore_file" "$illumina_file"
 }
 
-# Haplogroup processing
+handle_error() {
+    local error_msg="$1"
+    _log ERROR "Error: $error_msg" >&2
+    exit 1
+}
+
+is_file_readable() {
+    local file="$1"
+    [[ -f "$file" && -r "$file" ]]
+}
+
+print_summary() {
+    local start_time="$1"
+    local end_time="$2"
+    local runtime=$((end_time - start_time))
+    
+    _log HIGH "Summary:"
+    _log HIGH "- Input directory: $WORKDIR"
+    _log HIGH "- Log file: $LOGFILE"
+    _log HIGH "- Bcftools isec directory: $ISEC_DIR"
+    _log HIGH "- Haplocheck directory: $HPLCHK_DIR"
+    _log HIGH "- Execution time: $(printf '%02d:%02d:%02d' $((runtime/3600)) $((runtime%3600/60)) $((runtime%60)))"
+}
+
 process_haplocheck() {
     local vcf_file="$1"
     local summary_file="$2"
@@ -199,7 +241,7 @@ process_haplocheck() {
     
     prefix="${hplchk_dir}/hplchk_tmp"
 
-    echo "Processing haplocheck for $vcf_file..."
+    _log INFO "Processing haplocheck for $vcf_file..."
     
     if ! java -jar "$HAPLOCHECK_BIN" --raw --out "$prefix" "$vcf_file"; then
         handle_error "haplocheck failed"
@@ -219,22 +261,66 @@ process_haplocheck() {
     rm -f "$prefix" "${prefix}.html" "$raw_file" 
 }
 
+validate_directory() {
+    local dir="$1"
+    if [[ ! -d "$dir" ]]; then
+        handle_error "The specified directory '$dir' does not exist."
+    fi
+    if [[ ! -r "$dir" || ! -w "$dir" ]]; then
+        handle_error "The specified directory '$dir' is not readable or writable."
+    fi
+}
+
+validate_reference_files() {
+    _log INFO "Checking reference files..."
+    local ref_files=(
+        "$SNPSIFT_BIN"
+        "$ANN_GNOMAD"
+        "$ANN_MITOMAP_DISEASE"
+        "$ANN_MITOMAP_POLYMORPHISMS"
+    )
+    for ref in "${ref_files[@]}"; do
+        if [[ ! -f "$ref" ]]; then
+            _log ERROR "Error: Reference file not found: $ref" >&2
+            exit 1
+        fi
+        if [[ ! -r "$ref" ]]; then
+            _log ERROR "Error: Reference file not readable: $ref" >&2
+            exit 1
+        fi
+    done
+    _log INFO "All reference files are valid."
+}
+
 # Main function
 main() {
-    # Define the working directory
-    WORKDIR=$(cd "${1:-$(pwd)}" && pwd)
-    echo "Working directory: $WORKDIR"
-    validate_directory "$WORKDIR"
+    # Setup error handling and cleanup
+    trap cleanup_on_exit EXIT
+    trap 'handle_error "Script interrupted"' INT TERM
 
-    # Create logs directory
+    # Start timing
+    START=$(date +%s)
+
+    # Workflow information
+    _log SECTION "Workflow: wf-comp v.$VERSION by $AUTHOR"
+    _log SECTION "Date: $(LC_TIME=C date '+%b %d, %Y %H:%M:%S')"
+
+    # Initialize working directory and validate
+    WORKDIR=$(cd "${1:-$(pwd)}" && pwd)
+    validate_directory "$WORKDIR"
+    _log SECTION "Working directory: $WORKDIR"
+
+    # Extract prefix from directory name
+    PREFIX=${WORKDIR##*/}
+    PREFIX=${PREFIX:-/}
+    _log SECTION "Sample: $PREFIX"
+
+    # Create directory structure
     LOGDIR="$WORKDIR/logs"
     mkdir -p "$LOGDIR"
 
-    # Define the prefix
-    PREFIX=${WORKDIR##*/}
-    PREFIX=${PREFIX:-/}
 
-    # Redirect output to a log file (without append)
+    # Setup logging without append
     LOGFILE="$LOGDIR/${PREFIX}-wf-comp.log"
     exec > >(tee "$LOGFILE") 2>&1
 
@@ -251,7 +337,7 @@ main() {
     
     # Vérification du nombre de fichiers trouvés
     if [[ ${#VCF_FILES[@]} -ne 2 ]]; then
-        echo "Error: Expected exactly 2 VCF files, found ${#VCF_FILES[@]}" >&2
+        _log ERROR "Error: Expected exactly 2 VCF files, found ${#VCF_FILES[@]}" >&2
         exit 1
     fi
 
@@ -259,29 +345,17 @@ main() {
     VCF_NANOPORE="${VCF_FILES[1]}"  # En Zsh, les tableaux commencent à 1
     VCF_ILLUMINA="${VCF_FILES[2]}"   # En Zsh, les tableaux commencent à 1
 
-    # Workflow information
-    echo "Workflow: wf-comp v.$VERSION by $AUTHOR"
-    echo "Working directory: $WORKDIR"
-    echo "Nanopore VCF: $VCF_NANOPORE"
-    echo "Illumina VCF: $VCF_ILLUMINA"
-    echo "Date: $(date)"
-
-    # Start timing
-    START=$(date +%s)
-
-    echo
-    echo '**********************'
-    echo '* Variant Annotation *'
-    echo '**********************'
+    _log SECTION '**********************'
+    _log SECTION '* Variant Annotation *'
+    _log SECTION '**********************'
 
     # Annotate Illumina VCF
     VCF_ILLUMINA_ANNOTMT="${VCF_ILLUMINA%.vcf}.ann.vcf"
     annotate_vcf "$VCF_ILLUMINA" "$VCF_ILLUMINA_ANNOTMT"
 
-    echo
-    echo '*************************'
-    echo '* Haplogroup Comparison *'
-    echo '*************************'
+    _log SECTION '*************************'
+    _log SECTION '* Haplogroup Comparison *'
+    _log SECTION '*************************'
 
     # Create output directory for haplocheck
     HPLCHK_DIR="$WORKDIR/hplchk-${PREFIX}"
@@ -290,15 +364,14 @@ main() {
     HPLCHK_SUMMARY_FILE="${HPLCHK_DIR}/haplocheck_summary.${PREFIX}.tsv"
 
     # Process haplocheck for Nanopore and Illumina
-    echo "Comparing haplogroups using haplocheck..."
+    _log INFO "Comparing haplogroups using haplocheck..."
 
     process_haplocheck "$VCF_NANOPORE" "$HPLCHK_SUMMARY_FILE" "$HPLCHK_DIR"
     process_haplocheck "$VCF_ILLUMINA_ANNOTMT" "$HPLCHK_SUMMARY_FILE" "$HPLCHK_DIR"
 
-    echo
-    echo '***********************'
-    echo '* Variants Comparison *'
-    echo '***********************'
+    _log SECTION '***********************'
+    _log SECTION '* Variants Comparison *'
+    _log SECTION '***********************'
 
     # Compress and index files
     compress_and_index "$VCF_NANOPORE"
@@ -309,87 +382,60 @@ main() {
     mkdir -p "$ISEC_DIR"
 
     # Compare VCF files using bcftools isec
-    echo "Comparing VCF files using bcftools isec..."
+    _log INFO "Comparing VCF files using bcftools isec..."
     if ! bcftools isec "${VCF_NANOPORE}.gz" "${VCF_ILLUMINA_ANNOTMT}.gz" --prefix "$ISEC_DIR" --apply-filters PASS; then
-        echo "Error: bcftools isec failed" >&2
+        _log ERROR "Error: bcftools isec failed" >&2
         exit 1
     fi
 
 
-    # Decompress and cleanup
-    cleanup_compressed_files "$VCF_NANOPORE"
-    cleanup_compressed_files "$VCF_ILLUMINA_ANNOTMT"
+    # # Decompress and cleanup
+    # cleanup_compressed_files "$VCF_NANOPORE"
+    # cleanup_compressed_files "$VCF_ILLUMINA_ANNOTMT"
     
     # Remove annotated Illumina VCF
-    echo "Removing annotated Illumina VCF file: $VCF_ILLUMINA_ANNOTMT"
+    _log INFO "Removing annotated Illumina VCF file: $VCF_ILLUMINA_ANNOTMT"
     rm -f "$VCF_ILLUMINA_ANNOTMT"
 
     # Export VCF files to TSV
-    echo
-    echo '*******************'
-    echo '* TSV Conversion *'
-    echo '*******************'
+    _log SECTION '*******************'
+    _log SECTION '* TSV Conversion *'
+    _log SECTION '*******************'
     
     # Export specific VCF files in ISEC_DIR
     if [[ -d "$ISEC_DIR" ]]; then
-        echo "Converting specific VCF files to TSV in: $ISEC_DIR"
+        _log INFO "Converting specific VCF files to TSV in: $ISEC_DIR"
         for vcf_num in "0000" "0002"; do
             vcf_file="$ISEC_DIR/$vcf_num.vcf"
             if [[ -f "$vcf_file" ]]; then
                 export_vcf_to_tsv_Nanopore "$vcf_file"
             else
-                echo "Warning: File $vcf_file not found"
+                _log WARN "Warning: File $vcf_file not found"
             fi
         done
     else
-        echo "Warning: Directory $ISEC_DIR not found. Skipping TSV conversion."
+        _log WARN "Warning: Directory $ISEC_DIR not found. Skipping TSV conversion."
     fi
 
     if [[ -d "$ISEC_DIR" ]]; then
-        echo "Converting specific VCF files to TSV in: $ISEC_DIR"
+        _log INFO "Converting specific VCF files to TSV in: $ISEC_DIR"
         for vcf_num in "0001" "0003"; do
             vcf_file="$ISEC_DIR/$vcf_num.vcf"
             if [[ -f "$vcf_file" ]]; then
                 export_vcf_to_tsv_Illumina "$vcf_file"
             else
-                echo "Warning: File $vcf_file not found"
+                _log WARN "Warning: File $vcf_file not found"
             fi
         done
     else
-        echo "Warning: Directory $ISEC_DIR not found. Skipping TSV conversion."
+        _log WARN "Warning: Directory $ISEC_DIR not found. Skipping TSV conversion."
     fi
 
     # End timing
     END=$(date +%s)
     RUNTIME=$((END - START))
-    echo ">>> Execution time: $(printf '%02d:%02d:%02d' $((RUNTIME/3600)) $((RUNTIME%3600/60)) $((RUNTIME%60))) (hh:mm:ss)"
-
-    # Add summary information
-    echo
-    echo "Summary:"
-    echo "- Input directory: $WORKDIR"
-    echo "- Log file: $LOGFILE"
-    echo "- Output directory: $ISEC_DIR"
-    echo "- Execution time: $(printf '%02d:%02d:%02d' $((RUNTIME/3600)) $((RUNTIME%3600/60)) $((RUNTIME%60)))"
-}
-
-# References
-HAPLOCHECK_BIN='/Users/marcferre/Documents/Recherche/Projets/Nanomito/Apps/haplocheck/haplocheck.jar'   
-SNPSIFT_BIN='/Users/marcferre/Documents/Recherche/Projets/Nanomito/Apps/snpEff/SnpSift.jar'
-ANN_GNOMAD='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
-ANN_MITOMAP_DISEASE='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/MITOMAP/disease-nosp.vcf'
-ANN_MITOMAP_POLYMORPHISMS='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/MITOMAP/polymorphisms.vcf'
-
-# Add cleanup function at the end of the script, before main()
-cleanup_on_exit() {
-    if [[ $? -ne 0 ]]; then
-        echo "Script failed with errors. Check the log file for details: $LOGFILE"
-    fi
     
-    # Cleanup temporary files
-    rm -f "$VCF_ILLUMINA_ANNOTMT"
-    cleanup_compressed_files "$VCF_NANOPORE"
-    cleanup_compressed_files "$VCF_ILLUMINA_ANNOTMT"
+    print_summary "$START" "$END"
 }
 
 # Run the main function
