@@ -1,5 +1,5 @@
 #!/bin/zsh
-VERSION='2025-08-18.3'
+VERSION='2025-08-20.1'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 # Description:
