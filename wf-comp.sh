@@ -205,7 +205,7 @@ filter_pass_variants() {
     local vcf_file="$1"
     local output_file="$2"
 
-    _log INFO "Filtering PASS variants from '$vcf_file'
+    _log INFO "Filtering PASS variants from '$vcf_file'"
 
     if ! bcftools view -f PASS "$vcf_file" > "$output_file"; then
         handle_error "Failed to filter PASS variants"
