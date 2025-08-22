@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION='2025-08-20.2'
+VERSION='2025-08-21.1'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 # Description:
@@ -142,7 +142,7 @@ cleanup_on_exit() {
     cleanup_compressed_files "$VCF_NANOPORE"
     cleanup_compressed_files "$VCF_ILLUMINA_ANNOTMT"
     
-    local files_to_remove=("$VCF_ILLUMINA_ANNOTMT")
+    local files_to_remove=("$VCF_ILLUMINA_ANNOTMT" "$VCF_NANOPORE_PASS")
     for file in "${files_to_remove[@]}"; do
         if [[ -f "$file" ]]; then
             if rm -f "$file"; then
@@ -199,6 +199,19 @@ export_vcf_to_tsv_Nanopore() {
     bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$input_vcf" >> "$output_tsv"
 
     _log INFO "TSV file generated: '$output_tsv'"
+}
+
+filter_pass_variants() {
+    local vcf_file="$1"
+    local output_file="$2"
+
+    _log INFO "Filtering PASS variants from '$vcf_file' to '$output_file'"
+
+    if ! bcftools view -f PASS "$vcf_file" > "$output_file"; then
+        handle_error "Failed to filter PASS variants"
+    fi
+
+    _log INFO "PASS variants filtered to '$output_file'"
 }
 
 find_vcf_files() {
@@ -262,10 +275,10 @@ process_haplocheck() {
     local summary_file="$2"
     local hplchk_dir="$3"
     
-    prefix="${hplchk_dir}/hplchk_tmp"
-
     _log INFO "Processing haplocheck for '$vcf_file'..."
-    
+
+    # Run Haplocheck
+    prefix="${hplchk_dir}/hplchk_tmp"
     if ! java -jar "$HAPLOCHECK_BIN" --raw --out "$prefix" "$vcf_file"; then
         handle_error "haplocheck failed"
     fi
@@ -281,7 +294,8 @@ process_haplocheck() {
     fi
 
     # Cleanup files
-    rm -f "$prefix" "${prefix}.html" "$raw_file" 
+    rm -f "$prefix" "${prefix}.html" "$raw_file"
+    _log INFO "Haplocheck completed"
 }
 
 validate_directory() {
@@ -378,6 +392,12 @@ main() {
     VCF_ILLUMINA_ANNOTMT="${VCF_ILLUMINA%.vcf}.ann.vcf"
     annotate_vcf "$VCF_ILLUMINA" "$VCF_ILLUMINA_ANNOTMT"
 
+    _log INFO '******************'
+    _log INFO '* PASS Filtering *'
+    _log INFO '******************'
+    VCF_NANOPORE_PASS="${VCF_NANOPORE%.vcf}.PASS.vcf"
+    filter_pass_variants "$VCF_NANOPORE" "$VCF_NANOPORE_PASS"
+
     _log INFO '*************************'
     _log INFO '* Haplogroup Comparison *'
     _log INFO '*************************'
@@ -391,7 +411,7 @@ main() {
     # Process haplocheck for Nanopore and Illumina
     _log INFO "Comparing haplogroups using haplocheck..."
 
-    process_haplocheck "$VCF_NANOPORE" "$HPLCHK_SUMMARY_FILE" "$HPLCHK_DIR"
+    process_haplocheck "$VCF_NANOPORE_PASS" "$HPLCHK_SUMMARY_FILE" "$HPLCHK_DIR"
     process_haplocheck "$VCF_ILLUMINA_ANNOTMT" "$HPLCHK_SUMMARY_FILE" "$HPLCHK_DIR"
 
     _log INFO '***********************'
@@ -413,14 +433,10 @@ main() {
         exit 1
     fi
     
-    # Remove annotated Illumina VCF
-    _log INFO "Removing annotated Illumina VCF file: '$VCF_ILLUMINA_ANNOTMT'"
-    rm -f "$VCF_ILLUMINA_ANNOTMT"
-
     # Export VCF files to TSV
-    _log INFO '*******************'
+    _log INFO '******************'
     _log INFO '* TSV Conversion *'
-    _log INFO '*******************'
+    _log INFO '******************'
     
     # Export specific VCF files in ISEC_DIR
     if [[ -d "$ISEC_DIR" ]]; then
