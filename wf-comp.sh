@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION='2025-08-21.1'
+VERSION='2025-08-21.2'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 # Description:
@@ -298,6 +298,36 @@ process_haplocheck() {
     _log INFO "Haplocheck completed"
 }
 
+recreate_directory() {
+  local DIR="$1"
+  if [ -z "$DIR" ]; then
+    _log ERROR "No directory specified."
+    return 1
+  fi
+
+  if [ -d "$DIR" ]; then
+    _log WARN "Directory '$DIR' exists. Removing..."
+    rm -rf "$DIR"
+    if [ ! -d "$DIR" ]; then
+      _log INFO "Directory '$DIR' successfully removed."
+    else
+      _log ERROR "Failed to remove directory '$DIR'."
+      return 1
+    fi
+  else
+    _log INFO "Directory '$DIR' does not exist."
+  fi
+
+  _log INFO "Recreating directory '$DIR'..."
+  mkdir -p "$DIR"
+  if [ -d "$DIR" ]; then
+    _log INFO "Directory '$DIR' successfully created."
+  else
+    _log ERROR "Failed to create directory '$DIR'."
+    return 1
+  fi
+}
+
 validate_directory() {
     local dir="$1"
     if [[ ! -d "$dir" ]]; then
@@ -346,9 +376,9 @@ main() {
     PREFIX=${WORKDIR##*/}
     PREFIX=${PREFIX:-/}
 
-    # Create directory structure
+    # Create output directory for logs
     LOGDIR="$WORKDIR/logs"
-    mkdir -p "$LOGDIR"
+    recreate_directory "$LOGDIR"
 
     # Setup logging without append
     LOGFILE="$LOGDIR/${PREFIX}-wf-comp.log"
@@ -402,11 +432,11 @@ main() {
     _log INFO '* Haplogroup Comparison *'
     _log INFO '*************************'
 
-    # Create output directory for haplocheck
     HPLCHK_DIR="$WORKDIR/hplchk-${PREFIX}"
-    mkdir -p "$HPLCHK_DIR"
-    
     HPLCHK_SUMMARY_FILE="${HPLCHK_DIR}/haplocheck_summary.${PREFIX}.tsv"
+   
+    # Create output directory for haplocheck
+    recreate_directory "$HPLCHK_DIR"
 
     # Process haplocheck for Nanopore and Illumina
     _log INFO "Comparing haplogroups using haplocheck..."
@@ -424,7 +454,7 @@ main() {
 
     # Create output directory for bcftools isec
     ISEC_DIR="$WORKDIR/isec-$PREFIX"
-    mkdir -p "$ISEC_DIR"
+    recreate_directory "$ISEC_DIR"
 
     # Compare VCF files using bcftools isec
     _log INFO "Comparing VCF files using bcftools isec..."
