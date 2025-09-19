@@ -15,7 +15,7 @@
 # -o pipefail: Return value of a pipeline is the value of the last command to exit with non-zero status
 set -euo pipefail
 
-VERSION='25.08.25.1'
+VERSION='25.09.19.1'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 # Conda environment name for running the script
 GETMT_ENV='nanomito'
@@ -26,9 +26,37 @@ CONDA_SCRIPT='/home/mferre/anaconda3/etc/profile.d/conda.sh'
 
 usage() {
     # Display usage information and exit
-    echo "Usage: $0 [-l|--log LOGFILE] /Path/to/run/dir"
-    echo "       If LOGFILE is not specified, defaults to /Path/to/run/dir/dir.wf-getmt.log"
+    echo "Usage: $0 [-l|--log LOGFILE] [/Path/to/run/dir]"
+    echo "       If run directory is not specified, automatically uses the latest directory in /mnt/c/data/"
+    echo "       If LOGFILE is not specified, defaults to /Path/to/run/dir/dirname.wf-getmt.log"
+    echo ""
+    echo "Examples:"
+    echo "  $0                                    # Use latest run, auto-generate log file"
+    echo "  $0 /mnt/c/data/250303_run01_solene    # Use specific run, auto-generate log"
+    echo "  $0 -l /tmp/custom.log                 # Use latest run with custom log file"
     exit 1
+}
+
+get_latest_run_directory() {
+    # Find the latest created directory in /mnt/c/data/
+    local data_root="/mnt/c/data"
+    
+    if [[ ! -d "$data_root" ]]; then
+        error_exit "Data root directory does not exist: '$data_root'"
+    fi
+    
+    # Find directories with date format (YYMMDD_) and sort by creation time
+    local latest_dir
+    latest_dir=$(find "$data_root" -maxdepth 1 -type d -name "[0-9][0-9][0-9][0-9][0-9][0-9]_*" -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
+    
+    if [[ -z "$latest_dir" ]]; then
+        error_exit "No run directories found in '$data_root' (looking for format YYMMDD_*)"
+    fi
+    
+    # Output info message to stderr (so it doesn't interfere with function return)
+    echo "[INFO] Latest run directory automatically detected: '$latest_dir'" >&2
+    # Return only the directory path to stdout
+    echo "$latest_dir"
 }
 
 parse_args() {
@@ -61,10 +89,15 @@ parse_args() {
         esac
     done
 
-    # Check if run directory is provided
+    # If no run directory is provided, automatically detect the latest one
     if [[ -z "$RUN_DIR" ]]; then
-        echo "[ERROR] No run directory supplied."
-        usage
+        echo "[INFO] No run directory specified, detecting latest directory..."
+        RUN_DIR=$(get_latest_run_directory)
+    fi
+    
+    # Validate that the run directory exists
+    if [[ ! -d "$RUN_DIR" ]]; then
+        error_exit "Run directory does not exist: '$RUN_DIR'"
     fi
     
     # Set default log file name if not specified
@@ -72,7 +105,8 @@ parse_args() {
     if [[ -z "$LOG_FILE" ]]; then
         # Extract directory name for log file naming
         DIR_NAME=$(basename "$RUN_DIR")
-        LOG_FILE="$RUN_DIR$DIR_NAME.wf-getmt.log"
+        LOG_FILE="$RUN_DIR/$DIR_NAME.wf-getmt.log"
+        echo "[INFO] Log file automatically set to: '$LOG_FILE'"
     fi
 }
 
@@ -94,6 +128,7 @@ init_conda() {
     # Initialize conda environment for running pod5 commands
     local conda_sh=$CONDA_SCRIPT
     if [[ -f "$conda_sh" ]]; then
+        # shellcheck source=/home/mferre/anaconda3/etc/profile.d/conda.sh
         source "$conda_sh"
     else
         error_exit "Conda initialization script not found at '$conda_sh'"
@@ -105,6 +140,12 @@ main() {
     # Main function that orchestrates the workflow
     parse_args "$@"
     redirect_log
+    
+    # Display script information
+    echo "=========================================================================="
+    echo "Workflow  : wf-getmt v.$VERSION by $AUTHOR"
+    echo "Description: Extract chrM reads from nanopore sequencing data"
+    echo "=========================================================================="
     
     # Increase the maximum number of open files to handle large datasets
     ULIMIT=8182
@@ -124,14 +165,24 @@ main() {
     MT_PIDS_FILE="$POD5_MT_DIR/$RUN_ID.chrM_pids.txt"       # File to store read IDs matching chrM
     POD5_MT_IDS_FILE="$POD5_MT_DIR/$RUN_ID.chrM.pod5"       # Output Pod5 file with chrM-specific reads
 
-    echo "Workflow  : wf-getmt v.$VERSION by $AUTHOR"
-    echo "——————————— Get IDs of Pod5 reads matching chrM for Nanomito ——————————————"
     echo "Run       : '$RUN_ID'"
     echo "Run dir   : '$RUN_DIR_PATH'"
     echo "BAM dir   : '$BAM_DIR'"
     echo "POD5 dir  : '$POD5_ALL_DIR'"
     echo "Output dir: '$POD5_MT_DIR'"
     echo "Log file  : '$LOG_FILE'"
+    echo "=========================================================================="
+    
+    # Validate required directories exist
+    if [[ ! -d "$BAM_DIR" ]]; then
+        error_exit "BAM directory not found: '$BAM_DIR'"
+    fi
+    
+    if [[ ! -d "$POD5_ALL_DIR" ]]; then
+        error_exit "POD5 directory not found: '$POD5_ALL_DIR'"
+    fi
+    
+    echo "[INFO] Validated required directories exist"
 
     # Initialize conda environment
     init_conda
@@ -149,11 +200,13 @@ main() {
 
     # Count the number of identified reads
     READ_IDS_COUNT=$(wc -l < "$MT_PIDS_FILE")
+    echo "[INFO] Found $READ_IDS_COUNT reads matching chrM"
 
     if [[ "$READ_IDS_COUNT" -eq 0 ]]; then
         # No reads found that match chrM - nothing to do
         echo '[WARNING] No read matching chrM: ending without Pod5 file of reads matching chrM'
     else
+        echo "[INFO] Filtering Pod5 files to extract chrM reads..."
         # Use the pod5 tool to filter and extract only the reads that match chrM
         # --recursive: Search recursively through the input directory
         # --force-overwrite: Overwrite output file if it exists
@@ -164,6 +217,7 @@ main() {
         echo "[OK] Pod5 reads matching chrM filtered in file: '$POD5_MT_IDS_FILE'"
         
         # Display summary information about the filtered Pod5 file
+        echo "[INFO] Pod5 file summary:"
         pod5 inspect summary "$POD5_MT_IDS_FILE"
     fi
 
