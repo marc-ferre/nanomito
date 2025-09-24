@@ -12,7 +12,7 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.05.17.2'
+VERSION='25.09.24.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -90,7 +90,6 @@ echo "Dorado version:"
 $DORADO_BIN --version
 
 $DORADO_BIN basecaller $MODEL "$POD5_DIR" --recursive \
-	--verbose \
 	--sample-sheet "$SAMPLESHEET_FILE" \
 	| $DORADO_BIN demux \
 	--kit-name $KIT \
