@@ -309,12 +309,12 @@ log_info "Analyzing demultiplexing results..."
 COUNT_ALIGN=$(($(zcat "$DEMULT_FILE" | wc -l) - 1))
 
 zcat "$DEMULT_FILE" | head -1 > "$CHRM_ONLY_FILE"
-zcat "$DEMULT_FILE" | grep -P 'chrM\t' >> "$CHRM_ONLY_FILE"
+(zcat "$DEMULT_FILE" | grep -P 'chrM\t' >> "$CHRM_ONLY_FILE") || true
 check_file "$CHRM_ONLY_FILE"
 COUNT_CHRM_ONLY=$(($(wc -l < "$CHRM_ONLY_FILE") - 1))
 
 zcat "$DEMULT_FILE" | head -1 > "$MATCH_FILE"
-zcat "$DEMULT_FILE" | grep -P 'Matched\tmt_' >> "$MATCH_FILE"
+(zcat "$DEMULT_FILE" | grep -P 'Matched\tmt_' >> "$MATCH_FILE") || true
 check_file "$MATCH_FILE"
 COUNT_MATCHED=$(($(wc -l < "$MATCH_FILE") - 1))
 
