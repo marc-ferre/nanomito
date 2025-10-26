@@ -256,7 +256,18 @@ less processing/sample/slurm-sample.workflow.log
 
 ## License
 
-This project is licensed under the terms specified in the LICENSE file.
+This project is licensed under the **CeCILL License v2.1** - see the [LICENSE](LICENSE) file for details.
+
+The CeCILL license is a Free Software license agreement adapted to French law, 
+compatible with the GNU GPL, and specifically designed for CNRS, INSERM, and INRIA projects.
+
+**Key points:**
+- ✅ Free to use, modify, and distribute
+- ✅ Strong copyleft: derivative works must also be open-source
+- ✅ Compliant with French law and European regulations
+- ✅ Guarantees that improvements remain in the public domain
+
+More information: http://www.cecill.info
 
 ## Author
 
