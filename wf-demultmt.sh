@@ -29,6 +29,10 @@
 #     └── processing/
 #
 #
+# ============================================================================
+# ERROR HANDLING & INITIALIZATION
+# ============================================================================
+
 # Strict error handling
 set -euo pipefail
 
@@ -46,6 +50,10 @@ VERSION='25.10.26.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
+# ============================================================================
+# ARGUMENTS & PARAMETERS
+# ============================================================================
+
 # Run id = Working directory
 RUN_ID=${PWD##*/} # Assign directory name to run id
 RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
@@ -61,6 +69,10 @@ SAMPLE_ID=$1
 # Read selection strategy (start, both, either ,xor)
 SELECT='both' 
 
+# ============================================================================
+# DIRECTORY STRUCTURE
+# ============================================================================
+
 # Directories
 RUN_DIR=$(pwd)
 BAM_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
@@ -70,6 +82,10 @@ OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 REF_MT_DIR='/scratch/mferre/reference'
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 VARCALL_DIR="$OUT_DIR/varcall"
+
+# ============================================================================
+# EXTERNAL TOOLS & DEPENDENCIES
+# ============================================================================
 
 # Binaries
 BALDUR_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/baldur-1.2.2/target/release/baldur'
@@ -84,6 +100,10 @@ POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.
 
 # Scripts
 CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/get_chrMpid.py'
+
+# ============================================================================
+# LOGGING FUNCTIONS
+# ============================================================================
 
 # Logging helper functions
 log_step() {
@@ -109,6 +129,10 @@ log_warning() {
 	echo "[WARN] $(date '+%H:%M:%S') - $1"
 }
 
+# ============================================================================
+# REFERENCE DATABASES & FILES
+# ============================================================================
+
 # References
 ANN_GNOMAD='/scratch/mferre/reference/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
 ANN_MITOMAP_DISEASE='/scratch/mferre/reference/MITOMAP/disease-nosp.vcf'
@@ -118,6 +142,10 @@ ANN_MITOMAP_POLYMORPHISMS='/scratch/mferre/reference/MITOMAP/polymorphisms.vcf'
 # REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
 REF_MT='/scratch/mferre/reference/chrM.fa'
 REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.mmi'
+
+# ============================================================================
+# FILE NAMING CONVENTIONS
+# ============================================================================
 
 # Pre/Sufixes
 BALDUR_PREFIX="$SAMPLE_ID.baldur"
@@ -143,6 +171,10 @@ MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"
 SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
 check_dir () { 
 	if [ -d "$1" ]
 	then 
@@ -162,8 +194,16 @@ check_file () {
 	fi
 }
 
+# ============================================================================
+# WORKFLOW EXECUTION
+# ============================================================================
+
 START=$(date +%s)
 STEP_START=$START
+
+# ----------------------------------------------------------------------------
+# STEP 1: INITIALIZATION
+# ----------------------------------------------------------------------------
 
 log_step "1/7: INITIALIZATION"
 log_info "Workflow: wf-demultmt v.$VERSION by $AUTHOR"
@@ -183,6 +223,10 @@ echo "Job ID  : $SLURM_JOB_ID"
 echo "CPUs    : $SLURM_CPUS_PER_TASK"
 echo "Memory  : ${SLURM_MEM_PER_NODE:-N/A} MB"
 echo "========================================"
+
+# ----------------------------------------------------------------------------
+# STEP 2: PREPROCESSING
+# ----------------------------------------------------------------------------
 
 log_step "2/7: PREPROCESSING"
 check_dir "$BAM_DIR"
@@ -215,6 +259,9 @@ else
 fi
 set -u  # Re-enable unset variable check
 
+# ----------------------------------------------------------------------------
+# STEP 3: MAPPING TO REFERENCE
+# ----------------------------------------------------------------------------
 log_step "3/7: MAPPING TO REFERENCE"
 STEP_START=$(date +%s)
 
@@ -231,6 +278,9 @@ STEP_RUNTIME=$((STEP_END - STEP_START))
 log_success "Mapping completed"
 log_info "Mapping duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
+# ----------------------------------------------------------------------------
+# STEP 4: DEMULTIPLEXING
+# ----------------------------------------------------------------------------
 log_step "4/7: DEMULTIPLEXING"
 STEP_START=$(date +%s)
 
@@ -324,6 +374,9 @@ log_info "Demultiplexing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/360
 
 conda deactivate
 
+# ----------------------------------------------------------------------------
+# STEP 5: VARIANT CALLING
+# ----------------------------------------------------------------------------
 log_step "5/7: VARIANT CALLING"
 STEP_START=$(date +%s)
 
@@ -367,6 +420,9 @@ STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
 log_info "Variant calling duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
+# ----------------------------------------------------------------------------
+# STEP 6: RETRIEVING RAW DATA
+# ----------------------------------------------------------------------------
 log_step "6/7: RETRIEVING RAW DATA"
 STEP_START=$(date +%s)
 
@@ -403,6 +459,9 @@ STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
 log_info "Raw data retrieval duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
+# ----------------------------------------------------------------------------
+# STEP 7: VARIANT ANNOTATION & HAPLOGROUP
+# ----------------------------------------------------------------------------
 log_step "7/7: VARIANT ANNOTATION & HAPLOGROUP"
 STEP_START=$(date +%s)
 
@@ -522,6 +581,9 @@ STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
 log_info "Annotation duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
+# ============================================================================
+# WORKFLOW SUMMARY & COMPLETION
+# ============================================================================
 echo ""
 echo "=========================================="
 echo "          WORKFLOW COMPLETED              "
