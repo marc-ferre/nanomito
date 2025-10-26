@@ -206,7 +206,14 @@ STEP_RUNTIME=$((STEP_END - STEP_START))
 log_info "Preprocessing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
 # Source Conda for Genouest cluster compute node
-. /local/env/envconda.sh
+log_info "Loading Conda environment"
+set +u  # Temporarily disable unset variable check for conda
+if [ -f /local/env/envconda.sh ]; then
+    . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
+else
+    log_warning "Conda init script not found at /local/env/envconda.sh"
+fi
+set -u  # Re-enable unset variable check
 
 log_step "3/7: MAPPING TO REFERENCE"
 STEP_START=$(date +%s)

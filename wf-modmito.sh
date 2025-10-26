@@ -194,7 +194,13 @@ STEP_START=$(date +%s)
 
 # Source Conda, to use it on a Genouest cluster compute node
 log_info "Loading Conda environment"
-. /local/env/envconda.sh
+set +u  # Temporarily disable unset variable check for conda
+if [ -f /local/env/envconda.sh ]; then
+    . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
+else
+    log_warning "Conda init script not found at /local/env/envconda.sh"
+fi
+set -u  # Re-enable unset variable check
 
 conda activate $MODMITO_ENV
 
