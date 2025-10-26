@@ -221,13 +221,16 @@ STEP_START=$(date +%s)
 log_info "Compressing FASTQ files in $FASTQ_DIR"
 
 # Load GNU parallel if available
+PARALLEL_AVAILABLE=false
 if [ -f /local/env/envparallel-20190122.sh ]; then
     log_info "Loading GNU parallel"
-    set +e  # Temporarily disable exit on error
-    . /local/env/envparallel-20190122.sh
-    PARALLEL_LOADED=$?
-    set -e  # Re-enable exit on error
-    if [ $PARALLEL_LOADED -ne 0 ]; then
+    # Use a subshell to safely source the file without affecting main script
+    if (set +e; . /local/env/envparallel-20190122.sh >/dev/null 2>&1; exit $?); then
+        # Source again in main shell if successful
+        . /local/env/envparallel-20190122.sh >/dev/null 2>&1 || true
+        PARALLEL_AVAILABLE=true
+        log_success "GNU parallel loaded successfully"
+    else
         log_warning "Failed to load GNU parallel, will use standard gzip"
     fi
 fi
@@ -237,7 +240,7 @@ FASTQ_UNCOMPRESSED=$(find "$FASTQ_DIR" -name "*.fastq" -type f 2>/dev/null | wc 
 log_info "Files to compress: $FASTQ_UNCOMPRESSED"
 
 # Parallel compression if possible
-if command -v parallel &> /dev/null && [ -n "${SLURM_CPUS_PER_TASK:-}" ] && [ "$FASTQ_UNCOMPRESSED" -gt 0 ]; then
+if [ "$PARALLEL_AVAILABLE" = true ] && command -v parallel &> /dev/null && [ -n "${SLURM_CPUS_PER_TASK:-}" ] && [ "$FASTQ_UNCOMPRESSED" -gt 0 ]; then
     log_info "Using GNU parallel with $SLURM_CPUS_PER_TASK CPUs"
     find "$FASTQ_DIR" -name "*.fastq" -type f | parallel -j "$SLURM_CPUS_PER_TASK" gzip
 elif [ "$FASTQ_UNCOMPRESSED" -gt 0 ]; then
