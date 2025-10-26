@@ -98,8 +98,9 @@ GETMT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_getmt'
 ONT_DEMULT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_ont_demult'
 POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.15'
 
-# Scripts
-CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/get_chrMpid.py'
+# Scripts (using the directory where this script is located)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CHRMPIDS_SCRIPT="${SCRIPT_DIR}/preprocessing/get_chrMpid.py"
 
 # ============================================================================
 # LOGGING FUNCTIONS
