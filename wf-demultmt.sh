@@ -292,7 +292,7 @@ ALN_PREFIX='alignment_'
 REFERENCE_COUNT=$(wc -l < "$CUT_FILE")
 log_info "Processing $REFERENCE_COUNT mitochondrial references..."
 
-while IFS=$'\t' read -r _ _ ID _; do
+while IFS=$'\t' read -r _ _ ID || [ -n "$ID" ]; do
 	REF="${REF_MT_DIR}/${REF_MT_PREFIX}${ID}${REF_MT_SUFIX}"
 	FASTQ="${DEMULT_PREFIX}_${ID}.fastq.gz"
 	BAM="${ALN_PREFIX}${ID}.bam"
@@ -312,7 +312,7 @@ log_info "Indexing BAM file..."
 samtools index "$SORTED_BAM_FILE"
 
 log_info "Cleaning up intermediate BAM files..."
-while IFS=$'\t' read -r _ _ ID _; do
+while IFS=$'\t' read -r _ _ ID || [ -n "$ID" ]; do
 	BAM="${ALN_PREFIX}${ID}.bam"
 	rm -f "$BAM"
 done < "$CUT_FILE"
