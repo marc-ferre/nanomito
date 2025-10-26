@@ -19,21 +19,30 @@ trap cleanup EXIT
 VERSION='25.10.26.1'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
+# Colors for terminal output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
 # Logging helper functions
 log_info() {
-	echo "[INFO] $(date '+%H:%M:%S') - $1"
+	echo -e "${BLUE}[INFO]${NC} $(date '+%H:%M:%S') - $1"
 }
 
 log_success() {
-	echo "[OK]   $(date '+%H:%M:%S') - $1"
+	echo -e "${GREEN}[OK]${NC}   $(date '+%H:%M:%S') - $1"
 }
 
 log_error() {
-	echo "[ERROR] $(date '+%H:%M:%S') - $1" >&2
+	echo -e "${RED}[ERROR]${NC} $(date '+%H:%M:%S') - $1" >&2
 }
 
 log_warning() {
-	echo "[WARN] $(date '+%H:%M:%S') - $1"
+	echo -e "${YELLOW}[WARN]${NC} $(date '+%H:%M:%S') - $1"
 }
 
 WF_ARCHIVING='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-archiving.sh'
@@ -66,9 +75,9 @@ if [ ! -d "$1" ]; then
 fi
 
 echo ""
-echo "=========================================="
-echo "     RUN ARCHIVING v.$VERSION"
-echo "=========================================="
+echo -e "${BOLD}${CYAN}==========================================${NC}"
+echo -e "${BOLD}${CYAN}     RUN ARCHIVING v.$VERSION${NC}"
+echo -e "${BOLD}${CYAN}==========================================${NC}"
 log_info "Author: $AUTHOR"
 echo ""
 
@@ -97,9 +106,9 @@ else
 fi    
 
 echo ""
-echo "=========================================="
-echo "     SUBMITTING ARCHIVING JOB"
-echo "=========================================="
+echo -e "${BOLD}${CYAN}==========================================${NC}"
+echo -e "${BOLD}${CYAN}     SUBMITTING ARCHIVING JOB${NC}"
+echo -e "${BOLD}${CYAN}==========================================${NC}"
 
 SLURM_FILE="$PROJECTS_DIR/slurm-$RUN_ID.log"
 
@@ -110,9 +119,9 @@ if [ -n "$JOBID" ]; then
 	log_info "Output file: $SLURM_FILE"
 	log_info "Archiving to: $ARCHIVING_DIR"
 	echo ""
-	echo "=========================================="
-	log_info "Use 'scancel $JOBID' to cancel the job"
-	echo "=========================================="
+	echo -e "${BOLD}${GREEN}==========================================${NC}"
+	log_info "Use '${YELLOW}scancel $JOBID${NC}' to cancel the job"
+	echo -e "${BOLD}${GREEN}==========================================${NC}"
 else
 	log_error "Failed to submit batch job"
 	exit 1
