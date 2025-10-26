@@ -444,7 +444,10 @@ cd "$VARCALL_DIR" || exit
 log_info "Retrieving matching reads (selection strategy: $SELECT)..."
 
 # Get unique parent IDs (pid) of reads aligned to chrM 
-conda run -p $GETMT_ENV python "$CHRMPIDS_SCRIPT" -b "$SELECT_DIR" -p "$POD5_DIR" -o "$IDS_FILE"
+conda run -p "$GETMT_ENV" python "$CHRMPIDS_SCRIPT" -b "$SELECT_DIR" -p "$POD5_DIR" -o "$IDS_FILE" || {
+	log_error "Failed to retrieve read IDs from BAM files"
+	exit 1
+}
 check_file "$IDS_FILE"
 
 READ_IDS_COUNT=$(wc -l < "$IDS_FILE")
