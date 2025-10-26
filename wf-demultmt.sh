@@ -73,7 +73,6 @@ VARCALL_DIR="$OUT_DIR/varcall"
 
 # Binaries
 BALDUR_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/baldur-1.2.2/target/release/baldur'
-DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado'
 ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_demult/target/release/ont_demult'
 
 # Conda envs
@@ -209,6 +208,7 @@ log_info "Preprocessing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600
 log_info "Loading Conda environment"
 set +u  # Temporarily disable unset variable check for conda
 if [ -f /local/env/envconda.sh ]; then
+    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
     . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
 else
     log_warning "Conda init script not found at /local/env/envconda.sh"
@@ -292,14 +292,13 @@ ALN_PREFIX='alignment_'
 REFERENCE_COUNT=$(wc -l < "$CUT_FILE")
 log_info "Processing $REFERENCE_COUNT mitochondrial references..."
 
-for ID in $(cut -f3 "$CUT_FILE")
-do
+while IFS=$'\t' read -r _ _ ID _; do
 	REF="${REF_MT_DIR}/${REF_MT_PREFIX}${ID}${REF_MT_SUFIX}"
 	FASTQ="${DEMULT_PREFIX}_${ID}.fastq.gz"
 	BAM="${ALN_PREFIX}${ID}.bam"
 	
 	minimap2 -ax map-ont "$REF" "$FASTQ" | samtools view -b - > "$BAM" 2>/dev/null || true
-done
+done < "$CUT_FILE"
 
 log_info "Merging BAM files..."
 samtools merge "$BAM_FILE" ${ALN_PREFIX}*.bam
@@ -313,11 +312,10 @@ log_info "Indexing BAM file..."
 samtools index "$SORTED_BAM_FILE"
 
 log_info "Cleaning up intermediate BAM files..."
-for ID in $(cut -f3 "$CUT_FILE")
-do
+while IFS=$'\t' read -r _ _ ID _; do
 	BAM="${ALN_PREFIX}${ID}.bam"
 	rm -f "$BAM"
-done
+done < "$CUT_FILE"
 
 STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
@@ -416,7 +414,7 @@ gunzip "$BALDUR_VCF_FILE"
 BALDUR_VCF_FILE=$(basename "$BALDUR_VCF_FILE" .gz)
 check_file "$BALDUR_VCF_FILE"
 
-VARIANT_COUNT=$(grep -v '^#' "$BALDUR_VCF_FILE" | wc -l)
+VARIANT_COUNT=$(grep -cv '^#' "$BALDUR_VCF_FILE")
 log_success "Variants called: $VARIANT_COUNT"
 
 conda activate $ANNOTMT_ENV

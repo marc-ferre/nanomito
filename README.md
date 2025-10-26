@@ -17,7 +17,7 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 
 ## Workflow Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                     submit_nanomito.sh                          │
 │              Main workflow submission orchestrator               │
@@ -43,42 +43,49 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 ## Workflows Description
 
 ### 1. **submit_nanomito.sh**
+
 Main entry point for workflow submission. Orchestrates the entire pipeline execution.
 
 **Usage:**
+
 ```bash
 ./submit_nanomito.sh /path/to/run/directory
 ```
 
 ### 2. **wf-bchg.sh** (Basecalling & Demultiplexing)
+
 - GPU-accelerated basecalling using Dorado
 - Automatic sample demultiplexing by barcodes
 - FASTQ compression and organization
 - **Resources:** 1 GPU, 12 CPUs, 50GB RAM
 
 ### 3. **wf-subwf.sh** (Sub-workflow Orchestrator)
+
 - Automatically detects samples in `fastq_pass/`
 - Submits demultmt and modmito jobs for each sample
 - Manages job dependencies
 
 ### 4. **wf-demultmt.sh** (Mitochondrial Reads Demultiplexing)
+
 - Maps reads to reference genome
 - Demultiplexes mitochondrial reads by patient
 - Read selection strategies (both/start/either/xor)
 - **Resources:** 12 CPUs, 150GB RAM
 
 ### 5. **wf-modmito.sh** (Modification Analysis)
+
 - Duplex basecalling with modification calling (5mC, 5hmC, 6mA)
 - BAM alignment and sorting
 - BedMethyl output generation
 - **Resources:** 1 GPU, 12 CPUs, 50GB RAM
 
 ### 6. **archiving.sh**
+
 Automated run archiving to project storage.
 
 ## Directory Structure
 
-```
+```text
 run_directory/
 ├── pod5_chrM/                    # POD5 files (chrM reads only)
 ├── fastq_pass/                   # Demultiplexed FASTQ files
@@ -110,6 +117,7 @@ run_directory/
 ### Installation on Genouest HPC
 
 1. **Clone the repository:**
+
 ```bash
 # Generate SSH key if not already done
 ssh-keygen -t ed25519 -C "your.email@domain.com"
@@ -121,13 +129,16 @@ git clone git@github.com:marc-ferre/nanomito.git workflows
 cd workflows
 ```
 
-2. **Update workflow paths:**
+1. **Update workflow paths:**
+
 Edit the workflow files to match your environment:
+
 - `WF_BCHG`, `WF_SUBWF`, etc. in `submit_nanomito.sh`
 - `DORADO_BIN` path in `wf-bchg.sh` and `wf-modmito.sh`
 - Conda environment paths
 
-3. **Make scripts executable:**
+1. **Make scripts executable:**
+
 ```bash
 chmod +x *.sh
 ```
@@ -176,6 +187,7 @@ tail -f processing/slurm-*.log
 ### Sample Sheet Format
 
 Required CSV file with ONT sample information:
+
 ```csv
 protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_product_code,kit,barcode,alias,type
 ...
@@ -184,13 +196,16 @@ protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_produ
 ### Key Parameters
 
 **wf-bchg.sh:**
+
 - `MODEL`: Basecalling model (default: `sup`)
 - `KIT`: Barcoding kit (default: `SQK-NBD114-24`)
 
 **wf-demultmt.sh:**
+
 - `SELECT`: Read selection strategy (`both`, `start`, `either`, `xor`)
 
 **wf-modmito.sh:**
+
 - `MODEL_COMPLEX`: Modification model (default: `sup,5mC_5hmC,6mA`)
 
 ## Output Files
@@ -212,18 +227,22 @@ protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_produ
 ### Common Issues
 
 1. **"Workflow script not found"**
+
    - Check paths in `submit_nanomito.sh`
    - Ensure scripts are executable
 
-2. **"Failed to load Conda"**
+1. **"Failed to load Conda"**
+
    - Scripts automatically handle conda loading failures
    - Check `/local/env/envconda.sh` exists
 
-3. **GPU not available**
+1. **GPU not available**
+
    - Ensure `--partition=gpu` is set
    - Check GPU availability: `sinfo -p gpu`
 
-4. **Out of memory**
+1. **Out of memory**
+
    - Adjust `--mem` in SBATCH headers
    - Monitor with `sstat -j $SLURM_JOB_ID`
 
@@ -258,21 +277,21 @@ less processing/sample/slurm-sample.workflow.log
 
 This project is licensed under the **CeCILL License v2.1** - see the [LICENSE](LICENSE) file for details.
 
-The CeCILL license is a Free Software license agreement adapted to French law, 
-compatible with the GNU GPL, and specifically designed for CNRS, INSERM, and INRIA projects.
+The CeCILL license is a Free Software license agreement adapted to French law, compatible with the GNU GPL, and specifically designed for CNRS, INSERM, and INRIA projects.
 
 **Key points:**
+
 - ✅ Free to use, modify, and distribute
 - ✅ Strong copyleft: derivative works must also be open-source
 - ✅ Compliant with French law and European regulations
 - ✅ Guarantees that improvements remain in the public domain
 
-More information: http://www.cecill.info
+More information: <http://www.cecill.info>
 
 ## Author
 
 **Marc FERRE**  
-Email: marc.ferre@univ-angers.fr  
+Email: <marc.ferre@univ-angers.fr>  
 Institution: CNRS UMR6015 / INSERM UMR1083
 
 ## Citation

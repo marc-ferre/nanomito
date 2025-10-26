@@ -196,6 +196,7 @@ STEP_START=$(date +%s)
 log_info "Loading Conda environment"
 set +u  # Temporarily disable unset variable check for conda
 if [ -f /local/env/envconda.sh ]; then
+    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
     . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
 else
     log_warning "Conda init script not found at /local/env/envconda.sh"

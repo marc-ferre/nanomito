@@ -41,7 +41,7 @@ PROCESS_DIR="$RUN_DIR/processing"
 RUN_ID=$(basename "$RUN_DIR")
 
 # Files - Robust handling of multiple sample_sheet files
-SAMPLESHEET_FILES=($(find "$RUN_DIR" -maxdepth 2 -type f -name 'sample_sheet_*.csv'))
+mapfile -t SAMPLESHEET_FILES < <(find "$RUN_DIR" -maxdepth 2 -type f -name 'sample_sheet_*.csv')
 
 if [ ${#SAMPLESHEET_FILES[@]} -eq 0 ]; then
     echo "[ERROR] No sample_sheet_*.csv file found in $RUN_DIR or subdirectories"
@@ -99,6 +99,7 @@ MODEL='sup'
 KIT='SQK-NBD114-24'
 
 # Binary and Conda env
+# shellcheck disable=SC2034  # DORADO_BIN used in basecalling pipeline below
 DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado'
 
 # Logging helper functions
@@ -225,8 +226,10 @@ PARALLEL_AVAILABLE=false
 if [ -f /local/env/envparallel-20190122.sh ]; then
     log_info "Loading GNU parallel"
     # Use a subshell to safely source the file without affecting main script
+    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
     if (set +e; . /local/env/envparallel-20190122.sh >/dev/null 2>&1; exit $?); then
         # Source again in main shell if successful
+        # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
         . /local/env/envparallel-20190122.sh >/dev/null 2>&1 || true
         PARALLEL_AVAILABLE=true
         log_success "GNU parallel loaded successfully"
