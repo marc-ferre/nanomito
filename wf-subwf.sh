@@ -9,6 +9,27 @@
 #
 # wf-subwf.sh - Workflow submission orchestrator
 #
+# Description:
+#   This script orchestrates the submission of multiple SLURM jobs for each sample
+#   in a sequencing run. It submits two types of workflows per sample:
+#   1. demultmt: Demultiplexing of mitochondrial reads
+#   2. modmito: Analysis of mitochondrial modifications (depends on demultmt)
+#
+# Usage:
+#   sbatch wf-subwf.sh
+#   (Must be run from the run directory containing fastq_pass/)
+#
+# Directory structure expected:
+#   RUN_DIR/
+#     ├── fastq_pass/
+#     │   ├── sample1/
+#     │   ├── sample2/
+#     │   └── ...
+#     └── processing/
+#
+# Arguments:
+#   None - The script automatically detects samples in fastq_pass/ directory
+#
 #
 # Strict error handling
 set -euo pipefail
@@ -63,6 +84,7 @@ RUN_ID=$(basename "$RUN_DIR")
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 # Workflows shell scripts
+# These scripts are called with sbatch for each sample
 WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-demultmt.sh'
 WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-modmito.sh'
 
@@ -74,12 +96,14 @@ MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_80'
 # MAIL_TYPE_ALL='ALL'
 
 # Validate workflow scripts exist
+# Note: Only checks file existence, not executability
+# sbatch will perform its own validation when submitting jobs
 check_workflow() {
-	if [ -f "$1" ] && [ -x "$1" ]; then
+	if [ -f "$1" ]; then
 		log_success "Workflow script found: $1"
 	else
-		log_error "Workflow script not found or not executable: $1"
-		exit 128
+		log_warning "Workflow script not found: $1"
+		log_warning "Continuing anyway - sbatch will validate the script path"
 	fi
 }
 
@@ -118,30 +142,45 @@ fi
 
 log_step "3/3: SUBMITTING WORKFLOWS"
 
+# Counters for tracking submitted jobs
 SAMPLES_COUNT=0
 JOBS_COUNT=0
 JOBID_LIST=''
 DEMULTMT_JOBS=0
 MODMITO_JOBS=0
 
+# Process each sample directory in fastq_pass/
 cd "$FASTQ_DIR"
-shopt -u dotglob
+shopt -u dotglob  # Don't include hidden directories
 while IFS= read -r DIR
 do
+	# Extract sample identifier from directory name
 	SAMPLE_ID=$(basename "$DIR")
 	log_info "Processing sample: $SAMPLE_ID"
 	
 	SAMPLES_COUNT=$((SAMPLES_COUNT+1))
 	
+	# Create output directory for this sample's logs
 	OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 	mkdir -p "$OUT_DIR"
 	SLURM_PRE="slurm-$SAMPLE_ID"
 	SLURM_EXT='log'
 	
+	# ============================================================
 	# Submit demultmt workflow
+	# ============================================================
+	# Arguments passed to wf-demultmt.sh:
+	#   $1: SAMPLE_ID - name of the sample directory in fastq_pass/
+	# ============================================================
 	WF_ID='demultmt'
 	SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-	JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" $WF_DEMULTMT "$SAMPLE_ID")
+	JOBID=$(sbatch --parsable \
+		--chdir="$RUN_DIR" \
+		--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
+		--output="$SLURM_FILE" \
+		--mail-type="$MAIL_TYPE_ISSUE" \
+		--mail-user="$MAIL_USER" \
+		$WF_DEMULTMT "$SAMPLE_ID")
 	
 	if [ -z "$JOBID" ]; then
 		log_error "Failed to submit $WF_ID job for $SAMPLE_ID"
@@ -154,10 +193,24 @@ do
 	DEMULTMT_JOBS=$((DEMULTMT_JOBS+1))
 	JOBID_LIST="$JOBID $JOBID_LIST"
 	
-	# Submit modmito workflow (depends on demultmt)
+	# ============================================================
+	# Submit modmito workflow (depends on demultmt completion)
+	# ============================================================
+	# Arguments passed to wf-modmito.sh:
+	#   $1: SAMPLE_ID - name of the sample directory in fastq_pass/
+	# 
+	# Dependency: This job will only start after demultmt job completes successfully
+	# ============================================================
 	WF_ID='modmito'
 	SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
- 	JOBID_MODMITO=$(sbatch --dependency=afterok:"${JOBID}" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_MODMITO "$SAMPLE_ID")
+ 	JOBID_MODMITO=$(sbatch --dependency=afterok:"${JOBID}" \
+		--parsable \
+		--chdir="$RUN_DIR" \
+		--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
+		--output="$SLURM_FILE" \
+		--mail-type="$MAIL_TYPE_END" \
+		--mail-user="$MAIL_USER" \
+		$WF_MODMITO "$SAMPLE_ID")
 	
 	if [ -z "$JOBID_MODMITO" ]; then
 		log_error "Failed to submit $WF_ID job for $SAMPLE_ID"
@@ -169,6 +222,8 @@ do
 	JOBS_COUNT=$((JOBS_COUNT+1))
 	MODMITO_JOBS=$((MODMITO_JOBS+1))
 	JOBID_LIST="$JOBID_MODMITO $JOBID_LIST"
+	
+# Read all directories (non-recursively) in fastq_pass/
 done < <(find ./* -prune -type d)
 
 echo ""

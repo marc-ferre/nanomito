@@ -9,6 +9,26 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 #
+# wf-demultmt.sh - Mitochondrial reads demultiplexing workflow
+#
+# Description:
+#   Demultiplexes mitochondrial reads from a sample into individual patient files
+#
+# Usage:
+#   sbatch --chdir=/path/to/run wf-demultmt.sh SAMPLE_ID
+#
+# Arguments:
+#   $1: SAMPLE_ID - Name of the sample directory in fastq_pass/
+#                   (e.g., barcode09, barcode10, etc.)
+#
+# Directory structure expected:
+#   RUN_DIR/
+#     ├── fastq_pass/
+#     │   └── SAMPLE_ID/
+#     │       └── *.fastq.gz files
+#     └── processing/
+#
+#
 # Strict error handling
 set -euo pipefail
 

@@ -14,10 +14,10 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-# Arrêt strict en cas d'erreur
+# Strict error handling
 set -euo pipefail
 
-# Trap pour nettoyage en cas d'erreur
+# Trap for cleanup on error
 cleanup() {
     local exit_code=$?
     if [ $exit_code -ne 0 ]; then

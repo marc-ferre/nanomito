@@ -8,13 +8,70 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 #
+# wf-modmito.sh - Mitochondrial modifications analysis workflow
 #
-# wf-modmito.sh /Path/to/run/dir/
+# Description:
+#   Analyzes mitochondrial modifications from demultiplexed patient files
+#
+# Usage:
+#   sbatch --chdir=/path/to/run wf-modmito.sh SAMPLE_ID
+#
+# Arguments:
+#   $1: SAMPLE_ID - Name of the sample directory in fastq_pass/
+#                   (e.g., barcode09, barcode10, etc.)
+#
+# Directory structure expected:
+#   RUN_DIR/
+#     ├── fastq_pass/
+#     │   └── SAMPLE_ID/
+#     │       └── demultiplexed patient files
+#     └── processing/
+#         └── SAMPLE_ID/
+#
+# Dependencies:
+#   - Requires wf-demultmt.sh to have completed successfully
 #
 #
-VERSION='25.05.18.1'
+# Strict error handling
+set -euo pipefail
+
+# Trap for cleanup on error
+cleanup() {
+    local exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        log_error "Script failed with exit code $exit_code"
+        log_info "Check logs in processing/ directory"
+    fi
+}
+trap cleanup EXIT
+
+VERSION='25.10.26.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
+
+# Logging helper functions
+log_step() {
+	echo ""
+	echo "=========================================="
+	echo "[STEP $1] $(date '+%Y-%m-%d %H:%M:%S')"
+	echo "=========================================="
+}
+
+log_info() {
+	echo "[INFO] $(date '+%H:%M:%S') - $1"
+}
+
+log_success() {
+	echo "[OK]   $(date '+%H:%M:%S') - $1"
+}
+
+log_error() {
+	echo "[ERROR] $(date '+%H:%M:%S') - $1" >&2
+}
+
+log_warning() {
+	echo "[WARN] $(date '+%H:%M:%S') - $1"
+}
 
 # Run id = Working directory basename
 RUN_ID=${PWD##*/} # Assign directory name to run id
@@ -23,7 +80,8 @@ RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
 # Sample id = Argument
 if [ $# -eq 0 ]
 	then
-		echo "[ERROR] No arguments supplied"
+		log_error "No arguments supplied"
+		echo "Usage: sbatch --chdir=/path/to/run wf-modmito.sh SAMPLE_ID"
 		exit 128 # die with error code
 fi
 SAMPLE_ID=$1
@@ -62,98 +120,134 @@ WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 check_dir () { 
 	if [ -d "$1" ]
 	then 
-   		echo "[OK] Directory $1 exists"
+   		log_success "Directory $1 exists"
    	else
-		echo "[ERROR] Directory $1 doesn't exist"
+		log_error "Directory $1 doesn't exist"
 		exit 128 # die with error code 
 	fi
 }
 check_file () { 
 	if [ -f "$1" ] && [ -s "$1" ]
 	then 
-   		echo "[OK] File $1 exists and is not empty"
+   		log_success "File $1 exists and is not empty"
    	else
-		echo "[ERROR] File $1 is empty or doesn't exist"
+		log_error "File $1 is empty or doesn't exist"
 		exit 128 # die with error code
 	fi
 }
 
 START=$(date +%s)
+STEP_START=$START
 
-echo "Workflow: wf-modmito v.$VERSION by $AUTHOR"
-echo "Run: $RUN_ID"
-echo "Sample: $SAMPLE_ID"
-echo "Job: $SLURM_JOB_ID"
-echo "Run directory: $RUN_DIR"
-echo "Output directory: $OUT_DIR"
-echo "Read selection strategy: $SELECT"
-echo "Pod5 file: $DEMULT_POD5_FILE"
-echo "Sample sheet: $SAMPLESHEET_FILE"
-echo "Model Complex: $MODEL_COMPLEX"
-echo "Reference file: $SELECTED_REF"
-echo "Date: $(date)"
+log_step "1/4: INITIALIZATION"
+log_info "Workflow: wf-modmito v.$VERSION by $AUTHOR"
+log_info "Run ID: $RUN_ID"
+log_info "Sample ID: $SAMPLE_ID"
+log_info "SLURM Job ID: ${SLURM_JOB_ID:-N/A}"
+log_info "Run directory: $RUN_DIR"
+log_info "Output directory: $OUT_DIR"
+log_info "Read selection strategy: $SELECT"
+log_info "Pod5 file: $DEMULT_POD5_FILE"
+log_info "Sample sheet: $SAMPLESHEET_FILE"
+log_info "Model complex: $MODEL_COMPLEX"
+log_info "Reference file: $SELECTED_REF"
 
-echo
-echo '******************************'
-echo '* Modified bases basecalling *'
-echo '******************************'
+echo ""
+echo "========== SLURM Environment =========="
+echo "Node    : ${SLURM_NODELIST:-N/A}"
+echo "Job ID  : ${SLURM_JOB_ID:-N/A}"
+echo "CPUs    : ${SLURM_CPUS_PER_TASK:-N/A}"
+echo "Memory  : ${SLURM_MEM_PER_NODE:-N/A} MB"
+if command -v nvidia-smi &> /dev/null; then
+    echo "GPU     : $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo 'N/A')"
+else
+    echo "GPU     : N/A"
+fi
+echo "========================================"
+
+log_step "2/4: VALIDATION"
 check_file "$DEMULT_POD5_FILE"
+
+log_step "3/4: MODIFIED BASES BASECALLING"
+STEP_START=$(date +%s)
 
 # To work around the issue https://github.com/nanoporetech/dorado/issues/432
 export LC_ALL=en_US.UTF-8
 
-echo "Dorado version:"
+log_info "Dorado version:"
 $DORADO_BIN --version
 
+log_info "Starting duplex basecalling with modifications..."
 $DORADO_BIN duplex $MODEL_COMPLEX "$DEMULT_POD5_FILE" \
 	--verbose \
 	--reference $SELECTED_REF \
 	> "$BAM_FILE"
 check_file "$BAM_FILE"
 
-echo
-echo '****************************'
-echo '* Sorted BAM and bedMethyl *'
-echo '****************************'
+STEP_END=$(date +%s)
+STEP_RUNTIME=$((STEP_END - STEP_START))
+log_success "Basecalling completed"
+log_info "Basecalling duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
+
+log_step "4/4: BAM SORTING & BEDMETHYL GENERATION"
+STEP_START=$(date +%s)
 
 # Source Conda, to use it on a Genouest cluster compute node
+log_info "Loading Conda environment"
 . /local/env/envconda.sh
 
 conda activate $MODMITO_ENV
 
+log_info "Samtools version:"
 samtools --version
 
+log_info "Sorting BAM file..."
 samtools sort "$BAM_FILE" -o "$SORTED_BAM_FILE"
 check_file "$SORTED_BAM_FILE"
+
+log_info "Indexing sorted BAM file..."
 samtools index "$SORTED_BAM_FILE"
 check_file "${SORTED_BAM_FILE}.bai"
 
-echo "Remove unsorted BAM file:"
-rm "$BAM_FILE" && [[ ! -e $BAM_FILE ]] && echo "[OK] BAM file removed: $BAM_FILE"
+log_info "Removing unsorted BAM file..."
+rm "$BAM_FILE" && [[ ! -e $BAM_FILE ]] && log_success "BAM file removed: $BAM_FILE"
 
-echo "Modkit version: $(modkit --version)"
+log_info "Modkit version: $(modkit --version)"
 
+log_info "Generating bedMethyl file..."
 modkit pileup "$SORTED_BAM_FILE" "$BEDMETHYL_FILE"
 check_file "$BEDMETHYL_FILE"
 
 conda deactivate
 
-echo
-echo '***********'
-echo '* Ending  *'
-echo '***********'
+STEP_END=$(date +%s)
+STEP_RUNTIME=$((STEP_END - STEP_START))
+log_success "BAM sorting and bedMethyl generation completed"
+log_info "Processing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
+
+echo ""
+echo "=========================================="
+echo "          WORKFLOW COMPLETED              "
+echo "=========================================="
 
 END=$(date +%s)
 RUNTIME=$((END - START))
 HOURS=$((RUNTIME / 3600))
 MINUTES=$(( (RUNTIME % 3600) / 60 ))
 SECONDS=$(( (RUNTIME % 3600) % 60 ))
-echo ">>> Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
+
+log_success "Total runtime: $(printf '%02d:%02d:%02d' $HOURS $MINUTES $SECONDS)"
+log_info "End time: $(date '+%Y-%m-%d %H:%M:%S')"
 
 # Write workflow summary file
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
 	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
-	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
+	log_success "Created workflow summary file"
 fi
-echo "$RUN_ID	$SAMPLE_ID	modmito 	$HOURS:$MINUTES:$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
-echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
+echo "$RUN_ID	$SAMPLE_ID	modmito	$HOURS:$MINUTES:$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
+log_success "Updated workflow summary file: $WORKFLOW_SUMMARY_FILE"
+
+echo ""
+echo "=========================================="
+log_info "Check detailed logs in processing/ directory"
+echo "=========================================="
