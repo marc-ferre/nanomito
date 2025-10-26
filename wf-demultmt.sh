@@ -316,7 +316,7 @@ $ONT_DEMULT_BIN --select $SELECT \
 check_file "$DEMULT_FILE"
 
 log_info "Analyzing demultiplexing results..."
-COUNT_ALIGN=$(($(zcat "$DEMULT_FILE" | wc -l) - 1))
+COUNT_ALIGN=$(( $(gunzip -c "$DEMULT_FILE" | wc -l) - 1 ))
 
 zcat "$DEMULT_FILE" | head -1 > "$CHRM_ONLY_FILE"
 (zcat "$DEMULT_FILE" | grep -P 'chrM\t' >> "$CHRM_ONLY_FILE") || true
