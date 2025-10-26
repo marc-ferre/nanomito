@@ -175,22 +175,33 @@ WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 # HELPER FUNCTIONS
 # ============================================================================
 
-check_dir () { 
-	if [ -d "$1" ]
-	then 
-   		log_success "Directory $1 exists"
-   	else
-		log_error "Directory $1 doesn't exist"
-		exit 128
+# Check if directory exists (silent unless error)
+check_dir() {
+	if [ ! -d "$1" ]; then
+		log_error "Directory not found: $1"
+		exit 1
 	fi
 }
-check_file () { 
-	if [ -f "$1" ] && [ -s "$1" ]
-	then 
-   		log_success "File $1 exists and is not empty"
-   	else
-		log_error "File $1 is empty or doesn't exist"
-		exit 128
+
+# Check if file exists and is not empty (silent unless error)
+check_file() {
+	if [ ! -f "$1" ]; then
+		log_error "File not found: $1"
+		exit 1
+	elif [ ! -s "$1" ]; then
+		log_error "File is empty: $1"
+		exit 1
+	fi
+}
+
+# Create directory if it doesn't exist
+ensure_dir() {
+	if [ ! -d "$1" ]; then
+		mkdir -p "$1" || {
+			log_error "Failed to create directory: $1"
+			exit 1
+		}
+		log_success "Created directory: $1"
 	fi
 }
 
@@ -230,7 +241,7 @@ echo "========================================"
 
 log_step "2/7: PREPROCESSING"
 check_dir "$BAM_DIR"
-mkdir -p "$OUT_DIR"
+ensure_dir "$OUT_DIR"
 FASTQ_FILE="$OUT_DIR/$SAMPLE_ID.fastq.gz"
 log_info "FASTQ file: $FASTQ_FILE"
 MAPPING_PAF_FILE="$OUT_DIR/$SAMPLE_ID.paf"
@@ -286,8 +297,7 @@ STEP_START=$(date +%s)
 
 log_info "ont_demult version: $($ONT_DEMULT_BIN --version)"
 
-mkdir -p "$SELECT_DIR"
-check_dir "$SELECT_DIR"
+ensure_dir "$SELECT_DIR"
 cd "$SELECT_DIR" || exit
 
 log_info "Running demultiplexing (selection strategy: $SELECT)..."
@@ -380,7 +390,7 @@ conda deactivate
 log_step "5/7: VARIANT CALLING"
 STEP_START=$(date +%s)
 
-mkdir -p "$VARCALL_DIR"
+ensure_dir "$VARCALL_DIR"
 cd "$VARCALL_DIR" || exit
 
 conda activate $BALDUR_ENV
