@@ -30,7 +30,7 @@
 #
 #
 # ============================================================================
-#region ERROR HANDLING & INITIALIZATION
+# ERROR HANDLING & INITIALIZATION
 # ============================================================================
 
 # Strict error handling
@@ -50,10 +50,8 @@ VERSION='25.10.26.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
-#endregion
-
 # ============================================================================
-#region ARGUMENTS & PARAMETERS
+# ARGUMENTS & PARAMETERS
 # ============================================================================
 
 # Run id = Working directory
@@ -71,10 +69,8 @@ SAMPLE_ID=$1
 # Read selection strategy (start, both, either ,xor)
 SELECT='both' 
 
-#endregion
-
 # ============================================================================
-#region DIRECTORY STRUCTURE
+# DIRECTORY STRUCTURE
 # ============================================================================
 
 # Directories
@@ -87,10 +83,8 @@ REF_MT_DIR='/scratch/mferre/reference'
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 VARCALL_DIR="$OUT_DIR/varcall"
 
-#endregion
-
 # ============================================================================
-#region EXTERNAL TOOLS & DEPENDENCIES
+# EXTERNAL TOOLS & DEPENDENCIES
 # ============================================================================
 
 # Binaries
@@ -107,10 +101,8 @@ POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.
 # Scripts
 CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/get_chrMpid.py'
 
-#endregion
-
 # ============================================================================
-#region LOGGING FUNCTIONS
+# LOGGING FUNCTIONS
 # ============================================================================
 
 # Logging helper functions
@@ -137,10 +129,8 @@ log_warning() {
 	echo "[WARN] $(date '+%H:%M:%S') - $1"
 }
 
-#endregion
-
 # ============================================================================
-#region REFERENCE DATABASES & FILES
+# REFERENCE DATABASES & FILES
 # ============================================================================
 
 # References
@@ -153,10 +143,8 @@ ANN_MITOMAP_POLYMORPHISMS='/scratch/mferre/reference/MITOMAP/polymorphisms.vcf'
 REF_MT='/scratch/mferre/reference/chrM.fa'
 REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.mmi'
 
-#endregion
-
 # ============================================================================
-#region FILE NAMING CONVENTIONS
+# FILE NAMING CONVENTIONS
 # ============================================================================
 
 # Pre/Sufixes
@@ -183,10 +171,8 @@ MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"
 SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
-#endregion
-
 # ============================================================================
-#region HELPER FUNCTIONS
+# HELPER FUNCTIONS
 # ============================================================================
 
 check_dir () { 
@@ -208,10 +194,8 @@ check_file () {
 	fi
 }
 
-#endregion
-
 # ============================================================================
-#region WORKFLOW EXECUTION
+# WORKFLOW EXECUTION
 # ============================================================================
 
 START=$(date +%s)
@@ -240,10 +224,8 @@ echo "CPUs    : $SLURM_CPUS_PER_TASK"
 echo "Memory  : ${SLURM_MEM_PER_NODE:-N/A} MB"
 echo "========================================"
 
-#endregion
-
 # ----------------------------------------------------------------------------
-#region STEP 2: PREPROCESSING
+# STEP 2: PREPROCESSING
 # ----------------------------------------------------------------------------
 
 log_step "2/7: PREPROCESSING"
@@ -277,10 +259,8 @@ else
 fi
 set -u  # Re-enable unset variable check
 
-#endregion
-
 # ----------------------------------------------------------------------------
-#region STEP 3: MAPPING TO REFERENCE
+# STEP 3: MAPPING TO REFERENCE
 # ----------------------------------------------------------------------------
 log_step "3/7: MAPPING TO REFERENCE"
 STEP_START=$(date +%s)
@@ -298,10 +278,8 @@ STEP_RUNTIME=$((STEP_END - STEP_START))
 log_success "Mapping completed"
 log_info "Mapping duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
-#endregion
-
 # ----------------------------------------------------------------------------
-#region STEP 4: DEMULTIPLEXING
+# STEP 4: DEMULTIPLEXING
 # ----------------------------------------------------------------------------
 log_step "4/7: DEMULTIPLEXING"
 STEP_START=$(date +%s)
@@ -396,10 +374,8 @@ log_info "Demultiplexing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/360
 
 conda deactivate
 
-#endregion
-
 # ----------------------------------------------------------------------------
-#region STEP 5: VARIANT CALLING
+# STEP 5: VARIANT CALLING
 # ----------------------------------------------------------------------------
 log_step "5/7: VARIANT CALLING"
 STEP_START=$(date +%s)
@@ -444,10 +420,8 @@ STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
 log_info "Variant calling duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
-#endregion
-
 # ----------------------------------------------------------------------------
-#region STEP 6: RETRIEVING RAW DATA
+# STEP 6: RETRIEVING RAW DATA
 # ----------------------------------------------------------------------------
 log_step "6/7: RETRIEVING RAW DATA"
 STEP_START=$(date +%s)
@@ -485,10 +459,8 @@ STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
 log_info "Raw data retrieval duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
-#endregion
-
 # ----------------------------------------------------------------------------
-#region STEP 7: VARIANT ANNOTATION & HAPLOGROUP
+# STEP 7: VARIANT ANNOTATION & HAPLOGROUP
 # ----------------------------------------------------------------------------
 log_step "7/7: VARIANT ANNOTATION & HAPLOGROUP"
 STEP_START=$(date +%s)
@@ -609,10 +581,8 @@ STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
 log_info "Annotation duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
-#endregion
-
 # ============================================================================
-#region WORKFLOW SUMMARY & COMPLETION
+# WORKFLOW SUMMARY & COMPLETION
 # ============================================================================
 echo ""
 echo "=========================================="
@@ -649,5 +619,3 @@ echo ""
 echo "=========================================="
 log_info "Check detailed logs in processing/ directory"
 echo "=========================================="
-
-#endregion
