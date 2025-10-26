@@ -12,7 +12,7 @@
 # wf-bchg.sh /Path/to/run/dir/
 #
 #
-VERSION='25.09.24.1'
+VERSION='25.10.26.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -25,8 +25,53 @@ PROCESS_DIR="$RUN_DIR/processing"
 # Prefixes
 RUN_ID=$(basename "$RUN_DIR")
 
-# Files
-SAMPLESHEET_FILE=$(readlink -f "$(find . -type f -name 'sample_sheet_*.csv')")
+# Files - Version robuste avec gestion de multiples sample_sheet
+SAMPLESHEET_FILES=($(find "$RUN_DIR" -maxdepth 2 -type f -name 'sample_sheet_*.csv'))
+
+if [ ${#SAMPLESHEET_FILES[@]} -eq 0 ]; then
+    echo "[ERROR] No sample_sheet_*.csv file found in $RUN_DIR or subdirectories"
+    echo "Looking for files matching: sample_sheet_*.csv"
+    echo "Available CSV files:"
+    find "$RUN_DIR" -maxdepth 2 -type f -name '*.csv'
+    exit 128
+elif [ ${#SAMPLESHEET_FILES[@]} -eq 1 ]; then
+    SAMPLESHEET_FILE=$(readlink -f "${SAMPLESHEET_FILES[0]}")
+    echo "[OK] Found 1 sample_sheet file: $SAMPLESHEET_FILE"
+else
+    echo "[WARNING] Found ${#SAMPLESHEET_FILES[@]} sample_sheet files:"
+    for file in "${SAMPLESHEET_FILES[@]}"; do
+        echo "  - $file"
+    done
+    
+    # Vérifier si tous les fichiers ont le même contenu
+    FIRST_FILE="${SAMPLESHEET_FILES[0]}"
+    ALL_IDENTICAL=true
+    
+    for ((i=1; i<${#SAMPLESHEET_FILES[@]}; i++)); do
+        if ! cmp -s "$FIRST_FILE" "${SAMPLESHEET_FILES[$i]}"; then
+            ALL_IDENTICAL=false
+            echo "[ERROR] Sample sheet files have different content:"
+            echo "  - $FIRST_FILE"
+            echo "  - ${SAMPLESHEET_FILES[$i]}"
+            echo "Please keep only one sample_sheet file or ensure they are identical."
+            exit 128
+        fi
+    done
+    
+    if [ "$ALL_IDENTICAL" = true ]; then
+        echo "[OK] All sample_sheet files have identical content"
+        # Sélectionner le fichier le plus ancien (première création)
+        OLDEST_FILE="${SAMPLESHEET_FILES[0]}"
+        for file in "${SAMPLESHEET_FILES[@]}"; do
+            if [ "$file" -ot "$OLDEST_FILE" ]; then
+                OLDEST_FILE="$file"
+            fi
+        done
+        SAMPLESHEET_FILE=$(readlink -f "$OLDEST_FILE")
+        echo "[OK] Using oldest file: $SAMPLESHEET_FILE"
+    fi
+fi
+
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 # Basecalling options
@@ -83,7 +128,7 @@ column -s, -t < "$SAMPLESHEET_FILE"
 echo "========================================"
 
 mkdir -p  "$PROCESS_DIR"
-mkdir "$FASTQ_DIR"
+mkdir -p "$FASTQ_DIR"
 check_dir "$FASTQ_DIR"
 
 echo "Dorado version:"
@@ -98,8 +143,8 @@ $DORADO_BIN basecaller $MODEL "$POD5_DIR" --recursive \
 	--output-dir "$FASTQ_DIR"
 
 echo
-echo "Gzip all files gzipped in dir $FASTQ_DIR"
-gzip "$FASTQ_DIR"/*
+echo "Gzip all files in dir $FASTQ_DIR"
+gzip "$FASTQ_DIR"/*.fastq
 echo
 echo "Organizing files in sample dir in dir $FASTQ_DIR"
 cd "$FASTQ_DIR" || exit
@@ -128,5 +173,5 @@ if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
 	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
 	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
 fi
-echo "$RUN_ID	$SAMPLE_ID	bchg	$HOURS:$MINUTES:$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
+echo "$RUN_ID	NA	bchg	$HOURS:$MINUTES:$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
 echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
