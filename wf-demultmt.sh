@@ -3,10 +3,26 @@
 #SBATCH --cpus-per-task=12
 #SBATCH --constraint avx2
 #SBATCH --mem=150G
-#SBATCH --time 120
+#SBATCH --time 12:00:00
+#SBATCH --output=processing/slurm-%x.%j.out
+#SBATCH --error=processing/slurm-%x.%j.err
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
-VERSION='25.08.18.6'
+#
+# Strict error handling
+set -euo pipefail
+
+# Trap for cleanup on error
+cleanup() {
+    local exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        log_error "Script failed with exit code $exit_code"
+        log_info "Check logs in processing/ directory"
+    fi
+}
+trap cleanup EXIT
+
+VERSION='25.10.26.1'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
@@ -50,6 +66,30 @@ POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.
 # Scripts
 CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/get_chrMpid.py'
 
+# Logging helper functions
+log_step() {
+	echo ""
+	echo "=========================================="
+	echo "[STEP $1] $(date '+%Y-%m-%d %H:%M:%S')"
+	echo "=========================================="
+}
+
+log_info() {
+	echo "[INFO] $(date '+%H:%M:%S') - $1"
+}
+
+log_success() {
+	echo "[OK]   $(date '+%H:%M:%S') - $1"
+}
+
+log_error() {
+	echo "[ERROR] $(date '+%H:%M:%S') - $1" >&2
+}
+
+log_warning() {
+	echo "[WARN] $(date '+%H:%M:%S') - $1"
+}
+
 # References
 ANN_GNOMAD='/scratch/mferre/reference/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
 ANN_MITOMAP_DISEASE='/scratch/mferre/reference/MITOMAP/disease-nosp.vcf'
@@ -85,92 +125,95 @@ SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 check_dir () { 
-	if [ -d "$1" ] # && [ ! -z "$( ls -A $1 )" ]
+	if [ -d "$1" ]
 	then 
-   		echo "[OK] Directory $1 exists"
+   		log_success "Directory $1 exists"
    	else
-		echo "[ERROR] Directory $1 doesn't exist"
-		exit 2
+		log_error "Directory $1 doesn't exist"
+		exit 128
 	fi
 }
 check_file () { 
 	if [ -f "$1" ] && [ -s "$1" ]
 	then 
-   		echo "[OK] File $1 exists and is not empty"
+   		log_success "File $1 exists and is not empty"
    	else
-		echo "[ERROR] File $1 is empty or doesn't exist"
-		exit 2
+		log_error "File $1 is empty or doesn't exist"
+		exit 128
 	fi
 }
 
 START=$(date +%s)
+STEP_START=$START
 
-echo "Workflow: wf-demultmt v.$VERSION by $AUTHOR"
-echo "Run: $RUN_ID"
-echo "Sample: $SAMPLE_ID"
-echo "Job: $SLURM_JOB_ID"
-echo "Run directory: $RUN_DIR"
-echo "Pod5 directory: $POD5_DIR"
-echo "BAM directory: $BAM_DIR"
-echo "Output directory: $OUT_DIR"
-echo "Read selection strategy: $SELECT"
-echo "Date: $(date)"
+log_step "1/7: INITIALIZATION"
+log_info "Workflow: wf-demultmt v.$VERSION by $AUTHOR"
+log_info "Run ID: $RUN_ID"
+log_info "Sample ID: $SAMPLE_ID"
+log_info "SLURM Job ID: $SLURM_JOB_ID"
+log_info "Run directory: $RUN_DIR"
+log_info "Pod5 directory: $POD5_DIR"
+log_info "BAM directory: $BAM_DIR"
+log_info "Output directory: $OUT_DIR"
+log_info "Read selection strategy: $SELECT"
 
-echo
-echo '*****************'
-echo '* Preprocessing *'
-echo '*****************'
+echo ""
+echo "========== SLURM Environment =========="
+echo "Node    : $SLURM_NODELIST"
+echo "Job ID  : $SLURM_JOB_ID"
+echo "CPUs    : $SLURM_CPUS_PER_TASK"
+echo "Memory  : ${SLURM_MEM_PER_NODE:-N/A} MB"
+echo "========================================"
+
+log_step "2/7: PREPROCESSING"
 check_dir "$BAM_DIR"
 mkdir -p "$OUT_DIR"
 FASTQ_FILE="$OUT_DIR/$SAMPLE_ID.fastq.gz"
-echo "FastQ file: $FASTQ_FILE"
-# MAPPING_BAM_FILE="$OUT_DIR/$SAMPLE_ID.bam"
-# echo "Mapping BAM file: $MAPPING_BAM_FILE"
-# MAPPING_SAM_FILE="$OUT_DIR/$SAMPLE_ID.sam"
-# echo "Mapping SAM file: $MAPPING_SAM_FILE"
+log_info "FASTQ file: $FASTQ_FILE"
 MAPPING_PAF_FILE="$OUT_DIR/$SAMPLE_ID.paf"
-echo "Mapping PAF file: $MAPPING_PAF_FILE"
+log_info "Mapping PAF file: $MAPPING_PAF_FILE"
 
+log_info "Concatenating FASTQ files..."
 cat "$BAM_DIR"/*.fastq.gz > "$FASTQ_FILE"
 check_file "$FASTQ_FILE"
-COUNT_TOTAL=$(( $(zcat "$FASTQ_FILE" | wc -l) / 4 ))
 
-# Source Conda, to use it on a Genouest cluster compute node
+log_info "Counting total reads..."
+COUNT_TOTAL=$(( $(zcat "$FASTQ_FILE" | wc -l) / 4 ))
+log_success "Total reads: $COUNT_TOTAL"
+
+STEP_END=$(date +%s)
+STEP_RUNTIME=$((STEP_END - STEP_START))
+log_info "Preprocessing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
+
+# Source Conda for Genouest cluster compute node
 . /local/env/envconda.sh
 
-echo
-echo '******************************'
-echo '* Mapping Standard Reference *'
-echo '******************************'
-
-# $DORADO_BIN aligner "$REF_WHOLE" "$FASTQ_FILE" > "$MAPPING_BAM_FILE"
-# check_file "$MAPPING_BAM_FILE"
+log_step "3/7: MAPPING TO REFERENCE"
+STEP_START=$(date +%s)
 
 conda activate "$ONT_DEMULT_ENV"
 
-echo "Minimap2 version: $(minimap2 --version)"
+log_info "Minimap2 version: $(minimap2 --version)"
+log_info "Starting mapping..."
 
-minimap2 -x map-ont -t 10 "$REF_WHOLE" "$FASTQ_FILE" > "$MAPPING_PAF_FILE"
+minimap2 -x map-ont -t "$SLURM_CPUS_PER_TASK" "$REF_WHOLE" "$FASTQ_FILE" > "$MAPPING_PAF_FILE"
 check_file "$MAPPING_PAF_FILE"
 
-echo
-echo '******************'
-echo '* Demultiplexing *'
-echo '******************'
+STEP_END=$(date +%s)
+STEP_RUNTIME=$((STEP_END - STEP_START))
+log_success "Mapping completed"
+log_info "Mapping duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
+log_step "4/7: DEMULTIPLEXING"
+STEP_START=$(date +%s)
 
-# samtools view -h "$MAPPING_BAM_FILE" > "$MAPPING_SAM_FILE"
-# check_file "$MAPPING_SAM_FILE"
+log_info "ont_demult version: $($ONT_DEMULT_BIN --version)"
 
-# paftools.js sam2paf "$MAPPING_SAM_FILE" > "$MAPPING_PAF_FILE"
-check_file "$MAPPING_PAF_FILE"
-
-$ONT_DEMULT_BIN --version
-
-mkdir "$SELECT_DIR"
+mkdir -p "$SELECT_DIR"
 check_dir "$SELECT_DIR"
 cd "$SELECT_DIR" || exit
 
+log_info "Running demultiplexing (selection strategy: $SELECT)..."
 $ONT_DEMULT_BIN --select $SELECT \
 	--loglevel info \
 	--mapq-threshold 10 \
@@ -185,6 +228,7 @@ $ONT_DEMULT_BIN --select $SELECT \
 	"$MAPPING_PAF_FILE"
 check_file "$DEMULT_FILE"
 
+log_info "Analyzing demultiplexing results..."
 COUNT_ALIGN=$(($(zcat "$DEMULT_FILE" | wc -l) - 1))
 
 zcat "$DEMULT_FILE" | head -1 > "$CHRM_ONLY_FILE"
@@ -199,73 +243,74 @@ COUNT_MATCHED=$(($(wc -l < "$MATCH_FILE") - 1))
 
 COUNT_CHRM=$(( COUNT_CHRM_ONLY +  COUNT_MATCHED ))
 
-echo "=> Reads generated: $COUNT_TOTAL"
-echo "==> Reads aligned to reference: $COUNT_ALIGN"
-echo "===> Reads aligned to chrM: $COUNT_CHRM"
-echo "====> Reads matching $SELECT: $COUNT_MATCHED"
+echo ""
+echo "========== Demultiplexing Statistics =========="
+log_info "Reads generated: $COUNT_TOTAL"
+log_info "Reads aligned to reference: $COUNT_ALIGN ($(awk "BEGIN {printf \"%.2f\", ($COUNT_ALIGN/$COUNT_TOTAL)*100}")%)"
+log_info "Reads aligned to chrM: $COUNT_CHRM ($(awk "BEGIN {printf \"%.2f\", ($COUNT_CHRM/$COUNT_TOTAL)*100}")%)"
+log_success "Reads matching $SELECT: $COUNT_MATCHED ($(awk "BEGIN {printf \"%.2f\", ($COUNT_MATCHED/$COUNT_TOTAL)*100}")%)"
+echo "==============================================="
 
 if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
 	echo "Run id	Sample id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" \
 		> "$DEMULT_SUMMARY_FILE"
-	echo "[OK] File $DEMULT_SUMMARY_FILE created (with header)"
+	log_success "Created demultiplexing summary file"
 fi
 echo "$RUN_ID	$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
-echo "[OK] Line added to $DEMULT_SUMMARY_FILE"
+log_success "Updated demultiplexing summary file"
 
-samtools --version
+log_info "Samtools version: $(samtools --version | head -n1)"
+log_info "Aligning reads to mitochondrial references..."
 ALN_PREFIX='alignment_'
+REFERENCE_COUNT=$(wc -l < "$CUT_FILE")
+log_info "Processing $REFERENCE_COUNT mitochondrial references..."
+
 for ID in $(cut -f3 "$CUT_FILE")
 do
 	REF="${REF_MT_DIR}/${REF_MT_PREFIX}${ID}${REF_MT_SUFIX}"
 	FASTQ="${DEMULT_PREFIX}_${ID}.fastq.gz"
 	BAM="${ALN_PREFIX}${ID}.bam"
 	
-	# $DORADO_BIN aligner "$REF" "$FASTQ" > "$BAM" 
-
-	# if [ -s "$BAM" ]; then
-    #     echo "[OK] BAM file not empty: $BAM"
-	# else
-    #     rm "$BAM" && [[ ! -e $BAM ]] && echo "[OK] Empty BAM file removed: $BAM"
-	# fi
-
-	minimap2 -ax map-ont "$REF" "$FASTQ" | samtools view -b - > "$BAM"
+	minimap2 -ax map-ont "$REF" "$FASTQ" | samtools view -b - > "$BAM" 2>/dev/null || true
 done
 
+log_info "Merging BAM files..."
 samtools merge "$BAM_FILE" ${ALN_PREFIX}*.bam
 check_file "$BAM_FILE"
+
+log_info "Sorting BAM file..."
 samtools sort "$BAM_FILE" -o "$SORTED_BAM_FILE"
 check_file "$SORTED_BAM_FILE"
+
+log_info "Indexing BAM file..."
 samtools index "$SORTED_BAM_FILE"
 
-echo "Remove large or merged files:"
+log_info "Cleaning up intermediate BAM files..."
 for ID in $(cut -f3 "$CUT_FILE")
 do
 	BAM="${ALN_PREFIX}${ID}.bam"
-	rm "$BAM" && [[ ! -e "$BAM" ]] && echo "[OK] Delete BAM file that have been merged: $BAM"
+	rm -f "$BAM"
 done
-### DEBUG: Uncomment to remove files
-# rm "$FASTQ_FILE" && [[ ! -e $FASTQ_FILE ]] && echo "[OK] FastQ file removed: $FASTQ_FILE"
-# rm "$MAPPING_BAM_FILE" && [[ ! -e $MAPPING_BAM_FILE ]] && echo "[OK] Mapping BAM file removed: $MAPPING_BAM_FILE"
-# rm "$MAPPING_SAM_FILE" && [[ ! -e $MAPPING_SAM_FILE ]] && echo "[OK] Mapping SAM file removed: $MAPPING_SAM_FILE"
-# rm "$MAPPING_PAF_FILE" && [[ ! -e $MAPPING_PAF_FILE ]] && echo "[OK] Mapping PAF file removed: $MAPPING_PAF_FILE"
+
+STEP_END=$(date +%s)
+STEP_RUNTIME=$((STEP_END - STEP_START))
+log_success "Demultiplexing and alignment completed"
+log_info "Demultiplexing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
 conda deactivate
 
-echo
-echo '*******************'
-echo '* Variant Calling *'
-echo '*******************'
+log_step "5/7: VARIANT CALLING"
+STEP_START=$(date +%s)
 
-mkdir "$VARCALL_DIR"
+mkdir -p "$VARCALL_DIR"
 cd "$VARCALL_DIR" || exit
 
 conda activate $BALDUR_ENV
 
-$BALDUR_BIN --version
+log_info "Baldur version: $($BALDUR_BIN --version)"
+log_info "Starting variant calling..."
 
-# !!!
-# BUG: Presumed endless command
-# Add "&" to fix
+# Run Baldur in background and wait for completion
 $BALDUR_BIN --mapq-threshold 20 \
 	--qual-threshold 10 \
 	--max-qual 30 \
@@ -279,68 +324,92 @@ $BALDUR_BIN --mapq-threshold 20 \
 	--sample "$SAMPLE_ID" \
 	"$BAM_FILE" &
 
+BALDUR_PID=$!
+log_info "Baldur running in background (PID: $BALDUR_PID)"
+wait $BALDUR_PID
+BALDUR_EXIT=$?
+
+if [ $BALDUR_EXIT -eq 0 ]; then
+	log_success "Variant calling completed"
+else
+	log_error "Baldur failed with exit code $BALDUR_EXIT"
+	exit 1
+fi
+
 conda deactivate
 
-#check_file $BALDUR_VCF_FILE
-echo "[WARNING] Bug fixed appending '&' to baldur command : no check_file"
+STEP_END=$(date +%s)
+STEP_RUNTIME=$((STEP_END - STEP_START))
+log_info "Variant calling duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
-echo
-echo '***********************'
-echo '* Retrieving Raw Data *'
-echo '***********************'
+log_step "6/7: RETRIEVING RAW DATA"
+STEP_START=$(date +%s)
 
-rm "$BAM_FILE" && [[ ! -e $BAM_FILE ]] && echo "[OK] Unsorted BAM file removed: $BAM_FILE"
-echo "     > A single BAM file with index remain in dir $SELECT_DIR: $SORTED_BAM_FILE"
+log_info "Cleaning up unsorted BAM file..."
+rm -f "$BAM_FILE"
+log_success "Sorted BAM file retained: $SORTED_BAM_FILE"
 
 cd "$VARCALL_DIR" || exit
-echo "Retrieving matching reads (select: $SELECT)..."
+log_info "Retrieving matching reads (selection strategy: $SELECT)..."
 
 # Get unique parent IDs (pid) of reads aligned to chrM 
 conda run -p $GETMT_ENV python "$CHRMPIDS_SCRIPT" -b "$SELECT_DIR" -p "$POD5_DIR" -o "$IDS_FILE"
 check_file "$IDS_FILE"
 
+READ_IDS_COUNT=$(wc -l < "$IDS_FILE")
+log_success "Retrieved $READ_IDS_COUNT read IDs"
+
 conda activate $POD5_ENV
 
 check_dir "$POD5_DIR"
-pod5 --version
+log_info "POD5 version: $(pod5 --version 2>&1 | head -n1)"
 
-# export POD5_DEBUG=1
-# echo "Set POD5_DEBUG=1 for for detailed information"
-
-echo "[WARNING] Option '--missing-ok' to pod5 command: possibly missing reads"
-pod5 filter --missing-ok --recursive --force-overwrite --threads 10 "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
+log_warning "Using '--missing-ok' option: some reads may be missing"
+log_info "Filtering POD5 files..."
+pod5 filter --missing-ok --recursive --force-overwrite --threads "$SLURM_CPUS_PER_TASK" "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
 check_file "$DEMULT_POD5_FILE"
+
+POD5_SIZE=$(du -sh "$DEMULT_POD5_FILE" | cut -f1)
+log_success "POD5 file created (size: $POD5_SIZE)"
 
 conda deactivate
 
-echo
-echo '**********************'
-echo '* Variant Annotating *'
-echo '**********************'
+STEP_END=$(date +%s)
+STEP_RUNTIME=$((STEP_END - STEP_START))
+log_info "Raw data retrieval duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
+
+log_step "7/7: VARIANT ANNOTATION & HAPLOGROUP"
+STEP_START=$(date +%s)
 
 cd "$VARCALL_DIR" || exit
 check_file "$BALDUR_VCF_FILE"
+
+log_info "Decompressing VCF file..."
 gunzip "$BALDUR_VCF_FILE"
 BALDUR_VCF_FILE=$(basename "$BALDUR_VCF_FILE" .gz)
 check_file "$BALDUR_VCF_FILE"
 
-# # Stats
-# bcftools stats $BALDUR_VCF_FILE
+VARIANT_COUNT=$(grep -v '^#' "$BALDUR_VCF_FILE" | wc -l)
+log_success "Variants called: $VARIANT_COUNT"
 
 conda activate $ANNOTMT_ENV
 
-SnpSift # Get version
+log_info "SnpSift version: $(SnpSift 2>&1 | grep -i version | head -n1 || echo 'N/A')"
+log_info "Starting variant annotation..."
 
 VCF_TMP1="$ANNOTMT_VCF_FILE.tmp"
 VCF_TMP2="$ANNOTMT_VCF_FILE.1.tmp"
 
-# MITOMAP
+# MITOMAP Disease
+log_info "Annotating with MITOMAP disease database..."
 SnpSift annotate -v \
 	$ANN_MITOMAP_DISEASE \
 	"$BALDUR_VCF_FILE" \
 	> "$VCF_TMP2"
 mv "$VCF_TMP2" "$VCF_TMP1"
-	
+
+# MITOMAP Polymorphisms	
+log_info "Annotating with MITOMAP polymorphisms database..."
 SnpSift annotate -v \
 	$ANN_MITOMAP_POLYMORPHISMS \
 	"$VCF_TMP1" \
@@ -348,13 +417,15 @@ SnpSift annotate -v \
 mv "$VCF_TMP2" "$VCF_TMP1"
 
 # GnomAD including MitoTIP
+log_info "Annotating with gnomAD database (includes MitoTIP)..."
 SnpSift annotate -v \
 	$ANN_GNOMAD \
 	"$VCF_TMP1" \
 	> "$ANNOTMT_VCF_FILE"
 check_file "$ANNOTMT_VCF_FILE"
 
-rm "$VCF_TMP1"
+rm -f "$VCF_TMP1"
+log_success "Variant annotation completed"
 
 #
 # Export to TSV
@@ -393,49 +464,71 @@ rm "$VCF_TMP1"
 # SAMPLE_ADR:ADR
 # QUAL:QUAL
 # DP:DP
-bcftools --version
+log_info "bcftools version: $(bcftools --version | head -n1)"
+log_info "Exporting annotations to TSV..."
 echo 'CHROM	POS	ID	REF	ALT	HPL	AC	AF	Disease	DiseaseStatus	HGFL	PubmedIDs	aachange	heteroplasmy	homoplasmy	mitotip_trna_prediction	mitotip_score	AC_het	AC_hom	AF_het	AF_hom	AN	filters	hap_defining_variant	max_hl	pon_ml_probability_of_pathogenicity	pon_mt_trna_prediction	FILTER	ADF	ADR	QUAL	DP' > "$ANNOTMT_TSV_FILE"
 bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$ANNOTMT_VCF_FILE" >> "$ANNOTMT_TSV_FILE"
 check_file "$ANNOTMT_TSV_FILE"
+log_success "TSV file created"
 
-echo
-echo '*******************************************'
-echo '* Determining major and minor haplogroups *'
-echo '*******************************************'
-
+echo ""
+log_info "Determining haplogroups with haplocheck..."
 haplocheck --raw --out "$HPLCHK_PREFIX" "$ANNOTMT_VCF_FILE"
 check_file "$HPLCHK_RAW_FILE"
 
-echo 'Remove others haplocheck files:'
-rm "$HPLCHK_PREFIX" && [[ ! -e $HPLCHK_PREFIX ]] && echo "[OK] FastQ file removed: $HPLCHK_PREFIX"
-rm "$HPLCHK_PREFIX".html && [[ ! -e $HPLCHK_PREFIX.html ]] && echo "[OK] Mapping file removed: $HPLCHK_PREFIX.html"
+# Extract haplogroup from results
+HAPLOGROUP=$(tail -n1 "$HPLCHK_RAW_FILE" | cut -f2)
+log_success "Haplogroup detected: $HAPLOGROUP"
+
+log_info "Cleaning up intermediate haplocheck files..."
+rm -f "$HPLCHK_PREFIX" "$HPLCHK_PREFIX".html
 
 if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
 	cp "$HPLCHK_RAW_FILE" "$HPLCHK_SUMMARY_FILE"
-	echo "[OK] File $HPLCHK_SUMMARY_FILE created (with header)"
+	log_success "Created haplocheck summary file"
 else
 	tail -n +2 "$HPLCHK_RAW_FILE" >> "$HPLCHK_SUMMARY_FILE"
-	echo "[OK] Line added to $HPLCHK_SUMMARY_FILE"
+	log_success "Updated haplocheck summary file"
 fi
 
 conda deactivate
 
-echo
-echo '***********'
-echo '* Ending  *'
-echo '***********'
+STEP_END=$(date +%s)
+STEP_RUNTIME=$((STEP_END - STEP_START))
+log_info "Annotation duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
+
+echo ""
+echo "=========================================="
+echo "          WORKFLOW COMPLETED              "
+echo "=========================================="
 
 END=$(date +%s)
 RUNTIME=$((END - START))
 HOURS=$((RUNTIME / 3600))
 MINUTES=$(( (RUNTIME % 3600) / 60 ))
 SECONDS=$(( (RUNTIME % 3600) % 60 ))
-echo "Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
+
+log_success "Total runtime: $(printf '%02d:%02d:%02d' $HOURS $MINUTES $SECONDS)"
+log_info "End time: $(date '+%Y-%m-%d %H:%M:%S')"
+
+echo ""
+echo "========== Final Statistics =========="
+log_info "Total reads processed: $COUNT_TOTAL"
+log_info "Mitochondrial reads: $COUNT_MATCHED"
+log_info "Variants called: $VARIANT_COUNT"
+log_info "Haplogroup: $HAPLOGROUP"
+log_info "Output directory: $OUT_DIR"
+echo "======================================"
 
 # Write workflow summary file
 if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
 	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
-	echo "[OK] File $WORKFLOW_SUMMARY_FILE created (with header)"
+	log_success "Created workflow summary file"
 fi
 echo "$RUN_ID	$SAMPLE_ID	demultmt	$HOURS:$MINUTES:$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
-echo "[OK] Line added to $WORKFLOW_SUMMARY_FILE"
+log_success "Updated workflow summary file: $WORKFLOW_SUMMARY_FILE"
+
+echo ""
+echo "=========================================="
+log_info "Check detailed logs in processing/ directory"
+echo "=========================================="
