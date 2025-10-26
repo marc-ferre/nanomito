@@ -445,9 +445,8 @@ conda activate $POD5_ENV
 check_dir "$POD5_DIR"
 log_info "POD5 version: $(pod5 --version 2>&1 | head -n1)"
 
-log_warning "Using '--missing-ok' option: some reads may be missing"
 log_info "Filtering POD5 files..."
-pod5 filter --missing-ok --recursive --force-overwrite --threads "$SLURM_CPUS_PER_TASK" "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
+pod5 filter --recursive --force-overwrite --threads "$SLURM_CPUS_PER_TASK" "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
 check_file "$DEMULT_POD5_FILE"
 
 POD5_SIZE=$(du -sh "$DEMULT_POD5_FILE" | cut -f1)
