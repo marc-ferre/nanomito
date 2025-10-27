@@ -398,11 +398,12 @@ for FILE in *.fastq.gz; do
 	fi
 	
 	# Determine directory name: use alias if available, otherwise use extracted name
-	if [ -n "$BARCODE" ] && [ -n "${BARCODE_ALIAS[$BARCODE]}" ]; then
+	if [ -n "$BARCODE" ] && [ -n "${BARCODE_ALIAS[$BARCODE]:-}" ]; then
 		DIR="${BARCODE_ALIAS[$BARCODE]}"
 		log_info "Using alias for $BARCODE: $DIR"
 	elif [[ "$FILE" =~ unclassified ]]; then
 		DIR="unclassified"
+		log_info "Using default name for unclassified: $DIR"
 	else
 		# Fallback to old behavior
 		DIR=${FILE#*_}
