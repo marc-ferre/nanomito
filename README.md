@@ -162,15 +162,15 @@ git clone git@github.com:marc-ferre/nanomito.git
 cd nanomito
 ```
 
-1. **Update workflow paths:**
+2. **Update workflow paths:**
 
 Edit the workflow files to match your environment:
 
-- `WF_BCHG`, `WF_SUBWF`, etc. in `submit_nanomito.sh`
+- `WF_BCHG`, `WF_DEMULTMT`, `WF_MODMITO` in `submit_nanomito.sh`
 - `DORADO_BIN` path in `wf-bchg.sh` and `wf-modmito.sh`
 - Conda environment paths
 
-1. **Make scripts executable:**
+3. **Make scripts executable:**
 
 ```bash
 chmod +x *.sh
@@ -183,15 +183,14 @@ chmod +x *.sh
 Before running the main workflows, you need to prepare the chrM-specific Pod5 files and create the read ID mapping:
 
 ```bash
-```bash
 # On Windows/WSL (where Dorado BAM files are located)
 cd /mnt/c/data/your_run_directory
 /path/to/nanomito/preprocessing/wf-getmt.sh .
 
 # This creates:
-```
 # - pod5_chrM/<RUN_ID>.chrM.pod5 (filtered Pod5 with chrM reads)
 # - pod5_chrM/<RUN_ID>.pid_dict.tsv (read-to-parent ID mapping)
+# - pod5_chrM/<RUN_ID>.chrM_pids.txt (list of parent read IDs)
 ```
 
 ### Basic Workflow Execution
@@ -210,12 +209,9 @@ cd /scratch/username/workbench/run_directory
 # Submit only basecalling & demux
 sbatch --chdir=/path/to/run /path/to/nanomito/wf-bchg.sh
 
-# Submit sample processing (after basecalling)
-sbatch --chdir=/path/to/run /path/to/nanomito/wf-subwf.sh
-
-# Process a specific sample
-sbatch --chdir=/path/to/run /path/to/nanomito/wf-demultmt.sh barcode09
-sbatch --chdir=/path/to/run /path/to/nanomito/wf-modmito.sh barcode09
+# Process a specific sample directly (after basecalling)
+sbatch --chdir=/path/to/run/fastq_pass/barcode09 /path/to/nanomito/wf-demultmt.sh
+sbatch --chdir=/path/to/run/fastq_pass/barcode09 /path/to/nanomito/wf-modmito.sh
 ```
 
 ### Monitoring Jobs
