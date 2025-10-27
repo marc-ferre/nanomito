@@ -270,13 +270,13 @@ log_info "BAM files found:"
 find "$DEMUX_DIR" -name "*.bam" -type f || log_warning "No BAM files found"
 
 BAM_COUNT=0
-for BAM_FILE in "$DEMUX_DIR"/*.bam; do
-	[[ -e "$BAM_FILE" ]] || break
+while IFS= read -r -d '' BAM_FILE; do
 	BASENAME=$(basename "$BAM_FILE" .bam)
-	log_info "Converting: $BAM_FILE -> $FASTQ_DIR/${BASENAME}.fastq"
+	log_info "Converting: $(basename "$BAM_FILE") -> ${BASENAME}.fastq"
 	samtools fastq "$BAM_FILE" > "$FASTQ_DIR/${BASENAME}.fastq"
 	((BAM_COUNT++)) || true
-done
+done < <(find "$DEMUX_DIR" -name "*.bam" -type f -print0)
+
 CONVERT_END=$(date +%s)
 CONVERT_RUNTIME=$((CONVERT_END - CONVERT_START))
 log_success "Converted $BAM_COUNT BAM files to FASTQ"
