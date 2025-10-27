@@ -18,11 +18,13 @@ Successfully merged the functionality of `wf-subwf.sh` into `submit_nanomito.sh`
 ### 1. **submit_nanomito.sh** - Major Refactoring
 
 #### New Features
+
 - **`--skip-bchg` option**: Skip basecalling/demux and only submit analysis workflows
 - **Direct job submission**: Now directly submits demultmt and modmito jobs for each sample
 - **Conflict detection**: Prevents using `--bchg-only` and `--skip-bchg` together
 
 #### Architecture Changes
+
 - Removed dependency on `WF_SUBWF`
 - Added `WF_DEMULTMT` and `WF_MODMITO` workflow paths
 - Integrated sample directory discovery from `wf-subwf.sh`
@@ -32,6 +34,7 @@ Successfully merged the functionality of `wf-subwf.sh` into `submit_nanomito.sh`
   - modmito always depends on demultmt
 
 #### Code Structure
+
 ```bash
 # Old architecture (2 jobs + N*2 analysis jobs)
 submit_nanomito.sh → wf-bchg.sh (Job 1)
@@ -55,43 +58,51 @@ submit_nanomito.sh → wf-bchg.sh (Job 1)
 ## Testing Plan
 
 ### Test 1: Complete Pipeline (Default Mode)
+
 ```bash
 ~/nanomito/submit_nanomito.sh /scratch/mferre/workbench/250916_MK1B_RUN15/
 ```
 
 **Expected Behavior:**
+
 - Submit 1 bchg job
 - Submit 4 demultmt jobs (one per sample, depends on bchg)
 - Submit 4 modmito jobs (one per sample, depends on demultmt)
 - Total: 9 jobs
 
 ### Test 2: Basecalling Only
+
 ```bash
 ~/nanomito/submit_nanomito.sh --bchg-only /scratch/mferre/workbench/250916_MK1B_RUN15/
 ```
 
 **Expected Behavior:**
+
 - Submit 1 bchg job only
-- Skip analysis workflows
+- No analysis jobs
 - Total: 1 job
 
 ### Test 3: Analysis Only (Skip Basecalling)
+
 ```bash
 ~/nanomito/submit_nanomito.sh --skip-bchg /scratch/mferre/workbench/250916_MK1B_RUN15/
 ```
 
 **Expected Behavior:**
+
 - Skip bchg job
-- Submit 4 demultmt jobs (no dependency on bchg)
+- Submit 4 demultmt jobs (no dependency)
 - Submit 4 modmito jobs (depends on demultmt)
 - Total: 8 jobs
 
 ### Test 4: Conflict Detection
+
 ```bash
 ~/nanomito/submit_nanomito.sh --bchg-only --skip-bchg /path/to/run/
 ```
 
 **Expected Behavior:**
+
 - Exit with error code 128
 - Error message: "Cannot use --bchg-only and --skip-bchg together"
 
@@ -111,12 +122,14 @@ submit_nanomito.sh → wf-bchg.sh (Job 1)
 ## Migration Notes
 
 ### For Existing Workflows
+
 - `wf-subwf.sh` has been **removed** from the repository
 - Still accessible in Git history (commits before v25.10.27)
 - All new submissions should use `submit_nanomito.sh` directly
 - To restore old version if needed: `git show 6fe53ae:Archive/wf-subwf.sh`
 
 ### Cleanup Tasks
+
 - [x] Update ~/nanomito/ on Genouest with `git pull` ✅
 - [x] Remove Archive/ directory (using Git history instead) ✅
 - [x] Update TODO.md to mark integration complete ✅

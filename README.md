@@ -162,7 +162,7 @@ git clone git@github.com:marc-ferre/nanomito.git
 cd nanomito
 ```
 
-2. **Update workflow paths:**
+1. **Update workflow paths:**
 
 Edit the workflow files to match your environment:
 
@@ -170,7 +170,7 @@ Edit the workflow files to match your environment:
 - `DORADO_BIN` path in `wf-bchg.sh` and `wf-modmito.sh`
 - Conda environment paths
 
-3. **Make scripts executable:**
+1. **Make scripts executable:**
 
 ```bash
 chmod +x *.sh
