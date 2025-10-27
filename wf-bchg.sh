@@ -227,13 +227,16 @@ mkdir -p "$DEMUX_DIR"
 
 if $DORADO_BIN demux \
 	--kit-name $KIT \
-	--sample-sheet "$SAMPLESHEET_FILE" \
 	--output-dir "$DEMUX_DIR" \
 	"$BASECALL_BAM"; then
 	STEP_END=$(date +%s)
 	STEP_RUNTIME=$((STEP_END - STEP_START))
 	log_success "Demultiplexing completed successfully"
 	log_info "Demultiplexing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
+	
+	# Count demuxed BAM files
+	DEMUX_BAM_COUNT=$(find "$DEMUX_DIR" -name "*.bam" -type f | wc -l)
+	log_info "Demuxed BAM files: $DEMUX_BAM_COUNT"
 else
 	log_error "Demultiplexing failed with exit code $?"
 	exit 1
