@@ -3,6 +3,12 @@
 **Date:** 26 octobre 2025  
 **Commit:** c5297a1
 
+## Status
+
+✅ **COMPLETED** - Integration successfully merged into `submit_nanomito.sh` (2025-10-27)
+
+🗂️ **ARCHIVED** - `wf-subwf.sh` moved to `Archive/` directory for historical reference
+
 ## Summary
 
 Successfully merged the functionality of `wf-subwf.sh` into `submit_nanomito.sh`, eliminating the need for an intermediate SLURM job orchestrator. This simplifies the architecture and reduces job overhead.
@@ -105,14 +111,16 @@ submit_nanomito.sh → wf-bchg.sh (Job 1)
 ## Migration Notes
 
 ### For Existing Workflows
-- `wf-subwf.sh` is now **deprecated** but still functional
-- New submissions should use `submit_nanomito.sh` directly
+- `wf-subwf.sh` is now **deprecated** and archived to `Archive/` directory
+- Still functional for backward compatibility if needed
+- All new submissions should use `submit_nanomito.sh` directly
 - Old scripts in queue will continue to work
 
 ### Cleanup Tasks
-- [ ] Update ~/nanomito/ on Genouest with `git pull`
-- [ ] Consider archiving `wf-subwf.sh` to Archive/ directory
-- [ ] Update any documentation or scripts referencing `wf-subwf.sh`
+- [x] Update ~/nanomito/ on Genouest with `git pull` ✅
+- [x] Archive `wf-subwf.sh` to Archive/ directory ✅
+- [x] Update TODO.md to mark integration complete ✅
+- [x] Update README.md to remove wf-subwf.sh references ✅
 
 ## Benefits
 

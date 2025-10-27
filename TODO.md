@@ -14,14 +14,14 @@ Last updated: 2025-10-27
   - Update all workflows to source the config file
   - Document config file structure and required variables
 
-- [ ] **Enhance submit_nanomito.sh to replace wf-subwf.sh functionality**
-  - Integrate sample detection logic directly into submit_nanomito.sh
-  - Auto-detect samples in fastq_pass/ directory
-  - Submit demultmt and modmito jobs for each detected sample
-  - Maintain job dependency management
-  - Add option to process specific samples only
-  - Deprecate wf-subwf.sh after migration
-  - Update documentation and usage examples
+- [x] **Enhance submit_nanomito.sh to replace wf-subwf.sh functionality** ✅ COMPLETED 2025-10-27
+  - ✅ Integrated sample detection logic directly into submit_nanomito.sh
+  - ✅ Auto-detect samples in fastq_pass/ directory
+  - ✅ Submit demultmt and modmito jobs for each detected sample
+  - ✅ Maintain job dependency management
+  - ✅ Add option to process specific samples only (--skip-bchg)
+  - ✅ Deprecated wf-subwf.sh (moved to Archive/)
+  - ✅ Updated documentation and usage examples
 
 ### Testing & Validation
 
