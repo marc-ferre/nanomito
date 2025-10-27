@@ -265,10 +265,15 @@ conda activate "$SAMTOOLS_ENV" || {
 }
 
 # Convert each BAM file to FASTQ
+log_info "Looking for BAM files in: $DEMUX_DIR"
+log_info "BAM files found:"
+find "$DEMUX_DIR" -name "*.bam" -type f || log_warning "No BAM files found"
+
 BAM_COUNT=0
 for BAM_FILE in "$DEMUX_DIR"/*.bam; do
 	[[ -e "$BAM_FILE" ]] || break
 	BASENAME=$(basename "$BAM_FILE" .bam)
+	log_info "Converting: $BAM_FILE -> $FASTQ_DIR/${BASENAME}.fastq"
 	samtools fastq "$BAM_FILE" > "$FASTQ_DIR/${BASENAME}.fastq"
 	((BAM_COUNT++)) || true
 done
