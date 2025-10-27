@@ -101,7 +101,6 @@ KIT='SQK-NBD114-24'
 # Binary and Conda env
 # shellcheck disable=SC2034  # DORADO_BIN used in basecalling pipeline below
 DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado'
-SAMTOOLS_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.15'
 
 # Logging helper functions
 log_step() {
@@ -250,19 +249,19 @@ log_success "Removed basecalls.bam"
 log_step "5/6: CONVERTING BAM TO FASTQ"
 CONVERT_START=$(date +%s)
 
-# Source Conda for Genouest cluster compute node
-if [ -f /local/env/envconda.sh ]; then
-    log_info "Sourcing conda environment"
-    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
-    . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
+# Load samtools module on Genouest
+if command -v module &> /dev/null; then
+    log_info "Loading samtools module"
+    module load samtools || log_warning "Failed to load samtools module"
 fi
 
-# Activate conda environment for samtools
-log_info "Activating conda environment: $SAMTOOLS_ENV"
-conda activate "$SAMTOOLS_ENV" || {
-    log_error "Failed to activate conda environment: $SAMTOOLS_ENV"
+# Verify samtools is available
+if ! command -v samtools &> /dev/null; then
+    log_error "samtools command not found"
+    log_info "Please install samtools or load the appropriate module"
     exit 1
-}
+fi
+log_success "samtools is available: $(samtools --version | head -1)"
 
 # Convert each BAM file to FASTQ
 log_info "Looking for BAM files in: $DEMUX_DIR"
