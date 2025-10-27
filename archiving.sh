@@ -45,7 +45,7 @@ log_warning() {
 	echo -e "${YELLOW}[WARN]${NC} $(date '+%H:%M:%S') - $1"
 }
 
-WF_ARCHIVING='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-archiving.sh'
+WF_ARCHIVING='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-archiving.sh'
 
 PROJECTS_DIR='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/projects'
 

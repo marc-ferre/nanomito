@@ -50,7 +50,7 @@ submit_nanomito.sh → wf-bchg.sh (Job 1)
 
 ### Test 1: Complete Pipeline (Default Mode)
 ```bash
-~/workflows/submit_nanomito.sh /scratch/mferre/workbench/250916_MK1B_RUN15/
+~/nanomito/submit_nanomito.sh /scratch/mferre/workbench/250916_MK1B_RUN15/
 ```
 
 **Expected Behavior:**
@@ -61,7 +61,7 @@ submit_nanomito.sh → wf-bchg.sh (Job 1)
 
 ### Test 2: Basecalling Only
 ```bash
-~/workflows/submit_nanomito.sh --bchg-only /scratch/mferre/workbench/250916_MK1B_RUN15/
+~/nanomito/submit_nanomito.sh --bchg-only /scratch/mferre/workbench/250916_MK1B_RUN15/
 ```
 
 **Expected Behavior:**
@@ -71,7 +71,7 @@ submit_nanomito.sh → wf-bchg.sh (Job 1)
 
 ### Test 3: Analysis Only (Skip Basecalling)
 ```bash
-~/workflows/submit_nanomito.sh --skip-bchg /scratch/mferre/workbench/250916_MK1B_RUN15/
+~/nanomito/submit_nanomito.sh --skip-bchg /scratch/mferre/workbench/250916_MK1B_RUN15/
 ```
 
 **Expected Behavior:**
@@ -82,7 +82,7 @@ submit_nanomito.sh → wf-bchg.sh (Job 1)
 
 ### Test 4: Conflict Detection
 ```bash
-~/workflows/submit_nanomito.sh --bchg-only --skip-bchg /path/to/run/
+~/nanomito/submit_nanomito.sh --bchg-only --skip-bchg /path/to/run/
 ```
 
 **Expected Behavior:**
@@ -110,7 +110,7 @@ submit_nanomito.sh → wf-bchg.sh (Job 1)
 - Old scripts in queue will continue to work
 
 ### Cleanup Tasks
-- [ ] Update ~/workflows/ on Genouest with `git pull`
+- [ ] Update ~/nanomito/ on Genouest with `git pull`
 - [ ] Consider archiving `wf-subwf.sh` to Archive/ directory
 - [ ] Update any documentation or scripts referencing `wf-subwf.sh`
 

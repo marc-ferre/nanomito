@@ -20,9 +20,9 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                     submit_nanomito.sh                          │
-│         Main workflow submission orchestrator with options       │
-│         --bchg-only: Only basecalling/demux                     │
-│         --skip-bchg: Skip basecalling, only analysis            │
+│        Main workflow submission orchestrator with options       │
+│            --bchg-only: Only basecalling/demux                  │
+│            --skip-bchg: Skip basecalling, only analysis         │
 └──────────────────┬──────────────────────────────────────────────┘
                    │
         ┌──────────┴──────────┬──────────────────────────┐
@@ -158,8 +158,8 @@ cat ~/.ssh/id_ed25519.pub  # Add this to GitHub Settings > SSH keys
 
 # Clone the repository
 cd /home/genouest/.../your_username/
-git clone git@github.com:marc-ferre/nanomito.git workflows
-cd workflows
+git clone git@github.com:marc-ferre/nanomito.git
+cd nanomito
 ```
 
 1. **Update workflow paths:**
@@ -183,11 +183,13 @@ chmod +x *.sh
 Before running the main workflows, you need to prepare the chrM-specific Pod5 files and create the read ID mapping:
 
 ```bash
+```bash
 # On Windows/WSL (where Dorado BAM files are located)
 cd /mnt/c/data/your_run_directory
-/path/to/workflows/preprocessing/wf-getmt.sh .
+/path/to/nanomito/preprocessing/wf-getmt.sh .
 
 # This creates:
+```
 # - pod5_chrM/<RUN_ID>.chrM.pod5 (filtered Pod5 with chrM reads)
 # - pod5_chrM/<RUN_ID>.pid_dict.tsv (read-to-parent ID mapping)
 ```
@@ -199,21 +201,21 @@ cd /mnt/c/data/your_run_directory
 cd /scratch/username/workbench/run_directory
 
 # Submit the complete workflow
-/path/to/workflows/submit_nanomito.sh .
+/path/to/nanomito/submit_nanomito.sh .
 ```
 
 ### Manual Step Execution
 
 ```bash
 # Submit only basecalling & demux
-sbatch --chdir=/path/to/run /path/to/workflows/wf-bchg.sh
+sbatch --chdir=/path/to/run /path/to/nanomito/wf-bchg.sh
 
 # Submit sample processing (after basecalling)
-sbatch --chdir=/path/to/run /path/to/workflows/wf-subwf.sh
+sbatch --chdir=/path/to/run /path/to/nanomito/wf-subwf.sh
 
 # Process a specific sample
-sbatch --chdir=/path/to/run /path/to/workflows/wf-demultmt.sh barcode09
-sbatch --chdir=/path/to/run /path/to/workflows/wf-modmito.sh barcode09
+sbatch --chdir=/path/to/run /path/to/nanomito/wf-demultmt.sh barcode09
+sbatch --chdir=/path/to/run /path/to/nanomito/wf-modmito.sh barcode09
 ```
 
 ### Monitoring Jobs

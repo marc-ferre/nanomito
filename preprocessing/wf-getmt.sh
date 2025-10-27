@@ -20,9 +20,9 @@ AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 # Conda environment name for running the script
 GETMT_ENV='nanomito'
 # Path to the Python script that extracts chrM read IDs
-CHRMPIDS_SCRIPT='/mnt/c/Users/mferre/Documents/workflows/get_chrMpid.py'
+CHRMPIDS_SCRIPT='/mnt/c/Users/mferre/Documents/nanomito/get_chrMpid.py'
 # Path to the Python script that creates read_id -> parent_id dictionary
-CREATE_PID_DICT_SCRIPT='/mnt/c/Users/mferre/Documents/workflows/create_pid_dict.py'
+CREATE_PID_DICT_SCRIPT='/mnt/c/Users/mferre/Documents/nanomito/create_pid_dict.py'
 # Path to the conda initialization script
 CONDA_SCRIPT='/home/mferre/anaconda3/etc/profile.d/conda.sh'
 

@@ -123,9 +123,9 @@ SLURM_PRE="slurm-$RUN_ID"
 SLURM_EXT='out'
 
 # Workflow files
-WF_BCHG='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-bchg.sh'
-WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-demultmt.sh'
-WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-modmito.sh'
+WF_BCHG='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-bchg.sh'
+WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-demultmt.sh'
+WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-modmito.sh'
 
 # Validate workflow files exist
 check_workflow() {

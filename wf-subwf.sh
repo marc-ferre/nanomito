@@ -85,8 +85,8 @@ WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 # Workflows shell scripts
 # These scripts are called with sbatch for each sample
-WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-demultmt.sh'
-WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-modmito.sh'
+WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-demultmt.sh'
+WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-modmito.sh'
 
 # Mail options
 MAIL_USER='marc.ferre@univ-angers.fr'

@@ -99,8 +99,8 @@ ONT_DEMULT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_ont
 POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.15'
 
 # Scripts
-CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/preprocessing/get_chrMpid.py'
-CREATE_PID_DICT_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/preprocessing/create_pid_dict.py'
+CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/preprocessing/get_chrMpid.py'
+CREATE_PID_DICT_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/preprocessing/create_pid_dict.py'
 
 # ============================================================================
 # LOGGING FUNCTIONS
