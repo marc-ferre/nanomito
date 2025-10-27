@@ -6,6 +6,7 @@
 #
 # Options:
 #   --bchg-only    Only submit basecalling/demux workflow (wf-bchg.sh)
+#   --skip-bchg    Skip basecalling/demux, only submit analysis workflows
 #   --help         Display this help message
 #
 # Strict error handling
@@ -51,12 +52,17 @@ log_warning() {
 
 # Parse options
 BCHG_ONLY=false
+SKIP_BCHG=false
 SHOW_HELP=false
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
 		--bchg-only)
 			BCHG_ONLY=true
+			shift
+			;;
+		--skip-bchg)
+			SKIP_BCHG=true
 			shift
 			;;
 		--help|-h)
@@ -76,12 +82,20 @@ if [ "$SHOW_HELP" = true ]; then
 	echo ""
 	echo "Options:"
 	echo "  --bchg-only    Only submit basecalling/demux workflow (wf-bchg.sh)"
+	echo "  --skip-bchg    Skip basecalling/demux, only submit analysis workflows"
 	echo "  --help, -h     Display this help message"
 	echo ""
 	echo "Examples:"
 	echo "  $0 /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --bchg-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
+	echo "  $0 --skip-bchg /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	exit 0
+fi
+
+# Check for conflicting options
+if [ "$BCHG_ONLY" = true ] && [ "$SKIP_BCHG" = true ]; then
+	log_error "Cannot use --bchg-only and --skip-bchg together"
+	exit 128
 fi
 
 if [ -z "${RUN_DIR_ARG:-}" ]; then
@@ -110,16 +124,24 @@ SLURM_EXT='out'
 
 # Workflow files
 WF_BCHG='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-bchg.sh'
-WF_SUBWF='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-subwf.sh'
+WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-demultmt.sh'
+WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-modmito.sh'
 
 # Validate workflow files exist
-if [ ! -f "$WF_BCHG" ]; then
-	log_error "Workflow file not found: $WF_BCHG"
-	exit 128
+check_workflow() {
+	local wf_path=$1
+	if [ ! -f "$wf_path" ]; then
+		log_error "Workflow file not found: $wf_path"
+		exit 128
+	fi
+}
+
+if [ "$SKIP_BCHG" = false ]; then
+	check_workflow "$WF_BCHG"
 fi
-if [ ! -f "$WF_SUBWF" ]; then
-	log_error "Workflow file not found: $WF_SUBWF"
-	exit 128
+if [ "$BCHG_ONLY" = false ]; then
+	check_workflow "$WF_DEMULTMT"
+	check_workflow "$WF_MODMITO"
 fi
 
 # Mail parameters
@@ -148,39 +170,114 @@ fi
 
 JOBID_LIST=''
 JOBS_COUNT=0
+BCHG_JOBID=''
 
-echo -e "${BOLD}${CYAN}==========================================${NC}"
-echo -e "${BOLD}${CYAN}   STEP 1/2: BASECALLING & DEMUX (bchg)${NC}"
-echo -e "${BOLD}${CYAN}==========================================${NC}"
-
-WF_ID='bchg'
-SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-
-JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" $WF_BCHG "$RUN_DIR")
-
-log_success "Submitted batch job $JOBID"
-log_info "Output file: $SLURM_FILE"
-JOBID_LIST="$JOBID $JOBID_LIST"
-JOBS_COUNT=$((JOBS_COUNT + 1))
-
-# Only submit sub-workflows if not in bchg-only mode
-if [ "$BCHG_ONLY" = false ]; then
-	echo ""
+# STEP 1: Submit basecalling & demux if not skipped
+if [ "$SKIP_BCHG" = false ]; then
 	echo -e "${BOLD}${CYAN}==========================================${NC}"
-	echo -e "${BOLD}${CYAN}   STEP 2/2: SUB-WORKFLOWS (subwf)${NC}"
+	echo -e "${BOLD}${CYAN}   STEP 1: BASECALLING & DEMUX (bchg)${NC}"
 	echo -e "${BOLD}${CYAN}==========================================${NC}"
 
-	WF_ID='subwf'
+	WF_ID='bchg'
 	SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
 
-	JOBID=$(sbatch --dependency=afterok:"${JOBID}" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_SUBWF)
+	BCHG_JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_BCHG" "$RUN_DIR")
 
-	log_success "Submitted batch job $JOBID (depends on previous job)"
+	log_success "Submitted batch job $BCHG_JOBID"
 	log_info "Output file: $SLURM_FILE"
-	JOBID_LIST="$JOBID $JOBID_LIST"
+	JOBID_LIST="$BCHG_JOBID $JOBID_LIST"
 	JOBS_COUNT=$((JOBS_COUNT + 1))
+	echo ""
 else
-	log_info "Skipping sub-workflows (--bchg-only mode)"
+	log_info "Skipping basecalling/demux (--skip-bchg mode)"
+	echo ""
+fi
+
+# STEP 2: Submit analysis workflows for each sample if not in bchg-only mode
+if [ "$BCHG_ONLY" = false ]; then
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+	echo -e "${BOLD}${CYAN}   STEP 2: ANALYSIS WORKFLOWS${NC}"
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+
+	# Navigate to fastq_pass directory
+	FASTQ_DIR="$RUN_DIR/fastq_pass"
+	if [ ! -d "$FASTQ_DIR" ]; then
+		log_error "FASTQ directory not found: $FASTQ_DIR"
+		exit 128
+	fi
+
+	cd "$FASTQ_DIR" || exit 128
+
+	# Find all sample directories
+	SAMPLES=()
+	while IFS= read -r -d '' sample; do
+		SAMPLES+=("$sample")
+	done < <(find ./* -prune -type d -print0)
+
+	SAMPLES_COUNT=${#SAMPLES[@]}
+	log_info "Found $SAMPLES_COUNT sample(s) to process"
+
+	if [ "$SAMPLES_COUNT" -eq 0 ]; then
+		log_error "No samples found in $FASTQ_DIR"
+		exit 128
+	fi
+
+	echo ""
+
+	DEMULTMT_JOBS=0
+	MODMITO_JOBS=0
+
+	# Submit workflows for each sample
+	for sample in "${SAMPLES[@]}"; do
+		SAMPLE_ID=$(basename "$sample")
+		log_info "Processing sample: $SAMPLE_ID"
+
+		SAMPLE_DIR="$FASTQ_DIR/$SAMPLE_ID"
+		SAMPLE_PROCESS_DIR="$PROCESS_DIR/$SAMPLE_ID"
+
+		# Create sample processing directory
+		if [ ! -d "$SAMPLE_PROCESS_DIR" ]; then
+			mkdir -p "$SAMPLE_PROCESS_DIR"
+		fi
+
+		# Submit demultmt workflow
+		WF_ID='demultmt'
+		SLURM_FILE="$SAMPLE_PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+		
+		# Add dependency on bchg job if it was submitted
+		if [ -n "$BCHG_JOBID" ]; then
+			DEMULTMT_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable --chdir="$SAMPLE_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_DEMULTMT")
+		else
+			DEMULTMT_JOBID=$(sbatch --parsable --chdir="$SAMPLE_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_DEMULTMT")
+		fi
+
+		log_success "  └─ demultmt: job $DEMULTMT_JOBID"
+		JOBID_LIST="$DEMULTMT_JOBID $JOBID_LIST"
+		JOBS_COUNT=$((JOBS_COUNT + 1))
+		DEMULTMT_JOBS=$((DEMULTMT_JOBS + 1))
+
+		# Submit modmito workflow (depends on demultmt)
+		WF_ID='modmito'
+		SLURM_FILE="$SAMPLE_PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+
+		MODMITO_JOBID=$(sbatch --dependency=afterok:"$DEMULTMT_JOBID" --parsable --chdir="$SAMPLE_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" "$WF_MODMITO")
+
+		log_success "  └─ modmito:  job $MODMITO_JOBID (depends on $DEMULTMT_JOBID)"
+		JOBID_LIST="$MODMITO_JOBID $JOBID_LIST"
+		JOBS_COUNT=$((JOBS_COUNT + 1))
+		MODMITO_JOBS=$((MODMITO_JOBS + 1))
+
+		echo ""
+	done
+
+	cd "$RUN_DIR" || exit 128
+
+	log_success "Submitted $DEMULTMT_JOBS demultmt job(s)"
+	log_success "Submitted $MODMITO_JOBS modmito job(s)"
+	echo ""
+else
+	log_info "Skipping analysis workflows (--bchg-only mode)"
+	echo ""
 fi
 
 echo ""
