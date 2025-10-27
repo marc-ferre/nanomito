@@ -100,6 +100,7 @@ POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.
 
 # Scripts
 CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/preprocessing/get_chrMpid.py'
+CREATE_PID_DICT_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/preprocessing/create_pid_dict.py'
 
 # ============================================================================
 # LOGGING FUNCTIONS
@@ -168,6 +169,7 @@ HPLCHK_RAW_FILE="$HPLCHK_PREFIX.raw.txt"
 HPLCHK_SUMMARY_FILE="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
 IDS_FILE="$SELECT_DIR/$SAMPLE_ID.read_ids.txt"
 MATCH_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.matched.txt"
+PID_DICT_FILE="$POD5_DIR/$RUN_ID.pid_dict.tsv"
 SORTED_BAM_FILE="$SELECT_DIR/$SAMPLE_ID.sorted.bam"
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
@@ -240,6 +242,7 @@ echo "========================================"
 # ----------------------------------------------------------------------------
 
 log_step "2/7: PREPROCESSING"
+STEP_START=$(date +%s)
 check_dir "$BAM_DIR"
 ensure_dir "$OUT_DIR"
 FASTQ_FILE="$OUT_DIR/$SAMPLE_ID.fastq.gz"
@@ -254,6 +257,19 @@ check_file "$FASTQ_FILE"
 log_info "Counting total reads..."
 COUNT_TOTAL=$(( $(zcat "$FASTQ_FILE" | wc -l) / 4 ))
 log_success "Total reads: $COUNT_TOTAL"
+
+# Create read_id→parent_id dictionary from Dorado BAM files (contains pi:Z tags)
+if [ ! -f "$PID_DICT_FILE" ]; then
+	log_info "Creating read_id→parent_id dictionary from BAM files..."
+	conda run -p "$GETMT_ENV" python "$CREATE_PID_DICT_SCRIPT" -b "$BAM_DIR" -o "$PID_DICT_FILE" || {
+		log_error "Failed to create parent ID dictionary"
+		exit 1
+	}
+	check_file "$PID_DICT_FILE"
+	log_success "Parent ID dictionary created"
+else
+	log_info "Using existing parent ID dictionary: $PID_DICT_FILE"
+fi
 
 STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
@@ -443,8 +459,9 @@ log_success "Sorted BAM file retained: $SORTED_BAM_FILE"
 cd "$VARCALL_DIR" || exit
 log_info "Retrieving matching reads (selection strategy: $SELECT)..."
 
-# Get unique parent IDs (pid) of reads aligned to chrM 
-conda run -p "$GETMT_ENV" python "$CHRMPIDS_SCRIPT" -b "$SELECT_DIR" -p "$POD5_DIR" -o "$IDS_FILE" || {
+# Get unique parent IDs (pid) of reads aligned to chrM
+# Using the read_id→parent_id dictionary created during preprocessing
+conda run -p "$GETMT_ENV" python "$CHRMPIDS_SCRIPT" -b "$SELECT_DIR" -p "$POD5_DIR" -d "$PID_DICT_FILE" -o "$IDS_FILE" || {
 	log_error "Failed to retrieve read IDs from BAM files"
 	exit 1
 }

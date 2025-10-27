@@ -29,7 +29,7 @@ import pysam  # Python interface to SAM/BAM files
 import pod5  # Oxford Nanopore Pod5 file format library
 
 # Script metadata
-VERSION = "25.08.26.1"
+VERSION = "25.10.26.2"
 AUTHOR = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
@@ -42,6 +42,7 @@ def parse_args():
             - bam: Path to BAM alignments directory
             - pod5: Path to Pod5 raw data directory
             - output: Output file path for unique parent IDs
+            - dict: Path to read_id→parent_id dictionary file (optional)
             - verbose: Enable verbose output
     """
     parser = argparse.ArgumentParser(
@@ -59,6 +60,13 @@ def parse_args():
         type=str,
         default="chrM_pids.txt",
         help="Output file for unique parent IDs",
+    )
+    parser.add_argument(
+        "-d",
+        "--dict",
+        type=str,
+        default=None,
+        help="TSV file mapping read_id to parent_id (read_id<TAB>parent_id). If not provided, will try to read pi:Z tags from BAM files.",
     )
     parser.add_argument(
         "-v",
@@ -104,20 +112,59 @@ def get_pod5_ids(pod5_dir: str) -> set[str]:
     return allids
 
 
+def load_pid_dictionary(dict_file: str) -> dict[str, str]:
+    """
+    Load read_id to parent_id dictionary from TSV file.
+
+    Args:
+        dict_file (str): Path to TSV file with format: read_id<TAB>parent_id
+
+    Returns:
+        dict[str, str]: Dictionary mapping read_id -> parent_id
+
+    Raises:
+        SystemExit: If dictionary file does not exist or cannot be read
+    """
+    dict_path = Path(dict_file)
+    if not dict_path.is_file():
+        print(f"[ERROR] Dictionary file does not exist: {dict_file}")
+        sys.exit(66)
+
+    print(f"[INFO] Loading read_id→parent_id dictionary from: {dict_file}")
+
+    pid_dict = {}
+    with open(dict_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\t")
+            if len(parts) != 2:
+                print(f"[WARNING] Skipping malformed line: {line}")
+                continue
+            read_id, parent_id = parts
+            pid_dict[read_id] = parent_id
+
+    print(f"[INFO] Loaded {len(pid_dict)} read_id→parent_id mappings")
+    return pid_dict
+
+
 def get_chrM_pids(
-    bam_dir: str, pod5_ids: set[str], verbose: bool = False
+    bam_dir: str, pod5_ids: set[str], pid_dict: dict[str, str] = None, verbose: bool = False
 ) -> tuple[set[str], list[str], int, int, int, int]:
     """
     Extract unique parent IDs from BAM files for reads aligned to chrM.
 
     This function processes all BAM files in the specified directory to identify
     reads that align to the mitochondrial chromosome (chrM). For each aligned read,
-    it extracts the parent ID, which is either the read ID itself or the parent ID
-    from the 'pi:Z' tag for split reads.
+    it extracts the parent ID using either:
+    - A provided read_id→parent_id dictionary (if pid_dict is provided)
+    - The 'pi:Z' tag from BAM files (if no dictionary is provided)
 
     Args:
         bam_dir (str): Path to directory containing BAM alignment files
         pod5_ids (set[str]): Set of available Pod5 read IDs for validation
+        pid_dict (dict[str, str], optional): Dictionary mapping read_id → parent_id
         verbose (bool): Enable verbose output for detailed logging
 
     Returns:
@@ -126,7 +173,7 @@ def get_chrM_pids(
             - list[str]: List of parent IDs missing from Pod5 data
             - int: Number of BAM files processed
             - int: Total number of reads aligned to chrM
-            - int: Number of split reads (with pi:Z tag)
+            - int: Number of split reads (with pi:Z tag or from dict)
             - int: Number of duplicate reads ignored
 
     Raises:
@@ -138,9 +185,14 @@ def get_chrM_pids(
         sys.exit(66)  # EX_NOINPUT - input directory does not exist
 
     print(f"[INFO] Scanning BAM directory: {bam_dir}")
+    
+    if pid_dict:
+        print(f"[INFO] Using provided read_id→parent_id dictionary ({len(pid_dict)} entries)")
+    else:
+        print(f"[INFO] Will extract parent IDs from pi:Z tags in BAM files")
 
     # Set to store unique parent IDs (pIDs) of reads aligned to chrM
-    # For split reads, this will be the parent ID from pi:Z tag
+    # For split reads, this will be the parent ID from dictionary or pi:Z tag
     # For regular reads, this will be the read ID itself
     pids = set()
 
@@ -177,22 +229,42 @@ def get_chrM_pids(
                     # Iterate through all reads aligned to chrM (mitochondrial chromosome)
                     for read in samfile.fetch("chrM"):
                         read_chrM_count += 1
-                        id = read.query_name  # Get the read identifier
+                        read_id = read.query_name  # Get the read identifier
                         pid = ""  # Initialize parent ID
 
-                        # Check if read has a parent ID tag (pi:Z) indicating it's a split read
-                        if read.has_tag("pi:Z"):
-                            read_split_count += 1
-                            pid = read.get_tag("pi:Z")  # Extract parent ID from tag
-                            if verbose:
-                                print(
-                                    f"[INFO]    Subread ID# {id} was generated from Parent read pID# {pid} [READ SPLITTING]"
-                                )
+                        # Determine parent ID based on available data source
+                        if pid_dict:
+                            # Use dictionary to lookup parent ID
+                            if read_id in pid_dict:
+                                pid = pid_dict[read_id]
+                                if pid != read_id:
+                                    read_split_count += 1
+                                    if verbose:
+                                        print(
+                                            f"[INFO]    Subread ID# {read_id} was generated from Parent read pID# {pid} [FROM DICT]"
+                                        )
+                                else:
+                                    if verbose:
+                                        print(f"[INFO]    Read pID# {pid} [FROM DICT]")
+                            else:
+                                # Read ID not in dictionary, use read_id as parent_id
+                                pid = read_id
+                                if verbose:
+                                    print(f"[WARNING] Read ID {read_id} not found in dictionary, using read_id as parent_id")
                         else:
-                            # No split read tag, so parent ID is the same as read ID
-                            pid = id
-                            if verbose:
-                                print(f"[INFO]    Read pID# {pid}")
+                            # No dictionary, try to extract from pi:Z tag
+                            if read.has_tag("pi:Z"):
+                                read_split_count += 1
+                                pid = read.get_tag("pi:Z")  # Extract parent ID from tag
+                                if verbose:
+                                    print(
+                                        f"[INFO]    Subread ID# {read_id} was generated from Parent read pID# {pid} [FROM BAM TAG]"
+                                    )
+                            else:
+                                # No split read tag, so parent ID is the same as read ID
+                                pid = read_id
+                                if verbose:
+                                    print(f"[INFO]    Read pID# {pid}")
 
                         # Check if this parent ID has already been encountered (avoid duplicates)
                         if pid in pids:
@@ -309,6 +381,11 @@ def main():
     # Extract all Pod5 read IDs for validation
     pod5_ids = get_pod5_ids(args.pod5)
 
+    # Load read_id→parent_id dictionary if provided
+    pid_dict = None
+    if args.dict:
+        pid_dict = load_pid_dictionary(args.dict)
+
     # Process BAM files to find chrM-aligned reads and their parent IDs
     (
         pids,  # Unique parent IDs
@@ -317,7 +394,7 @@ def main():
         read_chrM_count,  # Total reads aligned to chrM
         read_split_count,  # Split reads count
         read_duplicate_count,  # Duplicate reads ignored
-    ) = get_chrM_pids(args.bam, pod5_ids, args.verbose)
+    ) = get_chrM_pids(args.bam, pod5_ids, pid_dict, args.verbose)
 
     # Display comprehensive processing statistics
     print("\n" + "=" * 50)

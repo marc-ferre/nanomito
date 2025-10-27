@@ -21,6 +21,8 @@ AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 GETMT_ENV='nanomito'
 # Path to the Python script that extracts chrM read IDs
 CHRMPIDS_SCRIPT='/mnt/c/Users/mferre/Documents/workflows/get_chrMpid.py'
+# Path to the Python script that creates read_id -> parent_id dictionary
+CREATE_PID_DICT_SCRIPT='/mnt/c/Users/mferre/Documents/workflows/create_pid_dict.py'
 # Path to the conda initialization script
 CONDA_SCRIPT='/home/mferre/anaconda3/etc/profile.d/conda.sh'
 
@@ -164,6 +166,7 @@ main() {
     POD5_MT_DIR="$RUN_DIR_PATH/pod5_chrM"                   # Output directory for chrM-specific Pod5 files
     MT_PIDS_FILE="$POD5_MT_DIR/$RUN_ID.chrM_pids.txt"       # File to store read IDs matching chrM
     POD5_MT_IDS_FILE="$POD5_MT_DIR/$RUN_ID.chrM.pod5"       # Output Pod5 file with chrM-specific reads
+    PID_DICT_FILE="$POD5_MT_DIR/$RUN_ID.pid_dict.tsv"       # TSV mapping read_id -> parent_id
 
     echo "Run       : '$RUN_ID'"
     echo "Run dir   : '$RUN_DIR_PATH'"
@@ -194,9 +197,18 @@ main() {
     # Display Pod5 version information
     echo "[INFO] $(pod5 --version)"
 
+    # Create read_id -> parent_id dictionary from Dorado BAMs (if possible)
+    echo "[INFO] Creating read->parent dictionary: $PID_DICT_FILE"
+    conda run -n getmt python "$CREATE_PID_DICT_SCRIPT" -b "$BAM_DIR" -o "$PID_DICT_FILE" || echo "[WARN] create_pid_dict.py failed or not available; continuing without dict"
+
     # Run the Python script to extract read IDs from BAM files that align to chrM
-    # The script will analyze BAM files and create a list of Pod5 read IDs
-    conda run -n getmt python "$CHRMPIDS_SCRIPT" -b "$BAM_DIR" -p "$POD5_ALL_DIR" -o "$MT_PIDS_FILE" -v
+    # Use the dictionary if it was successfully created
+    if [[ -f "$PID_DICT_FILE" ]]; then
+        echo "[INFO] Using PID dictionary: $PID_DICT_FILE"
+        conda run -n getmt python "$CHRMPIDS_SCRIPT" -b "$BAM_DIR" -p "$POD5_ALL_DIR" -o "$MT_PIDS_FILE" -v -d "$PID_DICT_FILE"
+    else
+        conda run -n getmt python "$CHRMPIDS_SCRIPT" -b "$BAM_DIR" -p "$POD5_ALL_DIR" -o "$MT_PIDS_FILE" -v
+    fi
 
     # Count the number of identified reads
     READ_IDS_COUNT=$(wc -l < "$MT_PIDS_FILE")
