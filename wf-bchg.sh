@@ -32,10 +32,20 @@ VERSION='25.10.26.2'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 # Directories
-RUN_DIR=$(pwd)
+# Use first argument as RUN_DIR if provided, otherwise use current directory
+if [ $# -ge 1 ] && [ -d "$1" ]; then
+    RUN_DIR=$(readlink -f "$1")
+    cd "$RUN_DIR" || exit 1
+else
+    RUN_DIR=$(pwd)
+fi
+
 POD5_DIR="$RUN_DIR/pod5_chrM"
 FASTQ_DIR="$RUN_DIR/fastq_pass"
 PROCESS_DIR="$RUN_DIR/processing"
+
+# Ensure processing directory exists before SLURM tries to write logs
+mkdir -p "$PROCESS_DIR"
 
 # Prefixes
 RUN_ID=$(basename "$RUN_DIR")
@@ -191,7 +201,6 @@ echo "============= Sample Sheet ============="
 column -s, -t < "$SAMPLESHEET_FILE"
 echo "========================================"
 
-mkdir -p  "$PROCESS_DIR"
 mkdir -p "$FASTQ_DIR"
 check_dir "$FASTQ_DIR"
 
