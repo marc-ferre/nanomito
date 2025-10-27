@@ -261,7 +261,7 @@ main() {
     echo '|'
     echo '|'
     echo "| Workflow finished successfully. Pod5 data generated:"
-    echo "| $(du -hs $POD5_MT_DIR)"
+    echo "| $(du -hs "$POD5_MT_DIR")"
     echo '|'
     echo '|'
 }
