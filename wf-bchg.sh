@@ -367,12 +367,49 @@ log_info "Compression duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600))
 log_step "7/7: ORGANIZATION"
 STEP_START=$(date +%s)
 log_info "Organizing files into sample directories"
+
+# Build barcode to alias mapping from sample sheet
+declare -A BARCODE_ALIAS
+if [ -f "$SAMPLESHEET_FILE" ]; then
+	log_info "Reading sample sheet for alias mapping"
+	while IFS=, read -r protocol_run_id position_id flow_cell_id sample_id experiment_id flow_cell_product_code kit barcode alias type; do
+		# Skip header and empty lines
+		[[ "$barcode" == "barcode" ]] && continue
+		[[ -z "$barcode" ]] && continue
+		# Store mapping: barcode -> alias
+		BARCODE_ALIAS["$barcode"]="$alias"
+		log_info "Mapped $barcode -> $alias"
+	done < <(tail -n +2 "$SAMPLESHEET_FILE")
+else
+	log_warning "Sample sheet not found, using default directory names"
+fi
+
 cd "$FASTQ_DIR" || exit
 SAMPLE_DIRS=0
 for FILE in *.fastq.gz; do
 	[[ -e "$FILE" ]] || break  # handle the case of no *.fastq.gz files
-	DIR=${FILE#*_}
-	DIR=${DIR%%.*}
+	
+	# Extract barcode from filename (e.g., FBA90544_pass_barcode10_bc54a4f9_00000000_0.fastq.gz)
+	BARCODE=""
+	if [[ "$FILE" =~ barcode([0-9]+) ]]; then
+		BARCODE="barcode${BASH_REMATCH[1]}"
+	elif [[ "$FILE" =~ unclassified ]]; then
+		BARCODE="unclassified"
+	fi
+	
+	# Determine directory name: use alias if available, otherwise use extracted name
+	if [ -n "$BARCODE" ] && [ -n "${BARCODE_ALIAS[$BARCODE]}" ]; then
+		DIR="${BARCODE_ALIAS[$BARCODE]}"
+		log_info "Using alias for $BARCODE: $DIR"
+	elif [[ "$FILE" =~ unclassified ]]; then
+		DIR="unclassified"
+	else
+		# Fallback to old behavior
+		DIR=${FILE#*_}
+		DIR=${DIR%%.*}
+		log_warning "No alias found for $FILE, using default: $DIR"
+	fi
+	
 	mkdir -p "$DIR"
 	mv "$FILE" "$FASTQ_DIR"/"$DIR"/"$FILE"
 	((SAMPLE_DIRS++)) || true
