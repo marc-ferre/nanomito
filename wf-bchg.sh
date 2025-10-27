@@ -101,6 +101,7 @@ KIT='SQK-NBD114-24'
 # Binary and Conda env
 # shellcheck disable=SC2034  # DORADO_BIN used in basecalling pipeline below
 DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado'
+SAMTOOLS_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.15'
 
 # Logging helper functions
 log_step() {
@@ -201,13 +202,15 @@ $DORADO_BIN --version
 log_step "3/5: BASECALLING & DEMULTIPLEXING"
 STEP_START=$(date +%s)
 log_info "Starting basecalling..."
+BAM_DIR="$FASTQ_DIR/bam_output"
+mkdir -p "$BAM_DIR"
+
 if $DORADO_BIN basecaller $MODEL "$POD5_DIR" --recursive \
 	--sample-sheet "$SAMPLESHEET_FILE" \
 	| $DORADO_BIN demux \
 	--kit-name $KIT \
 	--sample-sheet "$SAMPLESHEET_FILE" \
-	--emit-fastq \
-	--output-dir "$FASTQ_DIR"; then
+	--output-dir "$BAM_DIR"; then
 	STEP_END=$(date +%s)
 	STEP_RUNTIME=$((STEP_END - STEP_START))
 	log_success "Basecalling completed successfully"
@@ -216,6 +219,41 @@ else
 	log_error "Basecalling failed with exit code $?"
 	exit 1
 fi
+
+log_info "Converting BAM to FASTQ..."
+CONVERT_START=$(date +%s)
+
+# Source Conda for Genouest cluster compute node
+if [ -f /local/env/envconda.sh ]; then
+    log_info "Sourcing conda environment"
+    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
+    . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
+fi
+
+# Activate conda environment for samtools
+log_info "Activating conda environment: $SAMTOOLS_ENV"
+conda activate "$SAMTOOLS_ENV" || {
+    log_error "Failed to activate conda environment: $SAMTOOLS_ENV"
+    exit 1
+}
+
+# Convert each BAM file to FASTQ
+BAM_COUNT=0
+for BAM_FILE in "$BAM_DIR"/*.bam; do
+	[[ -e "$BAM_FILE" ]] || break
+	BASENAME=$(basename "$BAM_FILE" .bam)
+	samtools fastq "$BAM_FILE" > "$FASTQ_DIR/${BASENAME}.fastq"
+	((BAM_COUNT++)) || true
+done
+CONVERT_END=$(date +%s)
+CONVERT_RUNTIME=$((CONVERT_END - CONVERT_START))
+log_success "Converted $BAM_COUNT BAM files to FASTQ"
+log_info "Conversion duration: $(printf '%02d:%02d:%02d' $((CONVERT_RUNTIME/3600)) $((CONVERT_RUNTIME%3600/60)) $((CONVERT_RUNTIME%60)))"
+
+# Clean up BAM files
+log_info "Cleaning up BAM files..."
+rm -rf "$BAM_DIR"
+log_success "BAM files removed"
 
 log_step "4/5: COMPRESSION"
 STEP_START=$(date +%s)

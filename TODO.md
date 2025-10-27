@@ -224,7 +224,7 @@ Last updated: 2025-10-27
 - [x] Add error handling for missing pid_dict.tsv
 - [x] Improve helper functions (silent mode)
 - [x] Add shellcheck compliance
-- [x] Add .gitignore for __pycache__
+- [x] Add .gitignore for **pycache**
 
 ## 📝 Notes
 
@@ -237,6 +237,7 @@ Last updated: 2025-10-27
 ### Performance Benchmarks
 
 To be added after testing with production data:
+
 - Average runtime per step
 - Memory usage per sample size
 - Disk space requirements
@@ -259,6 +260,7 @@ To be added after testing with production data:
 6. **Submit PR**: Request review before merging
 
 **Labels for commits:**
+
 - `feat:` New feature
 - `fix:` Bug fix
 - `docs:` Documentation
