@@ -70,7 +70,10 @@ Main entry point for workflow submission. Orchestrates the entire pipeline execu
 - Maps reads to reference genome
 - Demultiplexes mitochondrial reads by patient
 - Read selection strategies (both/start/either/xor)
+- Creates read_id→parent_id dictionary for Pod5 filtering
 - **Resources:** 12 CPUs, 150GB RAM
+
+**Note:** This workflow expects a `pid_dict.tsv` file created during preprocessing (see `preprocessing/wf-getmt.sh`) that maps read IDs to their parent IDs for proper Pod5 file filtering.
 
 ### 5. **wf-modmito.sh** (Modification Analysis)
 
@@ -83,11 +86,33 @@ Main entry point for workflow submission. Orchestrates the entire pipeline execu
 
 Automated run archiving to project storage.
 
+## Preprocessing Workflows
+
+### **wf-getmt.sh** (Extract chrM reads from raw data)
+
+Located in `preprocessing/`, this script is used to prepare data before the main workflow:
+
+- Analyzes Dorado BAM files to identify reads aligned to chrM
+- Creates a read_id→parent_id dictionary (`pid_dict.tsv`) from BAM tags
+- Filters Pod5 files to extract only chrM-aligned reads
+- **Platform:** Windows Subsystem for Linux (WSL)
+- **Usage:** `./preprocessing/wf-getmt.sh [/path/to/run]`
+
+**Key outputs:**
+
+- `pod5_chrM/<RUN_ID>.chrM.pod5` - Filtered Pod5 file with chrM reads only
+- `pod5_chrM/<RUN_ID>.pid_dict.tsv` - Read-to-parent ID mapping (required for wf-demultmt.sh)
+- `pod5_chrM/<RUN_ID>.chrM_pids.txt` - List of parent read IDs
+
+**Note:** This preprocessing step is required before running `wf-demultmt.sh` to ensure proper read ID mapping when working with minimap2 BAMs (which lack the `pi:Z` parent ID tags present in Dorado BAMs).
+
 ## Directory Structure
 
 ```text
 run_directory/
 ├── pod5_chrM/                    # POD5 files (chrM reads only)
+│   ├── <RUN_ID>.chrM.pod5       # Filtered Pod5 with chrM reads
+│   └── <RUN_ID>.pid_dict.tsv    # Read-to-parent ID mapping
 ├── fastq_pass/                   # Demultiplexed FASTQ files
 │   ├── barcode09/
 │   ├── barcode10/
@@ -107,12 +132,13 @@ run_directory/
 
 - **SLURM** workload manager
 - **Dorado** (GPU basecaller)
-- **Conda** environment with:
-  - minimap2
-  - samtools
-  - modkit
-  - ont_demult
+- **Conda** environments with:
+  - `env_getmt`: pod5, pysam (for preprocessing)
+  - `env_ont_demult`: ont_demult tool
+  - `env_pod5`: pod5 tools
+  - minimap2, samtools, modkit
 - **GNU Parallel** (optional, for faster compression)
+- **Python 3** with pysam library (for pid_dict creation)
 
 ### Installation on Genouest HPC
 
@@ -144,6 +170,20 @@ chmod +x *.sh
 ```
 
 ## Usage
+
+### Prerequisites: Data Preprocessing
+
+Before running the main workflows, you need to prepare the chrM-specific Pod5 files and create the read ID mapping:
+
+```bash
+# On Windows/WSL (where Dorado BAM files are located)
+cd /mnt/c/data/your_run_directory
+/path/to/workflows/preprocessing/wf-getmt.sh .
+
+# This creates:
+# - pod5_chrM/<RUN_ID>.chrM.pod5 (filtered Pod5 with chrM reads)
+# - pod5_chrM/<RUN_ID>.pid_dict.tsv (read-to-parent ID mapping)
+```
 
 ### Basic Workflow Execution
 
@@ -236,6 +276,12 @@ protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_produ
    - Scripts automatically handle conda loading failures
    - Check `/local/env/envconda.sh` exists
 
+1. **"Failed to retrieve read IDs from BAM files"**
+
+   - Ensure preprocessing was run first: `wf-getmt.sh` must create `pid_dict.tsv`
+   - Check that `pod5_chrM/<RUN_ID>.pid_dict.tsv` exists
+   - Verify the dictionary file is not empty
+
 1. **GPU not available**
 
    - Ensure `--partition=gpu` is set
@@ -315,6 +361,12 @@ If you use Nanomito in your research, please cite:
 
 ## Version History
 
+- **v25.10.27** - Added preprocessing workflow with PID dictionary creation
+  - New `preprocessing/wf-getmt.sh` for chrM read extraction
+  - New `preprocessing/create_pid_dict.py` for read-to-parent ID mapping
+  - Updated `get_chrMpid.py` to use dictionary files
+  - Fixed SIGPIPE errors in `wf-demultmt.sh`
+  - Improved error handling and logging
 - **v25.10.26** - Major improvements: robust error handling, comprehensive documentation
 - **v25.05.18** - Initial release
 
