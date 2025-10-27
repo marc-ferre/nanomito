@@ -2,7 +2,11 @@
 #
 # Submit Nanomito workflows to Slurm
 #
-# submit_nanomito.sh /Path/to/run/dir/
+# submit_nanomito.sh [OPTIONS] /Path/to/run/dir/
+#
+# Options:
+#   --bchg-only    Only submit basecalling/demux workflow (wf-bchg.sh)
+#   --help         Display this help message
 #
 # Strict error handling
 set -euo pipefail
@@ -45,20 +49,55 @@ log_warning() {
 	echo -e "${YELLOW}[WARN]${NC} $(date '+%H:%M:%S') - $1"
 }
 
-if [ $# -eq 0 ]
-	then
-		log_error "No arguments supplied"
-		echo "Usage: $0 /Path/to/run/dir/"
-		exit 128 # die with error
+# Parse options
+BCHG_ONLY=false
+SHOW_HELP=false
+
+while [[ $# -gt 0 ]]; do
+	case $1 in
+		--bchg-only)
+			BCHG_ONLY=true
+			shift
+			;;
+		--help|-h)
+			SHOW_HELP=true
+			shift
+			;;
+		*)
+			# Assume it's the run directory
+			RUN_DIR_ARG="$1"
+			shift
+			;;
+	esac
+done
+
+if [ "$SHOW_HELP" = true ]; then
+	echo "Usage: $0 [OPTIONS] /Path/to/run/dir/"
+	echo ""
+	echo "Options:"
+	echo "  --bchg-only    Only submit basecalling/demux workflow (wf-bchg.sh)"
+	echo "  --help, -h     Display this help message"
+	echo ""
+	echo "Examples:"
+	echo "  $0 /scratch/mferre/workbench/250916_MK1B_RUN15/"
+	echo "  $0 --bchg-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
+	exit 0
 fi
 
-# Validate run directory
-if [ ! -d "$1" ]; then
-	log_error "Directory $1 does not exist"
+if [ -z "${RUN_DIR_ARG:-}" ]; then
+	log_error "No run directory supplied"
+	echo "Usage: $0 [OPTIONS] /Path/to/run/dir/"
+	echo "Use --help for more information"
 	exit 128
 fi
 
-cd "$1"
+# Validate run directory
+if [ ! -d "$RUN_DIR_ARG" ]; then
+	log_error "Directory $RUN_DIR_ARG does not exist"
+	exit 128
+fi
+
+cd "$RUN_DIR_ARG"
 
 # Directories
 RUN_DIR=$(pwd)
@@ -124,20 +163,25 @@ log_info "Output file: $SLURM_FILE"
 JOBID_LIST="$JOBID $JOBID_LIST"
 JOBS_COUNT=$((JOBS_COUNT + 1))
 
-echo ""
-echo -e "${BOLD}${CYAN}==========================================${NC}"
-echo -e "${BOLD}${CYAN}   STEP 2/2: SUB-WORKFLOWS (subwf)${NC}"
-echo -e "${BOLD}${CYAN}==========================================${NC}"
+# Only submit sub-workflows if not in bchg-only mode
+if [ "$BCHG_ONLY" = false ]; then
+	echo ""
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+	echo -e "${BOLD}${CYAN}   STEP 2/2: SUB-WORKFLOWS (subwf)${NC}"
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
 
-WF_ID='subwf'
-SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+	WF_ID='subwf'
+	SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
 
-JOBID=$(sbatch --dependency=afterok:"${JOBID}" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_SUBWF)
+	JOBID=$(sbatch --dependency=afterok:"${JOBID}" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" $WF_SUBWF)
 
-log_success "Submitted batch job $JOBID (depends on previous job)"
-log_info "Output file: $SLURM_FILE"
-JOBID_LIST="$JOBID $JOBID_LIST"
-JOBS_COUNT=$((JOBS_COUNT + 1))
+	log_success "Submitted batch job $JOBID (depends on previous job)"
+	log_info "Output file: $SLURM_FILE"
+	JOBID_LIST="$JOBID $JOBID_LIST"
+	JOBS_COUNT=$((JOBS_COUNT + 1))
+else
+	log_info "Skipping sub-workflows (--bchg-only mode)"
+fi
 
 echo ""
 echo -e "${BOLD}${GREEN}==========================================${NC}"
