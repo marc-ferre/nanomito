@@ -236,7 +236,7 @@ if $DORADO_BIN basecaller $MODEL "$POD5_DIR" --recursive \
 	
 	log_success "Basecalling completed successfully"
 	log_info "Basecalling duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
-	log_info "Basecalling output: $BASECALL_BAM ($(numfmt --to=iec-i --suffix=B $BAM_SIZE 2>/dev/null || echo $BAM_SIZE bytes))"
+	log_info "Basecalling output: $BASECALL_BAM ($(numfmt --to=iec-i --suffix=B "$BAM_SIZE" 2>/dev/null || echo "$BAM_SIZE" bytes))"
 else
 	log_error "Basecalling failed with exit code $?"
 	exit 1
@@ -372,7 +372,8 @@ log_info "Organizing files into sample directories"
 declare -A BARCODE_ALIAS
 if [ -f "$SAMPLESHEET_FILE" ]; then
 	log_info "Reading sample sheet for alias mapping"
-	while IFS=, read -r protocol_run_id position_id flow_cell_id sample_id experiment_id flow_cell_product_code kit barcode alias type; do
+	# Read CSV: use _ prefix for unused variables to satisfy shellcheck
+	while IFS=, read -r _protocol_run_id _position_id _flow_cell_id _sample_id _experiment_id _flow_cell_product_code _kit barcode alias _type; do
 		# Skip header and empty lines
 		[[ "$barcode" == "barcode" ]] && continue
 		[[ -z "$barcode" ]] && continue
