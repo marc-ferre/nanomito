@@ -4,6 +4,25 @@ Last updated: 2025-10-27
 
 ## 🔴 High Priority
 
+### Configuration Management
+
+- [ ] **Create centralized configuration file for all workflow parameters**
+  - Extract all hardcoded paths from script headers into single config file
+  - Use YAML or shell-sourceable format (e.g., `config/nanomito.conf`)
+  - Include: reference paths, conda environments, binary locations, default parameters
+  - Add validation script to check config before workflow execution
+  - Update all workflows to source the config file
+  - Document config file structure and required variables
+
+- [ ] **Enhance submit_nanomito.sh to replace wf-subwf.sh functionality**
+  - Integrate sample detection logic directly into submit_nanomito.sh
+  - Auto-detect samples in fastq_pass/ directory
+  - Submit demultmt and modmito jobs for each detected sample
+  - Maintain job dependency management
+  - Add option to process specific samples only
+  - Deprecate wf-subwf.sh after migration
+  - Update documentation and usage examples
+
 ### Testing & Validation
 
 - [ ] Add unit tests for `preprocessing/create_pid_dict.py`
