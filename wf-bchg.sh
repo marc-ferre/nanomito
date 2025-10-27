@@ -199,28 +199,52 @@ echo ""
 log_info "Dorado version:"
 $DORADO_BIN --version
 
-log_step "3/5: BASECALLING & DEMULTIPLEXING"
+log_step "3/6: BASECALLING"
 STEP_START=$(date +%s)
 log_info "Starting basecalling..."
 BAM_DIR="$FASTQ_DIR/bam_output"
 mkdir -p "$BAM_DIR"
+BASECALL_BAM="$BAM_DIR/basecalls.bam"
 
 if $DORADO_BIN basecaller $MODEL "$POD5_DIR" --recursive \
 	--sample-sheet "$SAMPLESHEET_FILE" \
-	| $DORADO_BIN demux \
-	--kit-name $KIT \
-	--sample-sheet "$SAMPLESHEET_FILE" \
-	--output-dir "$BAM_DIR"; then
+	> "$BASECALL_BAM"; then
 	STEP_END=$(date +%s)
 	STEP_RUNTIME=$((STEP_END - STEP_START))
 	log_success "Basecalling completed successfully"
 	log_info "Basecalling duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
+	log_info "Basecalling output: $BASECALL_BAM"
 else
 	log_error "Basecalling failed with exit code $?"
 	exit 1
 fi
 
-log_info "Converting BAM to FASTQ..."
+log_step "4/6: DEMULTIPLEXING"
+STEP_START=$(date +%s)
+log_info "Starting demultiplexing..."
+DEMUX_DIR="$BAM_DIR/demux"
+mkdir -p "$DEMUX_DIR"
+
+if $DORADO_BIN demux \
+	--kit-name $KIT \
+	--sample-sheet "$SAMPLESHEET_FILE" \
+	--output-dir "$DEMUX_DIR" \
+	"$BASECALL_BAM"; then
+	STEP_END=$(date +%s)
+	STEP_RUNTIME=$((STEP_END - STEP_START))
+	log_success "Demultiplexing completed successfully"
+	log_info "Demultiplexing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
+else
+	log_error "Demultiplexing failed with exit code $?"
+	exit 1
+fi
+
+# Clean up basecalls.bam
+log_info "Cleaning up basecalls.bam..."
+rm -f "$BASECALL_BAM"
+log_success "Removed basecalls.bam"
+
+log_step "5/6: CONVERTING BAM TO FASTQ"
 CONVERT_START=$(date +%s)
 
 # Source Conda for Genouest cluster compute node
@@ -239,7 +263,7 @@ conda activate "$SAMTOOLS_ENV" || {
 
 # Convert each BAM file to FASTQ
 BAM_COUNT=0
-for BAM_FILE in "$BAM_DIR"/*.bam; do
+for BAM_FILE in "$DEMUX_DIR"/*.bam; do
 	[[ -e "$BAM_FILE" ]] || break
 	BASENAME=$(basename "$BAM_FILE" .bam)
 	samtools fastq "$BAM_FILE" > "$FASTQ_DIR/${BASENAME}.fastq"
@@ -255,7 +279,7 @@ log_info "Cleaning up BAM files..."
 rm -rf "$BAM_DIR"
 log_success "BAM files removed"
 
-log_step "4/5: COMPRESSION"
+log_step "6/6: COMPRESSION"
 STEP_START=$(date +%s)
 log_info "Compressing FASTQ files in $FASTQ_DIR"
 
@@ -296,7 +320,7 @@ STEP_RUNTIME=$((STEP_END - STEP_START))
 log_success "Compression completed"
 log_info "Compression duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
-log_step "5/5: ORGANIZATION"
+log_step "7/7: ORGANIZATION"
 STEP_START=$(date +%s)
 log_info "Organizing files into sample directories"
 cd "$FASTQ_DIR" || exit
