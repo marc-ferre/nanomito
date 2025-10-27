@@ -106,7 +106,7 @@ PROCESS_DIR="$RUN_DIR/processing"
 # Prefixes
 RUN_ID=$(basename "$RUN_DIR")
 SLURM_PRE="slurm-$RUN_ID"
-SLURM_EXT='log'
+SLURM_EXT='out'
 
 # Workflow files
 WF_BCHG='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/workflows/wf-bchg.sh'
