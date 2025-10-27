@@ -249,19 +249,39 @@ log_success "Removed basecalls.bam"
 log_step "5/6: CONVERTING BAM TO FASTQ"
 CONVERT_START=$(date +%s)
 
-# Load samtools module on Genouest
-if command -v module &> /dev/null; then
+# Load samtools - try multiple methods
+SAMTOOLS_CMD="samtools"
+
+# Method 1: Try loading module (Genouest HPC)
+if [ -f /local/env/envsamtools.sh ]; then
+    log_info "Loading samtools via envsamtools.sh"
+    # shellcheck disable=SC1091
+    . /local/env/envsamtools.sh 2>/dev/null || true
+elif command -v module &> /dev/null; then
     log_info "Loading samtools module"
-    module load samtools || log_warning "Failed to load samtools module"
+    module load samtools 2>/dev/null || true
+fi
+
+# Method 2: Check if samtools is available
+if ! command -v samtools &> /dev/null; then
+    log_warning "samtools not in PATH, trying common locations..."
+    # Try common samtools locations
+    for SAMTOOLS_PATH in /usr/bin/samtools /usr/local/bin/samtools /opt/samtools/bin/samtools; do
+        if [ -x "$SAMTOOLS_PATH" ]; then
+            SAMTOOLS_CMD="$SAMTOOLS_PATH"
+            log_success "Found samtools at: $SAMTOOLS_CMD"
+            break
+        fi
+    done
 fi
 
 # Verify samtools is available
-if ! command -v samtools &> /dev/null; then
+if ! command -v $SAMTOOLS_CMD &> /dev/null && [ ! -x "$SAMTOOLS_CMD" ]; then
     log_error "samtools command not found"
     log_info "Please install samtools or load the appropriate module"
     exit 1
 fi
-log_success "samtools is available: $(samtools --version | head -1)"
+log_success "samtools is available: $($SAMTOOLS_CMD --version 2>&1 | head -1)"
 
 # Convert each BAM file to FASTQ
 log_info "Looking for BAM files in: $DEMUX_DIR"
@@ -272,7 +292,7 @@ BAM_COUNT=0
 while IFS= read -r -d '' BAM_FILE; do
 	BASENAME=$(basename "$BAM_FILE" .bam)
 	log_info "Converting: $(basename "$BAM_FILE") -> ${BASENAME}.fastq"
-	samtools fastq "$BAM_FILE" > "$FASTQ_DIR/${BASENAME}.fastq"
+	$SAMTOOLS_CMD fastq "$BAM_FILE" > "$FASTQ_DIR/${BASENAME}.fastq"
 	((BAM_COUNT++)) || true
 done < <(find "$DEMUX_DIR" -name "*.bam" -type f -print0)
 
