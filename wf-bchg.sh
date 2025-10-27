@@ -206,14 +206,28 @@ BAM_DIR="$FASTQ_DIR/bam_output"
 mkdir -p "$BAM_DIR"
 BASECALL_BAM="$BAM_DIR/basecalls.bam"
 
+# Basecalling without sample-sheet to write single BAM file to stdout
+# The sample-sheet will be used in the demux step instead
 if $DORADO_BIN basecaller $MODEL "$POD5_DIR" --recursive \
-	--sample-sheet "$SAMPLESHEET_FILE" \
 	> "$BASECALL_BAM"; then
 	STEP_END=$(date +%s)
 	STEP_RUNTIME=$((STEP_END - STEP_START))
+	
+	# Force flush and verify file exists
+	sync
+	if [ ! -f "$BASECALL_BAM" ]; then
+		log_error "Basecalling completed but output file not found: $BASECALL_BAM"
+		exit 1
+	fi
+	BAM_SIZE=$(stat -f%z "$BASECALL_BAM" 2>/dev/null || stat -c%s "$BASECALL_BAM" 2>/dev/null)
+	if [ "$BAM_SIZE" -eq 0 ]; then
+		log_error "Basecalling output file is empty: $BASECALL_BAM"
+		exit 1
+	fi
+	
 	log_success "Basecalling completed successfully"
 	log_info "Basecalling duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
-	log_info "Basecalling output: $BASECALL_BAM"
+	log_info "Basecalling output: $BASECALL_BAM ($(numfmt --to=iec-i --suffix=B $BAM_SIZE 2>/dev/null || echo $BAM_SIZE bytes))"
 else
 	log_error "Basecalling failed with exit code $?"
 	exit 1
@@ -237,15 +251,20 @@ if $DORADO_BIN demux \
 	# Count demuxed BAM files
 	DEMUX_BAM_COUNT=$(find "$DEMUX_DIR" -name "*.bam" -type f | wc -l)
 	log_info "Demuxed BAM files: $DEMUX_BAM_COUNT"
+	
+	# Only clean up basecalls.bam if demux created files
+	if [ "$DEMUX_BAM_COUNT" -gt 0 ]; then
+		log_info "Cleaning up basecalls.bam..."
+		rm -f "$BASECALL_BAM"
+		log_success "Removed basecalls.bam"
+	else
+		log_warning "No demuxed files created, keeping basecalls.bam for inspection"
+	fi
 else
 	log_error "Demultiplexing failed with exit code $?"
+	log_warning "Keeping basecalls.bam for inspection"
 	exit 1
 fi
-
-# Clean up basecalls.bam
-log_info "Cleaning up basecalls.bam..."
-rm -f "$BASECALL_BAM"
-log_success "Removed basecalls.bam"
 
 log_step "5/6: CONVERTING BAM TO FASTQ"
 CONVERT_START=$(date +%s)
