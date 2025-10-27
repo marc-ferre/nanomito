@@ -20,52 +20,59 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                     submit_nanomito.sh                          │
-│              Main workflow submission orchestrator               │
+│         Main workflow submission orchestrator with options       │
+│         --bchg-only: Only basecalling/demux                     │
+│         --skip-bchg: Skip basecalling, only analysis            │
 └──────────────────┬──────────────────────────────────────────────┘
                    │
-        ┌──────────┴──────────┐
-        ▼                     ▼
-┌───────────────┐     ┌───────────────┐
-│  wf-bchg.sh   │     │ wf-subwf.sh   │
-│  Basecalling  │────▶│  Per-sample   │
-│  & Demux      │     │  orchestrator │
-└───────────────┘     └───────┬───────┘
-                              │
-                   ┌──────────┴──────────┐
-                   ▼                     ▼
-           ┌──────────────┐      ┌──────────────┐
-           │wf-demultmt.sh│      │wf-modmito.sh │
-           │ MT reads     │─────▶│ Modification │
-           │ demultiplex  │      │ analysis     │
-           └──────────────┘      └──────────────┘
+        ┌──────────┴──────────┬──────────────────────────┐
+        ▼                     ▼                          ▼
+┌───────────────┐     ┌──────────────┐         ┌──────────────┐
+│  wf-bchg.sh   │     │wf-demultmt.sh│         │wf-modmito.sh │
+│  Basecalling  │────▶│ MT reads     │────────▶│ Modification │
+│  & Demux      │     │ demultiplex  │         │ analysis     │
+└───────────────┘     │ (per sample) │         │ (per sample) │
+                      └──────────────┘         └──────────────┘
 ```
 
 ## Workflows Description
 
 ### 1. **submit_nanomito.sh**
 
-Main entry point for workflow submission. Orchestrates the entire pipeline execution.
+Main entry point for workflow submission. Orchestrates the entire pipeline execution and directly submits all jobs with proper dependencies.
 
 **Usage:**
 
 ```bash
+# Submit complete pipeline (basecalling + analysis)
 ./submit_nanomito.sh /path/to/run/directory
+
+# Only basecalling and demultiplexing
+./submit_nanomito.sh --bchg-only /path/to/run/directory
+
+# Skip basecalling, only submit analysis workflows (for pre-existing FASTQ files)
+./submit_nanomito.sh --skip-bchg /path/to/run/directory
+
+# Display help
+./submit_nanomito.sh --help
 ```
+
+**Features:**
+
+- Discovers samples in `fastq_pass/` directory
+- Submits demultmt and modmito jobs for each sample
+- Manages job dependencies automatically
+- Supports selective workflow execution with options
 
 ### 2. **wf-bchg.sh** (Basecalling & Demultiplexing)
 
 - GPU-accelerated basecalling using Dorado
 - Automatic sample demultiplexing by barcodes
+- Sample sheet alias mapping for directory organization
 - FASTQ compression and organization
 - **Resources:** 1 GPU, 12 CPUs, 50GB RAM
 
-### 3. **wf-subwf.sh** (Sub-workflow Orchestrator)
-
-- Automatically detects samples in `fastq_pass/`
-- Submits demultmt and modmito jobs for each sample
-- Manages job dependencies
-
-### 4. **wf-demultmt.sh** (Mitochondrial Reads Demultiplexing)
+### 3. **wf-demultmt.sh** (Mitochondrial Reads Demultiplexing)
 
 - Maps reads to reference genome
 - Demultiplexes mitochondrial reads by patient
@@ -75,14 +82,14 @@ Main entry point for workflow submission. Orchestrates the entire pipeline execu
 
 **Note:** This workflow expects a `pid_dict.tsv` file created during preprocessing (see `preprocessing/wf-getmt.sh`) that maps read IDs to their parent IDs for proper Pod5 file filtering.
 
-### 5. **wf-modmito.sh** (Modification Analysis)
+### 4. **wf-modmito.sh** (Modification Analysis)
 
 - Duplex basecalling with modification calling (5mC, 5hmC, 6mA)
 - BAM alignment and sorting
 - BedMethyl output generation
 - **Resources:** 1 GPU, 12 CPUs, 50GB RAM
 
-### 6. **archiving.sh**
+### 5. **archiving.sh**
 
 Automated run archiving to project storage.
 
