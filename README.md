@@ -366,7 +366,12 @@ If you use Nanomito in your research, please cite:
 
 ## Version History
 
-- **v25.10.27** - Added preprocessing workflow with PID dictionary creation
+- **v25.10.27** - Major architecture simplification and cleanup
+  - Integrated `wf-subwf.sh` functionality directly into `submit_nanomito.sh`
+  - Added `--skip-bchg` and `--bchg-only` options for flexible workflow execution
+  - Removed Archive/ directory (all history available via Git)
+  - Renamed repository directory from `workflows/` to `nanomito/`
+  - Added preprocessing workflow with PID dictionary creation
   - New `preprocessing/wf-getmt.sh` for chrM read extraction
   - New `preprocessing/create_pid_dict.py` for read-to-parent ID mapping
   - Updated `get_chrMpid.py` to use dictionary files
@@ -374,6 +379,23 @@ If you use Nanomito in your research, please cite:
   - Improved error handling and logging
 - **v25.10.26** - Major improvements: robust error handling, comprehensive documentation
 - **v25.05.18** - Initial release
+
+## Accessing Historical Versions
+
+All previous versions and deprecated scripts are accessible through Git history:
+
+```bash
+# View file history
+git log -- path/to/file.sh
+
+# View a specific old version
+git show <commit-hash>:path/to/file.sh
+
+# Restore an old version if needed
+git checkout <commit-hash> -- path/to/file.sh
+```
+
+Deprecated scripts like `wf-subwf.sh` are available in commit history before v25.10.27.
 
 ---
 

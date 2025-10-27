@@ -7,7 +7,7 @@
 
 ✅ **COMPLETED** - Integration successfully merged into `submit_nanomito.sh` (2025-10-27)
 
-🗂️ **ARCHIVED** - `wf-subwf.sh` moved to `Archive/` directory for historical reference
+�️ **REMOVED** - `wf-subwf.sh` and all Archive/ directory deleted (available in Git history)
 
 ## Summary
 
@@ -111,16 +111,16 @@ submit_nanomito.sh → wf-bchg.sh (Job 1)
 ## Migration Notes
 
 ### For Existing Workflows
-- `wf-subwf.sh` is now **deprecated** and archived to `Archive/` directory
-- Still functional for backward compatibility if needed
+- `wf-subwf.sh` has been **removed** from the repository
+- Still accessible in Git history (commits before v25.10.27)
 - All new submissions should use `submit_nanomito.sh` directly
-- Old scripts in queue will continue to work
+- To restore old version if needed: `git show 6fe53ae:Archive/wf-subwf.sh`
 
 ### Cleanup Tasks
 - [x] Update ~/nanomito/ on Genouest with `git pull` ✅
-- [x] Archive `wf-subwf.sh` to Archive/ directory ✅
+- [x] Remove Archive/ directory (using Git history instead) ✅
 - [x] Update TODO.md to mark integration complete ✅
-- [x] Update README.md to remove wf-subwf.sh references ✅
+- [x] Update README.md with Git history access instructions ✅
 
 ## Benefits
 
