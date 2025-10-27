@@ -101,6 +101,7 @@ KIT='SQK-NBD114-24'
 # Binary and Conda env
 # shellcheck disable=SC2034  # DORADO_BIN used in basecalling pipeline below
 DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado'
+BCHG_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_bchg'
 
 # Logging helper functions
 log_step() {
@@ -249,39 +250,27 @@ log_success "Removed basecalls.bam"
 log_step "5/6: CONVERTING BAM TO FASTQ"
 CONVERT_START=$(date +%s)
 
-# Load samtools - try multiple methods
-SAMTOOLS_CMD="samtools"
-
-# Method 1: Try loading module (Genouest HPC)
-if [ -f /local/env/envsamtools.sh ]; then
-    log_info "Loading samtools via envsamtools.sh"
-    # shellcheck disable=SC1091
-    . /local/env/envsamtools.sh 2>/dev/null || true
-elif command -v module &> /dev/null; then
-    log_info "Loading samtools module"
-    module load samtools 2>/dev/null || true
+# Source Conda for Genouest cluster compute node
+if [ -f /local/env/envconda.sh ]; then
+    log_info "Sourcing conda environment"
+    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
+    . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
 fi
 
-# Method 2: Check if samtools is available
-if ! command -v samtools &> /dev/null; then
-    log_warning "samtools not in PATH, trying common locations..."
-    # Try common samtools locations
-    for SAMTOOLS_PATH in /usr/bin/samtools /usr/local/bin/samtools /opt/samtools/bin/samtools; do
-        if [ -x "$SAMTOOLS_PATH" ]; then
-            SAMTOOLS_CMD="$SAMTOOLS_PATH"
-            log_success "Found samtools at: $SAMTOOLS_CMD"
-            break
-        fi
-    done
-fi
+# Activate conda environment for samtools
+log_info "Activating conda environment: $BCHG_ENV"
+conda activate "$BCHG_ENV" || {
+    log_error "Failed to activate conda environment: $BCHG_ENV"
+    log_error "Please create it with: conda create -n env_bchg -c bioconda samtools -y"
+    exit 1
+}
 
 # Verify samtools is available
-if ! command -v $SAMTOOLS_CMD &> /dev/null && [ ! -x "$SAMTOOLS_CMD" ]; then
-    log_error "samtools command not found"
-    log_info "Please install samtools or load the appropriate module"
+if ! command -v samtools &> /dev/null; then
+    log_error "samtools not found in conda environment"
     exit 1
 fi
-log_success "samtools is available: $($SAMTOOLS_CMD --version 2>&1 | head -1)"
+log_success "samtools is available: $(samtools --version 2>&1 | head -1)"
 
 # Convert each BAM file to FASTQ
 log_info "Looking for BAM files in: $DEMUX_DIR"
@@ -292,7 +281,7 @@ BAM_COUNT=0
 while IFS= read -r -d '' BAM_FILE; do
 	BASENAME=$(basename "$BAM_FILE" .bam)
 	log_info "Converting: $(basename "$BAM_FILE") -> ${BASENAME}.fastq"
-	$SAMTOOLS_CMD fastq "$BAM_FILE" > "$FASTQ_DIR/${BASENAME}.fastq"
+	samtools fastq "$BAM_FILE" > "$FASTQ_DIR/${BASENAME}.fastq"
 	((BAM_COUNT++)) || true
 done < <(find "$DEMUX_DIR" -name "*.bam" -type f -print0)
 
