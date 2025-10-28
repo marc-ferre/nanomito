@@ -232,7 +232,6 @@ if [ "$BCHG_ONLY" = false ]; then
 		SAMPLE_ID=$(basename "$sample")
 		log_info "Processing sample: $SAMPLE_ID"
 
-		SAMPLE_DIR="$FASTQ_DIR/$SAMPLE_ID"
 		SAMPLE_PROCESS_DIR="$PROCESS_DIR/$SAMPLE_ID"
 
 		# Create sample processing directory
@@ -246,9 +245,9 @@ if [ "$BCHG_ONLY" = false ]; then
 		
 		# Add dependency on bchg job if it was submitted
 		if [ -n "$BCHG_JOBID" ]; then
-			DEMULTMT_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable --chdir="$SAMPLE_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_DEMULTMT")
+			DEMULTMT_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_DEMULTMT" "$SAMPLE_ID")
 		else
-			DEMULTMT_JOBID=$(sbatch --parsable --chdir="$SAMPLE_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_DEMULTMT")
+			DEMULTMT_JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_DEMULTMT" "$SAMPLE_ID")
 		fi
 
 		log_success "  └─ demultmt: job $DEMULTMT_JOBID"
@@ -260,7 +259,7 @@ if [ "$BCHG_ONLY" = false ]; then
 		WF_ID='modmito'
 		SLURM_FILE="$SAMPLE_PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
 
-		MODMITO_JOBID=$(sbatch --dependency=afterok:"$DEMULTMT_JOBID" --parsable --chdir="$SAMPLE_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" "$WF_MODMITO")
+		MODMITO_JOBID=$(sbatch --dependency=afterok:"$DEMULTMT_JOBID" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" "$WF_MODMITO" "$SAMPLE_ID")
 
 		log_success "  └─ modmito:  job $MODMITO_JOBID (depends on $DEMULTMT_JOBID)"
 		JOBID_LIST="$MODMITO_JOBID $JOBID_LIST"
