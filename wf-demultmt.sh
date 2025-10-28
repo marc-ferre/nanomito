@@ -646,8 +646,8 @@ log_info "Determining haplogroups with haplocheck..."
 haplocheck --raw --out "$HPLCHK_PREFIX" "$ANNOTMT_VCF_FILE"
 check_file "$HPLCHK_RAW_FILE"
 
-# Extract haplogroup from results
-HAPLOGROUP=$(tail -n1 "$HPLCHK_RAW_FILE" | cut -f2)
+# Extract haplogroup from results (column 10 = Major Haplogroup)
+HAPLOGROUP=$(tail -n1 "$HPLCHK_RAW_FILE" | cut -f10)
 log_success "Haplogroup detected: $HAPLOGROUP"
 
 log_info "Cleaning up intermediate haplocheck files..."
