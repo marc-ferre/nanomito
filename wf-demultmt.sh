@@ -519,19 +519,19 @@ log_success "POD5 file created (size: $POD5_SIZE)"
 
 # Extract and display pod5 filter statistics
 READS_REQUESTED=$(echo "$POD5_FILTER_OUTPUT" | grep "Parsed.*reads_ids from" | awk '{print $2}')
-READS_FOUND=$(echo "$POD5_FILTER_OUTPUT" | grep "Found.*read_ids from" | awk '{print $2}')
+READS_TRANSFERRED=$(echo "$POD5_FILTER_OUTPUT" | grep "Calculated.*transfers" | awk '{print $2}')
 
-if [ -n "$READS_REQUESTED" ] && [ -n "$READS_FOUND" ]; then
-	if [ "$READS_REQUESTED" -eq "$READS_FOUND" ]; then
-		log_success "All $READS_FOUND reads successfully retrieved from Pod5 files"
+if [ -n "$READS_REQUESTED" ] && [ -n "$READS_TRANSFERRED" ]; then
+	if [ "$READS_REQUESTED" -eq "$READS_TRANSFERRED" ]; then
+		log_success "All $READS_TRANSFERRED reads successfully retrieved from Pod5 files"
 	else
-		READS_MISSING=$((READS_REQUESTED - READS_FOUND))
+		READS_MISSING=$((READS_REQUESTED - READS_TRANSFERRED))
 		echo ""
 		echo "=========================================="
 		echo "WARNING: POD5 FILTERING INCOMPLETE"
 		echo "=========================================="
 		log_warning "Requested reads: $READS_REQUESTED"
-		log_warning "Found in Pod5:   $READS_FOUND"
+		log_warning "Retrieved reads: $READS_TRANSFERRED"
 		log_warning "Missing reads:   $READS_MISSING"
 		log_warning "Check the Missing IDs in the output above"
 		echo "=========================================="
