@@ -555,7 +555,7 @@ cd "$VARCALL_DIR" || exit
 check_file "$BALDUR_VCF_FILE"
 
 log_info "Decompressing VCF file..."
-gunzip "$BALDUR_VCF_FILE"
+gunzip -f "$BALDUR_VCF_FILE"
 BALDUR_VCF_FILE=$(basename "$BALDUR_VCF_FILE" .gz)
 check_file "$BALDUR_VCF_FILE"
 
