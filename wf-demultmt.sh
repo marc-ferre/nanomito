@@ -461,14 +461,38 @@ log_info "Retrieving matching reads (selection strategy: $SELECT)..."
 
 # Get unique parent IDs (pid) of reads aligned to chrM
 # Using the read_id→parent_id dictionary created during preprocessing
-conda run -p "$GETMT_ENV" python "$CHRMPIDS_SCRIPT" -b "$SELECT_DIR" -p "$POD5_DIR" -d "$PID_DICT_FILE" -o "$IDS_FILE" || {
+# Capture output to check for missing reads
+CHRMPIDS_OUTPUT=$(conda run -p "$GETMT_ENV" python "$CHRMPIDS_SCRIPT" -b "$SELECT_DIR" -p "$POD5_DIR" -d "$PID_DICT_FILE" -o "$IDS_FILE" 2>&1)
+CHRMPIDS_EXIT=$?
+
+# Display the output
+echo "$CHRMPIDS_OUTPUT"
+
+# Check if script failed
+if [ $CHRMPIDS_EXIT -ne 0 ]; then
 	log_error "Failed to retrieve read IDs from BAM files"
 	exit 1
-}
+fi
+
 check_file "$IDS_FILE"
 
 READ_IDS_COUNT=$(wc -l < "$IDS_FILE")
 log_success "Retrieved $READ_IDS_COUNT read IDs"
+
+# Check for missing reads and display warning if any
+MISSING_COUNT=$(echo "$CHRMPIDS_OUTPUT" | grep "Missing reads pIDs:" | awk '{print $NF}')
+if [ -n "$MISSING_COUNT" ] && [ "$MISSING_COUNT" -gt 0 ]; then
+	echo ""
+	echo "=========================================="
+	echo "WARNING: MISSING POD5 READS DETECTED"
+	echo "=========================================="
+	log_warning "$MISSING_COUNT read(s) aligned to chrM have no corresponding Pod5 file in pod5_chrM/"
+	log_warning "These reads were basecalled but their raw Pod5 data is not available"
+	log_warning "Missing read IDs are listed above in the PROCESSING SUMMARY"
+	log_warning "Continuing with pod5 filter --missing-ok flag"
+	echo "=========================================="
+	echo ""
+fi
 
 conda activate $POD5_ENV
 
@@ -476,11 +500,44 @@ check_dir "$POD5_DIR"
 log_info "POD5 version: $(pod5 --version 2>&1 | head -n1)"
 
 log_info "Filtering POD5 files..."
-pod5 filter --missing-ok --recursive --force-overwrite --threads "$SLURM_CPUS_PER_TASK" "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE"
+POD5_FILTER_OUTPUT=$(pod5 filter --missing-ok --recursive --force-overwrite --threads "$SLURM_CPUS_PER_TASK" "$POD5_DIR" -i "$IDS_FILE" -o "$DEMULT_POD5_FILE" 2>&1)
+POD5_FILTER_EXIT=$?
+
+# Display pod5 filter output
+echo "$POD5_FILTER_OUTPUT"
+
+# Check if pod5 filter failed
+if [ $POD5_FILTER_EXIT -ne 0 ]; then
+	log_error "Failed to filter Pod5 files"
+	exit 1
+fi
+
 check_file "$DEMULT_POD5_FILE"
 
 POD5_SIZE=$(du -sh "$DEMULT_POD5_FILE" | cut -f1)
 log_success "POD5 file created (size: $POD5_SIZE)"
+
+# Extract and display pod5 filter statistics
+READS_REQUESTED=$(echo "$POD5_FILTER_OUTPUT" | grep "Parsed.*reads_ids from" | awk '{print $2}')
+READS_FOUND=$(echo "$POD5_FILTER_OUTPUT" | grep "Found.*read_ids from" | awk '{print $2}')
+
+if [ -n "$READS_REQUESTED" ] && [ -n "$READS_FOUND" ]; then
+	if [ "$READS_REQUESTED" -eq "$READS_FOUND" ]; then
+		log_success "All $READS_FOUND reads successfully retrieved from Pod5 files"
+	else
+		READS_MISSING=$((READS_REQUESTED - READS_FOUND))
+		echo ""
+		echo "=========================================="
+		echo "WARNING: POD5 FILTERING INCOMPLETE"
+		echo "=========================================="
+		log_warning "Requested reads: $READS_REQUESTED"
+		log_warning "Found in Pod5:   $READS_FOUND"
+		log_warning "Missing reads:   $READS_MISSING"
+		log_warning "Check the Missing IDs in the output above"
+		echo "=========================================="
+		echo ""
+	fi
+fi
 
 conda deactivate
 
