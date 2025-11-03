@@ -21,25 +21,38 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 ┌─────────────────────────────────────────────────────────────────┐
 │                     submit_nanomito.sh                          │
 │        Main workflow submission orchestrator with options       │
-│            --bchg-only: Only basecalling/demux                  │
-│            --skip-bchg: Skip basecalling, only analysis         │
+│   --bchg-only / --skip-bchg / --demultmt-only / --modmito-only │
 └──────────────────┬──────────────────────────────────────────────┘
                    │
-        ┌──────────┴──────────┬──────────────────────────┐
-        ▼                     ▼                          ▼
-┌───────────────┐     ┌──────────────┐         ┌──────────────┐
-│  wf-bchg.sh   │     │wf-demultmt.sh│         │wf-modmito.sh │
-│  Basecalling  │────▶│ MT reads     │────────▶│ Modification │
-│  & Demux      │     │ demultiplex  │         │ analysis     │
-└───────────────┘     │ (per sample) │         │ (per sample) │
-                      └──────────────┘         └──────────────┘
+        ┌──────────┴──────────┐
+        ▼                     ▼
+┌───────────────┐     ┌──────────────┐
+│  wf-bchg.sh   │     │ wf-subwf.sh  │
+│  Basecalling  │────▶│ Discovers    │
+│  & Demux      │     │ samples      │
+└───────────────┘     └──────┬───────┘
+                             │
+                ┌────────────┴────────────┐
+                ▼                         ▼
+        ┌──────────────┐         ┌──────────────┐
+        │wf-demultmt.sh│         │wf-modmito.sh │
+        │ MT reads     │────────▶│ Modification │
+        │ demultiplex  │         │ analysis     │
+        │ (per sample) │         │ (per sample) │
+        └──────────────┘         └──────────────┘
 ```
+
+**Two-step submission architecture:**
+1. `submit_nanomito.sh` submits `wf-bchg.sh` and `wf-subwf.sh`
+2. `wf-subwf.sh` waits for basecalling completion, discovers samples, then submits analysis jobs
+
+This design ensures dynamic sample discovery after basecalling creates the sample directories.
 
 ## Workflows Description
 
 ### 1. **submit_nanomito.sh**
 
-Main entry point for workflow submission. Orchestrates the entire pipeline execution and directly submits all jobs with proper dependencies.
+Main entry point for workflow submission. Orchestrates the entire pipeline by submitting basecalling and the intermediate orchestrator workflow.
 
 **Usage:**
 
@@ -53,18 +66,49 @@ Main entry point for workflow submission. Orchestrates the entire pipeline execu
 # Skip basecalling, only submit analysis workflows (for pre-existing FASTQ files)
 ./submit_nanomito.sh --skip-bchg /path/to/run/directory
 
+# Re-run only demultmt workflows
+./submit_nanomito.sh --skip-bchg --demultmt-only /path/to/run/directory
+
+# Re-run only modmito workflows
+./submit_nanomito.sh --skip-bchg --modmito-only /path/to/run/directory
+
+# Run full pipeline but skip modmito
+./submit_nanomito.sh --skip-modmito /path/to/run/directory
+
 # Display help
 ./submit_nanomito.sh --help
 ```
 
+**Options:**
+
+- `--bchg-only` - Only submit basecalling/demux workflow (wf-bchg.sh)
+- `--skip-bchg` - Skip basecalling/demux, only submit analysis workflows
+- `--demultmt-only` - Only submit demultmt workflow (requires --skip-bchg)
+- `--skip-demultmt` - Skip demultmt workflow, only submit modmito
+- `--modmito-only` - Only submit modmito workflow (requires --skip-bchg)
+- `--skip-modmito` - Skip modmito workflow, only submit demultmt
+- `--help, -h` - Display help message
+
 **Features:**
 
-- Discovers samples in `fastq_pass/` directory
-- Submits demultmt and modmito jobs for each sample
+- Two-step submission architecture for dynamic sample discovery
+- Submits `wf-subwf.sh` which discovers samples after basecalling
 - Manages job dependencies automatically
-- Supports selective workflow execution with options
+- Supports selective workflow execution with filtering options
+- Validation of option compatibility
 
-### 2. **wf-bchg.sh** (Basecalling & Demultiplexing)
+### 2. **wf-subwf.sh** (Workflow Orchestrator)
+
+Intermediate orchestrator that dynamically discovers samples and submits analysis jobs.
+
+- Waits for basecalling completion via SLURM dependencies
+- Discovers all samples in `fastq_pass/` directory
+- Submits demultmt and modmito jobs for each discovered sample
+- Respects filtering options (--demultmt-only, --modmito-only, etc.)
+- Creates proper job dependencies between demultmt and modmito
+- **Resources:** Minimal (orchestration only, < 1 minute runtime)
+
+### 3. **wf-bchg.sh** (Basecalling & Demultiplexing)
 
 - GPU-accelerated basecalling using Dorado
 - Automatic sample demultiplexing by barcodes
@@ -72,7 +116,7 @@ Main entry point for workflow submission. Orchestrates the entire pipeline execu
 - FASTQ compression and organization
 - **Resources:** 1 GPU, 12 CPUs, 50GB RAM
 
-### 3. **wf-demultmt.sh** (Mitochondrial Reads Demultiplexing)
+### 4. **wf-demultmt.sh** (Mitochondrial Reads Demultiplexing)
 
 - Maps reads to reference genome
 - Demultiplexes mitochondrial reads by patient
@@ -82,14 +126,14 @@ Main entry point for workflow submission. Orchestrates the entire pipeline execu
 
 **Note:** This workflow expects a `pid_dict.tsv` file created during preprocessing (see `preprocessing/wf-getmt.sh`) that maps read IDs to their parent IDs for proper Pod5 file filtering.
 
-### 4. **wf-modmito.sh** (Modification Analysis)
+### 5. **wf-modmito.sh** (Modification Analysis)
 
 - Duplex basecalling with modification calling (5mC, 5hmC, 6mA)
 - BAM alignment and sorting
 - BedMethyl output generation
 - **Resources:** 1 GPU, 12 CPUs, 50GB RAM
 
-### 5. **archiving.sh**
+### 6. **archiving.sh**
 
 Automated run archiving to project storage.
 
@@ -199,19 +243,50 @@ cd /mnt/c/data/your_run_directory
 # Navigate to your run directory
 cd /scratch/username/workbench/run_directory
 
-# Submit the complete workflow
+# Submit the complete workflow (basecalling + all analysis)
 /path/to/nanomito/submit_nanomito.sh .
+
+# Only basecalling and demultiplexing
+/path/to/nanomito/submit_nanomito.sh --bchg-only .
+
+# Skip basecalling, run all analysis workflows
+/path/to/nanomito/submit_nanomito.sh --skip-bchg .
 ```
 
+### Advanced Workflow Filtering
+
+Selective workflow execution is useful for re-running specific parts of the analysis:
+
+```bash
+# Re-run only demultmt workflows (e.g., after changing read selection strategy)
+/path/to/nanomito/submit_nanomito.sh --skip-bchg --demultmt-only .
+
+# Re-run only modmito workflows (e.g., demultmt already completed)
+/path/to/nanomito/submit_nanomito.sh --skip-bchg --modmito-only .
+
+# Run complete pipeline but skip modmito (e.g., only need demultiplexed reads)
+/path/to/nanomito/submit_nanomito.sh --skip-modmito .
+
+# Run complete pipeline but skip demultmt (e.g., only need modification analysis)
+/path/to/nanomito/submit_nanomito.sh --skip-demultmt .
+```
+
+**Note:** The `--demultmt-only` and `--modmito-only` options require `--skip-bchg` because they assume samples already exist in `fastq_pass/`.
+
 ### Manual Step Execution
+
+For debugging or custom workflows, you can submit individual jobs manually:
 
 ```bash
 # Submit only basecalling & demux
 sbatch --chdir=/path/to/run /path/to/nanomito/wf-bchg.sh
 
-# Process a specific sample directly (after basecalling)
-sbatch --chdir=/path/to/run/fastq_pass/barcode09 /path/to/nanomito/wf-demultmt.sh
-sbatch --chdir=/path/to/run/fastq_pass/barcode09 /path/to/nanomito/wf-modmito.sh
+# Submit the orchestrator to discover and process all samples
+sbatch --chdir=/path/to/run /path/to/nanomito/wf-subwf.sh
+
+# Process a specific sample directly (not recommended, use submit_nanomito.sh instead)
+sbatch --chdir=/path/to/run /path/to/nanomito/wf-demultmt.sh SAMPLE_ID
+sbatch --chdir=/path/to/run /path/to/nanomito/wf-modmito.sh SAMPLE_ID
 ```
 
 ### Monitoring Jobs
@@ -366,8 +441,18 @@ If you use Nanomito in your research, please cite:
 
 ## Version History
 
+- **v1.0.0** (2025-11-03) - Production release with architecture refinement
+  - **BREAKING:** Restored two-step workflow architecture with `wf-subwf.sh`
+  - Added workflow filtering options: `--demultmt-only`, `--skip-demultmt`, `--modmito-only`, `--skip-modmito`
+  - Fixed dynamic sample discovery: `wf-subwf.sh` discovers samples after basecalling completes
+  - Improved option validation and help messages
+  - Enhanced logging to show active workflow modes
+  - Repository structure: maintained `nanomito/` directory name
+  - All Dorado 1.2.0 compatibility fixes validated
+  - Tested end-to-end on production data (4 samples, all haplogroups detected)
+  
 - **v25.10.27** - Major architecture simplification and cleanup
-  - Integrated `wf-subwf.sh` functionality directly into `submit_nanomito.sh`
+  - Integrated `wf-subwf.sh` functionality directly into `submit_nanomito.sh` (reverted in v1.0.0)
   - Added `--skip-bchg` and `--bchg-only` options for flexible workflow execution
   - Removed Archive/ directory (all history available via Git)
   - Renamed repository directory from `workflows/` to `nanomito/`
@@ -377,12 +462,14 @@ If you use Nanomito in your research, please cite:
   - Updated `get_chrMpid.py` to use dictionary files
   - Fixed SIGPIPE errors in `wf-demultmt.sh`
   - Improved error handling and logging
+  
 - **v25.10.26** - Major improvements: robust error handling, comprehensive documentation
+
 - **v25.05.18** - Initial release
 
 ## Accessing Historical Versions
 
-All previous versions and deprecated scripts are accessible through Git history:
+All previous versions and architectural variations are accessible through Git history:
 
 ```bash
 # View file history
@@ -395,7 +482,12 @@ git show <commit-hash>:path/to/file.sh
 git checkout <commit-hash> -- path/to/file.sh
 ```
 
-Deprecated scripts like `wf-subwf.sh` are available in commit history before v25.10.27.
+**Notable commits:**
+
+- **v1.0.0** (current): Two-step architecture with `wf-subwf.sh` for dynamic sample discovery
+- **8f50c84**: Refactored to restore `wf-subwf.sh` workflow
+- **6fe53ae**: Single-step architecture (samples discovered in `submit_nanomito.sh`)
+- **3983d5a**: Original two-step architecture before temporary simplification
 
 ---
 
