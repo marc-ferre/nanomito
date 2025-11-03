@@ -100,7 +100,7 @@ SELECT_DIR="$OUT_DIR/select-$SELECT"
 # MODBASE_DIR="$OUT_DIR/modbase"
 
 # Load global configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
 
 if [ ! -f "$CONFIG_FILE" ]; then
