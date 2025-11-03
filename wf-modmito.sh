@@ -101,15 +101,20 @@ SELECT_DIR="$OUT_DIR/select-$SELECT"
 
 # Load global configuration
 # Get absolute path to script directory (works even with relative paths and symlinks)
-# Use BASH_SOURCE when available (sbatch), fallback to $0 for direct execution
-SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
-if [ -L "$SCRIPT_PATH" ]; then
-    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+# Use NANOMITO_DIR if set (from submit_nanomito.sh), otherwise auto-detect
+if [ -n "${NANOMITO_DIR:-}" ]; then
+    SCRIPT_DIR="$NANOMITO_DIR"
+else
+    # Use BASH_SOURCE when available (sbatch), fallback to $0 for direct execution
+    SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+    if [ -L "$SCRIPT_PATH" ]; then
+        SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+    fi
+    case "$SCRIPT_PATH" in
+        /*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
+        *)  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)" ;;
+    esac
 fi
-case "$SCRIPT_PATH" in
-    /*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
-    *)  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)" ;;
-esac
 CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
 
 if [ ! -f "$CONFIG_FILE" ]; then

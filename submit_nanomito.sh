@@ -190,6 +190,9 @@ fi
 # shellcheck source=nanomito.config
 source "$CONFIG_FILE"
 
+# Export SCRIPT_DIR for use by sbatch-ed workflows
+export NANOMITO_DIR="$SCRIPT_DIR"
+
 # Validate run directory
 if [ ! -d "$RUN_DIR_ARG" ]; then
 	log_error "Directory $RUN_DIR_ARG does not exist"
@@ -253,7 +256,7 @@ if [ "$SKIP_BCHG" = false ]; then
 	WF_ID='bchg'
 	SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
 
-	BCHG_JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_BCHG" "$RUN_DIR")
+	BCHG_JOBID=$(sbatch --parsable --export=ALL,NANOMITO_DIR="$SCRIPT_DIR" --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_BCHG" "$RUN_DIR")
 
 	log_success "Submitted batch job $BCHG_JOBID"
 	log_info "Output file: $SLURM_FILE"
@@ -292,10 +295,10 @@ if [ "$BCHG_ONLY" = false ]; then
 	
 	# Add dependency on bchg job if it was submitted
 	if [ -n "$BCHG_JOBID" ]; then
-		SUBWF_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF" $SUBWF_ARGS)
+		SUBWF_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable --export=ALL,NANOMITO_DIR="$SCRIPT_DIR" --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF" $SUBWF_ARGS)
 		log_success "Submitted batch job $SUBWF_JOBID (depends on $BCHG_JOBID)"
 	else
-		SUBWF_JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF" $SUBWF_ARGS)
+		SUBWF_JOBID=$(sbatch --parsable --export=ALL,NANOMITO_DIR="$SCRIPT_DIR" --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF" $SUBWF_ARGS)
 		log_success "Submitted batch job $SUBWF_JOBID"
 	fi
 	

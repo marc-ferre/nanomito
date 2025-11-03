@@ -116,15 +116,20 @@ WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 # Load global configuration
 # Get absolute path to script directory (works even with relative paths and symlinks)
-# Use BASH_SOURCE when available (sbatch), fallback to $0 for direct execution
-SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
-if [ -L "$SCRIPT_PATH" ]; then
-    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+# Use NANOMITO_DIR if set (from submit_nanomito.sh or parent workflow), otherwise auto-detect
+if [ -n "${NANOMITO_DIR:-}" ]; then
+    SCRIPT_DIR="$NANOMITO_DIR"
+else
+    # Use BASH_SOURCE when available (sbatch), fallback to $0 for direct execution
+    SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+    if [ -L "$SCRIPT_PATH" ]; then
+        SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+    fi
+    case "$SCRIPT_PATH" in
+        /*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
+        *)  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)" ;;
+    esac
 fi
-case "$SCRIPT_PATH" in
-    /*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
-    *)  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)" ;;
-esac
 CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
 
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -233,6 +238,7 @@ do
 		WF_ID='demultmt'
 		SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
 		JOBID=$(sbatch --parsable \
+			--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
 			--chdir="$RUN_DIR" \
 			--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
 			--output="$SLURM_FILE" \
@@ -268,6 +274,7 @@ do
 		if [ "$SKIP_DEMULTMT" = false ] && [ "$MODMITO_ONLY" = false ]; then
 			JOBID_MODMITO=$(sbatch --dependency=afterok:"${JOBID}" \
 				--parsable \
+				--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
 				--chdir="$RUN_DIR" \
 				--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
 				--output="$SLURM_FILE" \
@@ -277,6 +284,7 @@ do
 		else
 			# No dependency if demultmt was skipped
 			JOBID_MODMITO=$(sbatch --parsable \
+				--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
 				--chdir="$RUN_DIR" \
 				--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
 				--output="$SLURM_FILE" \
