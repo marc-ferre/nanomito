@@ -163,24 +163,7 @@ if [ -z "${RUN_DIR_ARG:-}" ]; then
 	exit 128
 fi
 
-# Validate run directory
-if [ ! -d "$RUN_DIR_ARG" ]; then
-	log_error "Directory $RUN_DIR_ARG does not exist"
-	exit 128
-fi
-
-cd "$RUN_DIR_ARG"
-
-# Directories
-RUN_DIR=$(pwd)
-PROCESS_DIR="$RUN_DIR/processing"
-
-# Prefixes
-RUN_ID=$(basename "$RUN_DIR")
-SLURM_PRE="slurm-$RUN_ID"
-SLURM_EXT='out'
-
-# Load global configuration
+# Load global configuration BEFORE changing directory
 # Get absolute path to script directory (works even with relative paths and symlinks)
 if [ -L "$0" ]; then
     # Script is a symlink, resolve it
@@ -206,6 +189,23 @@ fi
 
 # shellcheck source=nanomito.config
 source "$CONFIG_FILE"
+
+# Validate run directory
+if [ ! -d "$RUN_DIR_ARG" ]; then
+	log_error "Directory $RUN_DIR_ARG does not exist"
+	exit 128
+fi
+
+cd "$RUN_DIR_ARG"
+
+# Directories
+RUN_DIR=$(pwd)
+PROCESS_DIR="$RUN_DIR/processing"
+
+# Prefixes
+RUN_ID=$(basename "$RUN_DIR")
+SLURM_PRE="slurm-$RUN_ID"
+SLURM_EXT='out'
 
 # Validate workflow files exist
 check_workflow() {
