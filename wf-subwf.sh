@@ -72,6 +72,37 @@ log_warning() {
 	echo "[WARN] $(date '+%H:%M:%S') - $1"
 }
 
+# Parse options
+DEMULTMT_ONLY=false
+SKIP_DEMULTMT=false
+MODMITO_ONLY=false
+SKIP_MODMITO=false
+
+while [[ $# -gt 0 ]]; do
+	case $1 in
+		--demultmt-only)
+			DEMULTMT_ONLY=true
+			shift
+			;;
+		--skip-demultmt)
+			SKIP_DEMULTMT=true
+			shift
+			;;
+		--modmito-only)
+			MODMITO_ONLY=true
+			shift
+			;;
+		--skip-modmito)
+			SKIP_MODMITO=true
+			shift
+			;;
+		*)
+			log_error "Unknown option: $1"
+			exit 128
+			;;
+	esac
+done
+
 # Directories
 RUN_DIR=$(pwd)
 FASTQ_DIR="$RUN_DIR/fastq_pass"
@@ -117,6 +148,19 @@ log_info "Run directory: $RUN_DIR"
 log_info "FASTQ directory: $FASTQ_DIR"
 log_info "Output directory: $PROCESS_DIR"
 
+# Log active options
+if [ "$DEMULTMT_ONLY" = true ]; then
+	log_info "Mode: demultmt-only (skipping modmito)"
+elif [ "$MODMITO_ONLY" = true ]; then
+	log_info "Mode: modmito-only (skipping demultmt)"
+elif [ "$SKIP_DEMULTMT" = true ]; then
+	log_info "Mode: modmito workflows only"
+elif [ "$SKIP_MODMITO" = true ]; then
+	log_info "Mode: demultmt workflows only"
+else
+	log_info "Mode: full analysis (demultmt + modmito)"
+fi
+
 echo ""
 echo "========== SLURM Environment =========="
 echo "Node    : ${SLURM_NODELIST:-N/A}"
@@ -124,8 +168,12 @@ echo "Job ID  : ${SLURM_JOB_ID:-N/A}"
 echo "========================================"
 
 log_step "2/3: VALIDATION"
-check_workflow "$WF_DEMULTMT"
-check_workflow "$WF_MODMITO"
+if [ "$SKIP_DEMULTMT" = false ] && [ "$MODMITO_ONLY" = false ]; then
+	check_workflow "$WF_DEMULTMT"
+fi
+if [ "$SKIP_MODMITO" = false ] && [ "$DEMULTMT_ONLY" = false ]; then
+	check_workflow "$WF_MODMITO"
+fi
 
 if [ ! -d "$FASTQ_DIR" ]; then
 	log_error "FASTQ directory does not exist: $FASTQ_DIR"
@@ -172,26 +220,28 @@ do
 	# Arguments passed to wf-demultmt.sh:
 	#   $1: SAMPLE_ID - name of the sample directory in fastq_pass/
 	# ============================================================
-	WF_ID='demultmt'
-	SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-	JOBID=$(sbatch --parsable \
-		--chdir="$RUN_DIR" \
-		--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
-		--output="$SLURM_FILE" \
-		--mail-type="$MAIL_TYPE_ISSUE" \
-		--mail-user="$MAIL_USER" \
-		$WF_DEMULTMT "$SAMPLE_ID")
-	
-	if [ -z "$JOBID" ]; then
-		log_error "Failed to submit $WF_ID job for $SAMPLE_ID"
-		exit 1
+	if [ "$SKIP_DEMULTMT" = false ] && [ "$MODMITO_ONLY" = false ]; then
+		WF_ID='demultmt'
+		SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+		JOBID=$(sbatch --parsable \
+			--chdir="$RUN_DIR" \
+			--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
+			--output="$SLURM_FILE" \
+			--mail-type="$MAIL_TYPE_ISSUE" \
+			--mail-user="$MAIL_USER" \
+			$WF_DEMULTMT "$SAMPLE_ID")
+		
+		if [ -z "$JOBID" ]; then
+			log_error "Failed to submit $WF_ID job for $SAMPLE_ID"
+			exit 1
+		fi
+		
+		log_success "Submitted job $JOBID ($WF_ID)"
+		log_info "  Output: $SLURM_FILE"
+		JOBS_COUNT=$((JOBS_COUNT+1))
+		DEMULTMT_JOBS=$((DEMULTMT_JOBS+1))
+		JOBID_LIST="$JOBID $JOBID_LIST"
 	fi
-	
-	log_success "Submitted job $JOBID ($WF_ID)"
-	log_info "  Output: $SLURM_FILE"
-	JOBS_COUNT=$((JOBS_COUNT+1))
-	DEMULTMT_JOBS=$((DEMULTMT_JOBS+1))
-	JOBID_LIST="$JOBID $JOBID_LIST"
 	
 	# ============================================================
 	# Submit modmito workflow (depends on demultmt completion)
@@ -201,27 +251,47 @@ do
 	# 
 	# Dependency: This job will only start after demultmt job completes successfully
 	# ============================================================
-	WF_ID='modmito'
-	SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
- 	JOBID_MODMITO=$(sbatch --dependency=afterok:"${JOBID}" \
-		--parsable \
-		--chdir="$RUN_DIR" \
-		--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
-		--output="$SLURM_FILE" \
-		--mail-type="$MAIL_TYPE_END" \
-		--mail-user="$MAIL_USER" \
-		$WF_MODMITO "$SAMPLE_ID")
-	
-	if [ -z "$JOBID_MODMITO" ]; then
-		log_error "Failed to submit $WF_ID job for $SAMPLE_ID"
-		exit 1
+	if [ "$SKIP_MODMITO" = false ] && [ "$DEMULTMT_ONLY" = false ]; then
+		WF_ID='modmito'
+		SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+		
+		# If demultmt was submitted, add dependency
+		if [ "$SKIP_DEMULTMT" = false ] && [ "$MODMITO_ONLY" = false ]; then
+			JOBID_MODMITO=$(sbatch --dependency=afterok:"${JOBID}" \
+				--parsable \
+				--chdir="$RUN_DIR" \
+				--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
+				--output="$SLURM_FILE" \
+				--mail-type="$MAIL_TYPE_END" \
+				--mail-user="$MAIL_USER" \
+				$WF_MODMITO "$SAMPLE_ID")
+		else
+			# No dependency if demultmt was skipped
+			JOBID_MODMITO=$(sbatch --parsable \
+				--chdir="$RUN_DIR" \
+				--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
+				--output="$SLURM_FILE" \
+				--mail-type="$MAIL_TYPE_END" \
+				--mail-user="$MAIL_USER" \
+				$WF_MODMITO "$SAMPLE_ID")
+		fi
+		
+		if [ -z "$JOBID_MODMITO" ]; then
+			log_error "Failed to submit $WF_ID job for $SAMPLE_ID"
+			exit 1
+		fi
+		
+		# Log message depends on whether there was a dependency
+		if [ "$SKIP_DEMULTMT" = false ] && [ "$MODMITO_ONLY" = false ]; then
+			log_success "Submitted job $JOBID_MODMITO ($WF_ID, depends on $JOBID)"
+		else
+			log_success "Submitted job $JOBID_MODMITO ($WF_ID)"
+		fi
+		log_info "  Output: $SLURM_FILE"
+		JOBS_COUNT=$((JOBS_COUNT+1))
+		MODMITO_JOBS=$((MODMITO_JOBS+1))
+		JOBID_LIST="$JOBID_MODMITO $JOBID_LIST"
 	fi
-	
-	log_success "Submitted job $JOBID_MODMITO ($WF_ID, depends on $JOBID)"
-	log_info "  Output: $SLURM_FILE"
-	JOBS_COUNT=$((JOBS_COUNT+1))
-	MODMITO_JOBS=$((MODMITO_JOBS+1))
-	JOBID_LIST="$JOBID_MODMITO $JOBID_LIST"
 	
 # Read all directories (non-recursively) in fastq_pass/
 done < <(find ./* -prune -type d)

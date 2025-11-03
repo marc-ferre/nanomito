@@ -5,9 +5,13 @@
 # submit_nanomito.sh [OPTIONS] /Path/to/run/dir/
 #
 # Options:
-#   --bchg-only    Only submit basecalling/demux workflow (wf-bchg.sh)
-#   --skip-bchg    Skip basecalling/demux, only submit analysis workflows
-#   --help         Display this help message
+#   --bchg-only       Only submit basecalling/demux workflow (wf-bchg.sh)
+#   --skip-bchg       Skip basecalling/demux, only submit analysis workflows
+#   --demultmt-only   Only submit demultmt workflow (requires --skip-bchg)
+#   --skip-demultmt   Skip demultmt workflow, only submit modmito
+#   --modmito-only    Only submit modmito workflow (requires --skip-bchg)
+#   --skip-modmito    Skip modmito workflow, only submit demultmt
+#   --help            Display this help message
 #
 # Strict error handling
 set -euo pipefail
@@ -53,6 +57,10 @@ log_warning() {
 # Parse options
 BCHG_ONLY=false
 SKIP_BCHG=false
+DEMULTMT_ONLY=false
+SKIP_DEMULTMT=false
+MODMITO_ONLY=false
+SKIP_MODMITO=false
 SHOW_HELP=false
 
 while [[ $# -gt 0 ]]; do
@@ -63,6 +71,22 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--skip-bchg)
 			SKIP_BCHG=true
+			shift
+			;;
+		--demultmt-only)
+			DEMULTMT_ONLY=true
+			shift
+			;;
+		--skip-demultmt)
+			SKIP_DEMULTMT=true
+			shift
+			;;
+		--modmito-only)
+			MODMITO_ONLY=true
+			shift
+			;;
+		--skip-modmito)
+			SKIP_MODMITO=true
 			shift
 			;;
 		--help|-h)
@@ -81,14 +105,20 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "Usage: $0 [OPTIONS] /Path/to/run/dir/"
 	echo ""
 	echo "Options:"
-	echo "  --bchg-only    Only submit basecalling/demux workflow (wf-bchg.sh)"
-	echo "  --skip-bchg    Skip basecalling/demux, only submit analysis workflows"
-	echo "  --help, -h     Display this help message"
+	echo "  --bchg-only       Only submit basecalling/demux workflow (wf-bchg.sh)"
+	echo "  --skip-bchg       Skip basecalling/demux, only submit analysis workflows"
+	echo "  --demultmt-only   Only submit demultmt workflow (requires --skip-bchg)"
+	echo "  --skip-demultmt   Skip demultmt workflow, only submit modmito"
+	echo "  --modmito-only    Only submit modmito workflow (requires --skip-bchg)"
+	echo "  --skip-modmito    Skip modmito workflow, only submit demultmt"
+	echo "  --help, -h        Display this help message"
 	echo ""
 	echo "Examples:"
 	echo "  $0 /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --bchg-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --skip-bchg /scratch/mferre/workbench/250916_MK1B_RUN15/"
+	echo "  $0 --skip-bchg --demultmt-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
+	echo "  $0 --skip-bchg --modmito-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	exit 0
 fi
 
@@ -96,6 +126,34 @@ fi
 if [ "$BCHG_ONLY" = true ] && [ "$SKIP_BCHG" = true ]; then
 	log_error "Cannot use --bchg-only and --skip-bchg together"
 	exit 128
+fi
+
+if [ "$DEMULTMT_ONLY" = true ] && [ "$SKIP_DEMULTMT" = true ]; then
+	log_error "Cannot use --demultmt-only and --skip-demultmt together"
+	exit 128
+fi
+
+if [ "$MODMITO_ONLY" = true ] && [ "$SKIP_MODMITO" = true ]; then
+	log_error "Cannot use --modmito-only and --skip-modmito together"
+	exit 128
+fi
+
+if [ "$DEMULTMT_ONLY" = true ] && [ "$MODMITO_ONLY" = true ]; then
+	log_error "Cannot use --demultmt-only and --modmito-only together"
+	exit 128
+fi
+
+if [ "$SKIP_DEMULTMT" = true ] && [ "$SKIP_MODMITO" = true ]; then
+	log_error "Cannot skip both demultmt and modmito workflows"
+	exit 128
+fi
+
+# Analysis-only options require --skip-bchg
+if [ "$SKIP_BCHG" = false ]; then
+	if [ "$DEMULTMT_ONLY" = true ] || [ "$MODMITO_ONLY" = true ]; then
+		log_error "Options --demultmt-only and --modmito-only require --skip-bchg"
+		exit 128
+	fi
 fi
 
 if [ -z "${RUN_DIR_ARG:-}" ]; then
@@ -196,20 +254,38 @@ if [ "$BCHG_ONLY" = false ]; then
 	echo -e "${BOLD}${CYAN}   STEP 2: ANALYSIS WORKFLOWS (subwf)${NC}"
 	echo -e "${BOLD}${CYAN}==========================================${NC}"
 	
+	# Build arguments for wf-subwf.sh based on options
+	SUBWF_ARGS=""
+	if [ "$DEMULTMT_ONLY" = true ]; then
+		SUBWF_ARGS="$SUBWF_ARGS --demultmt-only"
+	fi
+	if [ "$SKIP_DEMULTMT" = true ]; then
+		SUBWF_ARGS="$SUBWF_ARGS --skip-demultmt"
+	fi
+	if [ "$MODMITO_ONLY" = true ]; then
+		SUBWF_ARGS="$SUBWF_ARGS --modmito-only"
+	fi
+	if [ "$SKIP_MODMITO" = true ]; then
+		SUBWF_ARGS="$SUBWF_ARGS --skip-modmito"
+	fi
+	
 	# Submit wf-subwf.sh which will discover samples and submit demultmt/modmito jobs
 	WF_ID='subwf'
 	SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
 	
 	# Add dependency on bchg job if it was submitted
 	if [ -n "$BCHG_JOBID" ]; then
-		SUBWF_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF")
+		SUBWF_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF" $SUBWF_ARGS)
 		log_success "Submitted batch job $SUBWF_JOBID (depends on $BCHG_JOBID)"
 	else
-		SUBWF_JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF")
+		SUBWF_JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF" $SUBWF_ARGS)
 		log_success "Submitted batch job $SUBWF_JOBID"
 	fi
 	
 	log_info "Output file: $SLURM_FILE"
+	if [ -n "$SUBWF_ARGS" ]; then
+		log_info "Options:$SUBWF_ARGS"
+	fi
 	log_info "wf-subwf.sh will discover samples and submit demultmt/modmito jobs"
 	JOBID_LIST="$SUBWF_JOBID $JOBID_LIST"
 	JOBS_COUNT=$((JOBS_COUNT + 1))
