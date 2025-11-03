@@ -44,6 +44,7 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 ```
 
 **Two-step submission architecture:**
+
 1. `submit_nanomito.sh` submits `wf-bchg.sh` and `wf-subwf.sh`
 2. `wf-subwf.sh` waits for basecalling completion, discovers samples, then submits analysis jobs
 
