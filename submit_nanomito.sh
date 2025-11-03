@@ -180,9 +180,17 @@ RUN_ID=$(basename "$RUN_DIR")
 SLURM_PRE="slurm-$RUN_ID"
 SLURM_EXT='out'
 
-# Workflow files
-WF_BCHG='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-bchg.sh'
-WF_SUBWF='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-subwf.sh'
+# Load global configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    log_error "Configuration file not found: $CONFIG_FILE"
+    exit 1
+fi
+
+# shellcheck source=nanomito.config
+source "$CONFIG_FILE"
 
 # Validate workflow files exist
 check_workflow() {
@@ -199,12 +207,6 @@ fi
 if [ "$BCHG_ONLY" = false ]; then
 	check_workflow "$WF_SUBWF"
 fi
-
-# Mail parameters
-MAIL_USER='marc.ferre@univ-angers.fr'
-MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
-# MAIL_TYPE_NONE='NONE'
-# MAIL_TYPE_ALL='ALL'
 
 echo ""
 echo -e "${BOLD}${CYAN}==========================================${NC}"

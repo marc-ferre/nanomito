@@ -208,15 +208,24 @@ git clone git@github.com:marc-ferre/nanomito.git
 cd nanomito
 ```
 
-1. **Update workflow paths:**
+2. **Configure the environment:**
 
-Edit the workflow files to match your environment:
+Edit `nanomito.config` to match your HPC environment:
 
-- `WF_BCHG`, `WF_DEMULTMT`, `WF_MODMITO` in `submit_nanomito.sh`
-- `DORADO_BIN` path in `wf-bchg.sh` and `wf-modmito.sh`
-- Conda environment paths
+```bash
+# Open the configuration file
+nano nanomito.config
 
-1. **Make scripts executable:**
+# Update all paths:
+# - DORADO_BIN, BALDUR_BIN, ONT_DEMULT_BIN
+# - All conda environment paths (ANNOTMT_ENV, BCHG_ENV, etc.)
+# - Workflow script paths (WF_BCHG, WF_DEMULTMT, etc.)
+# - Reference genome paths (REF_MT, REF_WHOLE, etc.)
+# - Annotation database paths (ANN_GNOMAD, ANN_MITOMAP_*, etc.)
+# - MAIL_USER with your email address
+```
+
+3. **Make scripts executable:**
 
 ```bash
 chmod +x *.sh
@@ -305,6 +314,62 @@ tail -f processing/slurm-*.log
 ```
 
 ## Configuration
+
+### Global Configuration File
+
+All paths and environment variables are centralized in the `nanomito.config` file located at the root of the repository. This file must be edited once to match your environment before running any workflows.
+
+**Configuration file structure:**
+
+```bash
+# Binaries
+DORADO_BIN='/path/to/dorado'
+BALDUR_BIN='/path/to/baldur'
+ONT_DEMULT_BIN='/path/to/ont_demult'
+
+# Conda environments
+ANNOTMT_ENV='/path/to/env_annotmt'
+BALDUR_ENV='/path/to/env_baldur'
+BCHG_ENV='/path/to/env_bchg'
+GETMT_ENV='/path/to/env_getmt'
+MODMITO_ENV='/path/to/env_modmito'
+ONT_DEMULT_ENV='/path/to/env_ont_demult'
+POD5_ENV='/path/to/env_pod5'
+
+# Python scripts
+CHRMPIDS_SCRIPT='/path/to/get_chrMpid.py'
+CREATE_PID_DICT_SCRIPT='/path/to/create_pid_dict.py'
+
+# Workflow scripts
+WF_BCHG='/path/to/wf-bchg.sh'
+WF_SUBWF='/path/to/wf-subwf.sh'
+WF_DEMULTMT='/path/to/wf-demultmt.sh'
+WF_MODMITO='/path/to/wf-modmito.sh'
+
+# Reference genomes
+REF_MT='/path/to/chrM.fa'
+REF_MT_DIR='/path/to/reference'
+REF_WHOLE='/path/to/Homo_sapiens-hg38-GRCh38.p14.mmi'
+SELECTED_REF='/path/to/chrM-mt_3kb-a0.fa'
+CUT_FILE='/path/to/cut.txt'
+
+# Annotation databases
+ANN_GNOMAD='/path/to/gnomad.genomes.v3.1.sites.chrM.vcf'
+ANN_MITOMAP_DISEASE='/path/to/disease-nosp.vcf'
+ANN_MITOMAP_POLYMORPHISMS='/path/to/polymorphisms.vcf'
+
+# SLURM mail configuration
+MAIL_USER='your.email@domain.com'
+```
+
+**How to customize:**
+
+1. Open `nanomito.config` in a text editor
+2. Update all paths to match your HPC environment
+3. Update the `MAIL_USER` variable with your email address
+4. Save the file
+
+All workflow scripts automatically source this configuration file, so changes apply immediately to all workflows without editing individual scripts.
 
 ### Sample Sheet Format
 

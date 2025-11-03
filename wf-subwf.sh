@@ -114,17 +114,17 @@ RUN_ID=$(basename "$RUN_DIR")
 # Files
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
-# Workflows shell scripts
-# These scripts are called with sbatch for each sample
-WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-demultmt.sh'
-WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-modmito.sh'
+# Load global configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
 
-# Mail options
-MAIL_USER='marc.ferre@univ-angers.fr'
-MAIL_TYPE_END='END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_80'
-MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_80'
-# MAIL_TYPE_NONE='NONE'
-# MAIL_TYPE_ALL='ALL'
+if [ ! -f "$CONFIG_FILE" ]; then
+    log_error "Configuration file not found: $CONFIG_FILE"
+    exit 1
+fi
+
+# shellcheck source=nanomito.config
+source "$CONFIG_FILE"
 
 # Validate workflow scripts exist
 # Note: Only checks file existence, not executability

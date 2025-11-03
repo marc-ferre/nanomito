@@ -99,12 +99,20 @@ OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 # MODBASE_DIR="$OUT_DIR/modbase"
 
-# Binary and Conda env
-DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado'
-MODMITO_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_modmito'
+# Load global configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
 
-# Reference
-SELECTED_REF='/scratch/mferre/reference/chrM-mt_3kb-a0.fa'
+if [ ! -f "$CONFIG_FILE" ]; then
+    log_error "Configuration file not found: $CONFIG_FILE"
+    exit 1
+fi
+
+# shellcheck source=nanomito.config
+source "$CONFIG_FILE"
+
+# Basecalling model
+MODEL_COMPLEX='sup,5mC_5hmC,6mA'
 
 # Prefixes
 BAM_PREFIX="$SAMPLE_ID.chrM.$MODEL_COMPLEX"

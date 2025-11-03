@@ -104,14 +104,21 @@ fi
 
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
+# Load global configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "[ERROR] Configuration file not found: $CONFIG_FILE"
+    exit 1
+fi
+
+# shellcheck source=nanomito.config
+source "$CONFIG_FILE"
+
 # Basecalling options
 MODEL='sup'
 KIT='SQK-NBD114-24'
-
-# Binary and Conda env
-# shellcheck disable=SC2034  # DORADO_BIN used in basecalling pipeline below
-DORADO_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/dorado'
-BCHG_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_bchg'
 
 # Logging helper functions
 log_step() {

@@ -87,20 +87,17 @@ VARCALL_DIR="$OUT_DIR/varcall"
 # EXTERNAL TOOLS & DEPENDENCIES
 # ============================================================================
 
-# Binaries
-BALDUR_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/baldur-1.2.2/target/release/baldur'
-ONT_DEMULT_BIN='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/ont_demult/target/release/ont_demult'
+# Load global configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
 
-# Conda envs
-ANNOTMT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_annotmt'
-BALDUR_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_baldur'
-GETMT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_getmt'
-ONT_DEMULT_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_ont_demult'
-POD5_ENV='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/bioapp/env_pod5.0.3.15'
+if [ ! -f "$CONFIG_FILE" ]; then
+    log_error "Configuration file not found: $CONFIG_FILE"
+    exit 1
+fi
 
-# Scripts
-CHRMPIDS_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/preprocessing/get_chrMpid.py'
-CREATE_PID_DICT_SCRIPT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/preprocessing/create_pid_dict.py'
+# shellcheck source=nanomito.config
+source "$CONFIG_FILE"
 
 # ============================================================================
 # LOGGING FUNCTIONS
@@ -131,20 +128,6 @@ log_warning() {
 }
 
 # ============================================================================
-# REFERENCE DATABASES & FILES
-# ============================================================================
-
-# References
-ANN_GNOMAD='/scratch/mferre/reference/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
-ANN_MITOMAP_DISEASE='/scratch/mferre/reference/MITOMAP/disease-nosp.vcf'
-ANN_MITOMAP_POLYMORPHISMS='/scratch/mferre/reference/MITOMAP/polymorphisms.vcf'
-# REF_MT_2KB='/scratch/mferre/reference/chrM-mt_2kb.fa'
-# REF_MT_3KB='/scratch/mferre/reference/chrM-mt_3kb.fa'
-# REF_MT_10KB='/scratch/mferre/reference/chrM-mt_10kb.fa'
-REF_MT='/scratch/mferre/reference/chrM.fa'
-REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.mmi'
-
-# ============================================================================
 # FILE NAMING CONVENTIONS
 # ============================================================================
 
@@ -152,8 +135,6 @@ REF_WHOLE='/scratch/mferre/reference/Homo_sapiens-hg38-GRCh38.p14.mmi'
 BALDUR_PREFIX="$SAMPLE_ID.baldur"
 DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
 HPLCHK_PREFIX="$OUT_DIR/$SAMPLE_ID-haplocheck"
-REF_MT_PREFIX='chrM-'
-REF_MT_SUFIX='.fa'
 
 # Files
 ANNOTMT_TSV_FILE="$OUT_DIR/$SAMPLE_ID.ann.tsv"
