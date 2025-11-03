@@ -173,7 +173,7 @@ run_rsync() {
         --stats
         --progress
         --delete
-        --chmod=Du=rwx,Dgo=rx,Fu=rw,Fog=r
+        "--chmod=Du=rwx,Dgo=rx,Fu=rw,Fog=r"
         --exclude 'pod5'
         --exclude 'bam'
         --exclude 'bam_fail'
