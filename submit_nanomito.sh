@@ -165,11 +165,11 @@ fi
 
 # Load global configuration BEFORE changing directory
 # Get absolute path to script directory (works even with relative paths and symlinks)
-if [ -L "$0" ]; then
+# Use BASH_SOURCE when available (sbatch), fallback to $0 for direct execution
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+if [ -L "$SCRIPT_PATH" ]; then
     # Script is a symlink, resolve it
-    SCRIPT_PATH="$(readlink "$0")"
-else
-    SCRIPT_PATH="$0"
+    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
 fi
 
 # Get absolute directory path

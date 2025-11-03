@@ -101,10 +101,10 @@ SELECT_DIR="$OUT_DIR/select-$SELECT"
 
 # Load global configuration
 # Get absolute path to script directory (works even with relative paths and symlinks)
-if [ -L "$0" ]; then
-    SCRIPT_PATH="$(readlink "$0")"
-else
-    SCRIPT_PATH="$0"
+# Use BASH_SOURCE when available (sbatch), fallback to $0 for direct execution
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+if [ -L "$SCRIPT_PATH" ]; then
+    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
 fi
 case "$SCRIPT_PATH" in
     /*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
