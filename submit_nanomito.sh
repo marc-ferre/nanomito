@@ -181,11 +181,26 @@ SLURM_PRE="slurm-$RUN_ID"
 SLURM_EXT='out'
 
 # Load global configuration
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Get absolute path to script directory (works even with relative paths and symlinks)
+if [ -L "$0" ]; then
+    # Script is a symlink, resolve it
+    SCRIPT_PATH="$(readlink "$0")"
+else
+    SCRIPT_PATH="$0"
+fi
+
+# Get absolute directory path
+case "$SCRIPT_PATH" in
+    /*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
+    *)  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)" ;;
+esac
+
 CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
 
 if [ ! -f "$CONFIG_FILE" ]; then
     log_error "Configuration file not found: $CONFIG_FILE"
+    log_error "Script path: $0"
+    log_error "Script directory: $SCRIPT_DIR"
     exit 1
 fi
 

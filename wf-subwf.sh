@@ -115,7 +115,16 @@ RUN_ID=$(basename "$RUN_DIR")
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 # Load global configuration
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Get absolute path to script directory (works even with relative paths and symlinks)
+if [ -L "$0" ]; then
+    SCRIPT_PATH="$(readlink "$0")"
+else
+    SCRIPT_PATH="$0"
+fi
+case "$SCRIPT_PATH" in
+    /*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
+    *)  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)" ;;
+esac
 CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
 
 if [ ! -f "$CONFIG_FILE" ]; then
