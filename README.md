@@ -21,7 +21,8 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 ┌─────────────────────────────────────────────────────────────────┐
 │                     submit_nanomito.sh                          │
 │        Main workflow submission orchestrator with options       │
-│   --bchg-only / --skip-bchg / --demultmt-only / --modmito-only │
+│    --bchg-only / --skip-bchg / --demultmt-only / --modmito-only│
+│                  --skip-demultmt / --skip-modmito               │
 └──────────────────┬──────────────────────────────────────────────┘
                    │
         ┌──────────┴──────────┐
