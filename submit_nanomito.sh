@@ -124,8 +124,7 @@ SLURM_EXT='out'
 
 # Workflow files
 WF_BCHG='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-bchg.sh'
-WF_DEMULTMT='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-demultmt.sh'
-WF_MODMITO='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-modmito.sh'
+WF_SUBWF='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-subwf.sh'
 
 # Validate workflow files exist
 check_workflow() {
@@ -140,13 +139,11 @@ if [ "$SKIP_BCHG" = false ]; then
 	check_workflow "$WF_BCHG"
 fi
 if [ "$BCHG_ONLY" = false ]; then
-	check_workflow "$WF_DEMULTMT"
-	check_workflow "$WF_MODMITO"
+	check_workflow "$WF_SUBWF"
 fi
 
 # Mail parameters
 MAIL_USER='marc.ferre@univ-angers.fr'
-MAIL_TYPE_END='END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
 MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
 # MAIL_TYPE_NONE='NONE'
 # MAIL_TYPE_ALL='ALL'
@@ -196,83 +193,26 @@ fi
 # STEP 2: Submit analysis workflows for each sample if not in bchg-only mode
 if [ "$BCHG_ONLY" = false ]; then
 	echo -e "${BOLD}${CYAN}==========================================${NC}"
-	echo -e "${BOLD}${CYAN}   STEP 2: ANALYSIS WORKFLOWS${NC}"
+	echo -e "${BOLD}${CYAN}   STEP 2: ANALYSIS WORKFLOWS (subwf)${NC}"
 	echo -e "${BOLD}${CYAN}==========================================${NC}"
-
-	# Navigate to fastq_pass directory
-	FASTQ_DIR="$RUN_DIR/fastq_pass"
-	if [ ! -d "$FASTQ_DIR" ]; then
-		log_error "FASTQ directory not found: $FASTQ_DIR"
-		exit 128
+	
+	# Submit wf-subwf.sh which will discover samples and submit demultmt/modmito jobs
+	WF_ID='subwf'
+	SLURM_FILE="$PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+	
+	# Add dependency on bchg job if it was submitted
+	if [ -n "$BCHG_JOBID" ]; then
+		SUBWF_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF")
+		log_success "Submitted batch job $SUBWF_JOBID (depends on $BCHG_JOBID)"
+	else
+		SUBWF_JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF")
+		log_success "Submitted batch job $SUBWF_JOBID"
 	fi
-
-	cd "$FASTQ_DIR" || exit 128
-
-	# Find all sample directories
-	SAMPLES=()
-	while IFS= read -r -d '' sample; do
-		SAMPLES+=("$sample")
-	done < <(find ./* -prune -type d -print0)
-
-	SAMPLES_COUNT=${#SAMPLES[@]}
-	log_info "Found $SAMPLES_COUNT sample(s) to process"
-
-	if [ "$SAMPLES_COUNT" -eq 0 ]; then
-		log_error "No samples found in $FASTQ_DIR"
-		exit 128
-	fi
-
-	echo ""
-
-	DEMULTMT_JOBS=0
-	MODMITO_JOBS=0
-
-	# Submit workflows for each sample
-	for sample in "${SAMPLES[@]}"; do
-		SAMPLE_ID=$(basename "$sample")
-		log_info "Processing sample: $SAMPLE_ID"
-
-		SAMPLE_PROCESS_DIR="$PROCESS_DIR/$SAMPLE_ID"
-
-		# Create sample processing directory
-		if [ ! -d "$SAMPLE_PROCESS_DIR" ]; then
-			mkdir -p "$SAMPLE_PROCESS_DIR"
-		fi
-
-		# Submit demultmt workflow
-		WF_ID='demultmt'
-		SLURM_FILE="$SAMPLE_PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-		
-		# Add dependency on bchg job if it was submitted
-		if [ -n "$BCHG_JOBID" ]; then
-			DEMULTMT_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_DEMULTMT" "$SAMPLE_ID")
-		else
-			DEMULTMT_JOBID=$(sbatch --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_DEMULTMT" "$SAMPLE_ID")
-		fi
-
-		log_success "  └─ demultmt: job $DEMULTMT_JOBID"
-		JOBID_LIST="$DEMULTMT_JOBID $JOBID_LIST"
-		JOBS_COUNT=$((JOBS_COUNT + 1))
-		DEMULTMT_JOBS=$((DEMULTMT_JOBS + 1))
-
-		# Submit modmito workflow (depends on demultmt)
-		WF_ID='modmito'
-		SLURM_FILE="$SAMPLE_PROCESS_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
-
-		MODMITO_JOBID=$(sbatch --dependency=afterok:"$DEMULTMT_JOBID" --parsable --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_END" --mail-user="$MAIL_USER" "$WF_MODMITO" "$SAMPLE_ID")
-
-		log_success "  └─ modmito:  job $MODMITO_JOBID (depends on $DEMULTMT_JOBID)"
-		JOBID_LIST="$MODMITO_JOBID $JOBID_LIST"
-		JOBS_COUNT=$((JOBS_COUNT + 1))
-		MODMITO_JOBS=$((MODMITO_JOBS + 1))
-
-		echo ""
-	done
-
-	cd "$RUN_DIR" || exit 128
-
-	log_success "Submitted $DEMULTMT_JOBS demultmt job(s)"
-	log_success "Submitted $MODMITO_JOBS modmito job(s)"
+	
+	log_info "Output file: $SLURM_FILE"
+	log_info "wf-subwf.sh will discover samples and submit demultmt/modmito jobs"
+	JOBID_LIST="$SUBWF_JOBID $JOBID_LIST"
+	JOBS_COUNT=$((JOBS_COUNT + 1))
 	echo ""
 else
 	log_info "Skipping analysis workflows (--bchg-only mode)"
