@@ -26,7 +26,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-VERSION='25.10.26.2'
+VERSION='2.0.0'
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 

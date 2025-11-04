@@ -581,6 +581,46 @@ If you use Nanomito in your research, please cite:
 
 ## Version History
 
+- **v2.0.0** (2025-11-04) - Major workflow improvements and HTML email reports
+  - **Integrated archiving workflow** with automatic dependency management
+  - Beautiful responsive HTML email reports optimized for mobile viewing
+  - **BREAKING:** Archiving enabled by default (use `--skip-archiving` to disable)
+  - **BREAKING:** Email format changed to HTML with responsive design
+  
+  **Workflow Enhancements:**
+  - Fixed critical job dependency bug (archiving/finalize now wait for all sample jobs)
+  - Added `--skip-archiving` and `--archiving-only` options
+  - `wf-subwf.sh` now handles archiving/finalize submission with proper dependencies
+  - Archiving summary with human-readable sizes and duration metrics
+  
+  **Email Report Features:**
+  - Responsive HTML design with embedded CSS
+  - Color-coded status indicators (success/warning/error)
+  - Mobile-optimized layout for iPhone and Android
+  - Per-sample results with alignment stats, haplogroups, variant counts, file sizes
+  - Deletions table from Baldur analysis for each sample
+  - Archiving summary section with destination, size, and duration
+  - Fixed total runtime calculation (was showing 00:00:00)
+  - English number formatting (331,496 and 3.7G instead of French format)
+  - Uniform time formatting (HH:MM:SS with two digits)
+  
+  **Configuration:**
+  - Removed `END` from `MAIL_TYPE` variables to prevent success email spam
+  - SLURM emails now sent only on failures
+  - Success notifications handled exclusively by `wf-finalize.sh` HTML email
+  
+  **Bug Fixes:**
+  - Fixed job dependency chain: sample jobs → archiving → finalize
+  - Fixed total runtime calculation (subshell variable scope issue)
+  - Fixed TSV parsing for empty fields (sample_id display)
+  - Fixed decimal format for archive sizes (3.7G instead of 3,7G)
+  - Removed double slashes in error log file paths
+  
+  **Documentation:**
+  - Updated README with archiving features and workflow diagram
+  - Updated TODO marking completed tasks
+  - All commit messages in English
+
 - **v1.1.1** (2025-11-04) - Email notification optimization
   - Disabled SLURM success emails (`END` removed from `--mail-type`)
   - SLURM emails now sent only on failures (FAIL, INVALID_DEPEND, REQUEUE, etc.)

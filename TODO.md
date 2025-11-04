@@ -2,26 +2,38 @@
 
 Last updated: 2025-11-04
 
-## ✅ Recently Completed
+## ✅ Recently Completed (v2.0.0 - 2025-11-04)
 
-### Email Reporting (2025-11-04)
+### Archiving & Email Reporting
 
-- [x] **Convert email to HTML format with responsive design** ✅ COMPLETED 2025-11-04
-  - ✅ Created HTML email template with embedded CSS
-  - ✅ Responsive design for mobile viewing (iPhone, Android)
-  - ✅ Color-coded status indicators (success green, warning yellow, error red)
-  - ✅ Formatted tables with striped rows for better readability
-  - ✅ Sample cards with badges for file status
-  - ✅ Tested on mobile devices - excellent results
+- [x] **Integrated archiving workflow** ✅ COMPLETED
+  - ✅ Added `wf-archiving.sh` with automatic dependency management
+  - ✅ Fixed critical job dependency bug (archiving/finalize now wait for all sample jobs)
+  - ✅ Added `--archiving-only` and `--skip-archiving` options
+  - ✅ `wf-subwf.sh` now handles archiving/finalize submission with proper dependencies
+  - ✅ Archiving summary with human-readable sizes and duration metrics
 
-- [x] **Integrate archiving into workflow** ✅ COMPLETED 2025-11-04
-  - ✅ Added `wf-archiving.sh` to generate archiving_summary.tsv
-  - ✅ Integrated archiving into submit_nanomito.sh workflow
-  - ✅ Added --archiving-only and --skip-archiving options
-  - ✅ Archiving runs after all jobs, before finalize
-  - ✅ Email includes archiving summary section
-  - ✅ Human-readable sizes (GB, MB) instead of bytes
-  - ✅ Uniformized log extensions (.out instead of .log)
+- [x] **HTML email reports with responsive design** ✅ COMPLETED
+  - ✅ Beautiful responsive HTML email optimized for mobile (iPhone, Android)
+  - ✅ Color-coded status indicators (success/warning/error)
+  - ✅ Per-sample results with alignment stats, haplogroups, variants, file sizes
+  - ✅ Deletions table from Baldur analysis for each sample
+  - ✅ Archiving summary section with destination, size, duration
+  - ✅ Fixed total runtime calculation (was showing 00:00:00)
+  - ✅ English number formatting (331,496 and 3.7G instead of French format)
+  - ✅ Uniform time formatting (HH:MM:SS with two digits)
+  - ✅ Removed double slashes in error log file paths
+
+- [x] **Email notification optimization** ✅ COMPLETED
+  - ✅ Removed `END` from `MAIL_TYPE` variables to prevent success email spam
+  - ✅ SLURM emails now sent only on failures
+  - ✅ Success notifications handled exclusively by `wf-finalize.sh` HTML email
+
+- [x] **Version management** ✅ COMPLETED
+  - ✅ Updated all workflow scripts to VERSION='2.0.0'
+  - ✅ Updated README.md with comprehensive v2.0.0 changelog
+  - ✅ Created and pushed v2.0.0 git tag
+  - ✅ Published v2.0.0 release on GitHub
 
 ## 🔴 High Priority
 
