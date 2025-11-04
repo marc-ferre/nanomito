@@ -570,7 +570,7 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   fi
   
   # Display deletions from Baldur
-  del_file="$sample_dir/${sample}.baldur_del.txt"
+  del_file="$sample_dir/varcall/${sample}.baldur_del.txt"
   if [ -f "$del_file" ]; then
     # Count deletions (skip header if present)
     del_count=$(grep -v "^#" "$del_file" | grep -v "^$" | wc -l | tr -d ' ')
