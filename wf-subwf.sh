@@ -76,6 +76,7 @@ DEMULTMT_ONLY=false
 SKIP_DEMULTMT=false
 MODMITO_ONLY=false
 SKIP_MODMITO=false
+SKIP_ARCHIVING=false
 INCLUDE_UNCLASSIFIED=false
 
 while [[ $# -gt 0 ]]; do
@@ -94,6 +95,10 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--skip-modmito)
 			SKIP_MODMITO=true
+			shift
+			;;
+		--skip-archiving)
+			SKIP_ARCHIVING=true
 			shift
 			;;
 		--include-unclassified)
@@ -378,15 +383,47 @@ echo "=========================================="
 log_info "Check detailed logs in processing/ directory"
 echo "=========================================="
 
-# Submit a final notification job that depends on all submitted jobs
+# Submit archiving and final notification jobs that depend on all submitted jobs
 if [ -n "$JOBID_LIST" ]; then
 	# Normalize spaces and build dependency list
 	DEP_IDS=$(echo "$JOBID_LIST" | xargs)
 	DEP_STR="afterok:$(echo "$DEP_IDS" | tr ' ' ':')"
 
+	# Submit archiving job (unless --skip-archiving is set)
+	if [ "$SKIP_ARCHIVING" = false ]; then
+		ARCHIVING_DIR="${ARCHIVING_DIR:-/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/projects/$RUN_ID}"
+		ARCHIVE_OUT="$PROCESS_DIR/slurm-$RUN_ID.archive.out"
+		
+		ARCHIVE_JOBID=$(sbatch --parsable \
+			--dependency="$DEP_STR" \
+			--export=ALL \
+			--chdir="$RUN_DIR" \
+			--job-name="a${RUN_ID: -7}" \
+			--output="$ARCHIVE_OUT" \
+			"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
+		
+		if [ -n "$ARCHIVE_JOBID" ]; then
+			log_success "Submitted archiving job $ARCHIVE_JOBID (depends on all analysis jobs)"
+			log_info "  Output: $ARCHIVE_OUT"
+			log_info "  Destination: $ARCHIVING_DIR"
+			
+			# Finalize depends on archiving
+			FINAL_DEP_STR="afterok:$ARCHIVE_JOBID"
+		else
+			log_error "Failed to submit archiving job"
+			# Finalize depends on analysis jobs directly
+			FINAL_DEP_STR="$DEP_STR"
+		fi
+	else
+		log_info "Skipping archiving (--skip-archiving mode)"
+		# Finalize depends on analysis jobs directly
+		FINAL_DEP_STR="$DEP_STR"
+	fi
+
+	# Submit final notification job
 	FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
 	FINAL_JOBID=$(sbatch --parsable \
-		--dependency="$DEP_STR" \
+		--dependency="$FINAL_DEP_STR" \
 		--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
 		--chdir="$RUN_DIR" \
 		--job-name="f${RUN_ID: -7}" \
@@ -394,7 +431,11 @@ if [ -n "$JOBID_LIST" ]; then
 		"$SCRIPT_DIR/wf-finalize.sh")
 
 	if [ -n "$FINAL_JOBID" ]; then
-		log_success "Submitted final notification job $FINAL_JOBID (depends on all jobs)"
+		if [ "$SKIP_ARCHIVING" = false ] && [ -n "$ARCHIVE_JOBID" ]; then
+			log_success "Submitted final notification job $FINAL_JOBID (depends on archiving)"
+		else
+			log_success "Submitted final notification job $FINAL_JOBID (depends on all jobs)"
+		fi
 		log_info "  Output: $FINAL_OUT"
 	else
 		log_error "Failed to submit final notification job"

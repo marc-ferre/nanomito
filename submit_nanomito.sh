@@ -417,113 +417,105 @@ else
 	echo ""
 fi
 
-# Submit archiving job (unless --skip-archiving is set or --bchg-only mode)
-if [ "$SKIP_ARCHIVING" = false ] && [ "$BCHG_ONLY" = false ]; then
-	echo ""
-	echo -e "${BOLD}${CYAN}==========================================${NC}"
-	echo -e "${BOLD}${CYAN}   SUBMITTING ARCHIVING JOB${NC}"
-	echo -e "${BOLD}${CYAN}==========================================${NC}"
-	
-	ARCHIVE_OUT="$PROCESS_DIR/slurm-$RUN_ID.archive.out"
-	
-	# Archive depends on all previous jobs
-	if [ -n "$SUBWF_JOBID" ]; then
-		ARCHIVE_JOBID=$(sbatch --dependency=afterok:"$SUBWF_JOBID" --parsable \
-			--export=ALL \
-			--chdir="$RUN_DIR" \
-			--job-name="a${RUN_ID: -7}" \
-			--output="$ARCHIVE_OUT" \
-			"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
-		log_success "Submitted archiving job $ARCHIVE_JOBID (depends on $SUBWF_JOBID)"
-	elif [ -n "$BCHG_JOBID" ]; then
-		ARCHIVE_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable \
-			--export=ALL \
-			--chdir="$RUN_DIR" \
-			--job-name="a${RUN_ID: -7}" \
-			--output="$ARCHIVE_OUT" \
-			"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
-		log_success "Submitted archiving job $ARCHIVE_JOBID (depends on $BCHG_JOBID)"
-	else
-		ARCHIVE_JOBID=$(sbatch --parsable \
-			--export=ALL \
-			--chdir="$RUN_DIR" \
-			--job-name="a${RUN_ID: -7}" \
-			--output="$ARCHIVE_OUT" \
-			"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
-		log_success "Submitted archiving job $ARCHIVE_JOBID"
-	fi
-	
-	log_info "  Output: $ARCHIVE_OUT"
-	log_info "  Destination: $ARCHIVING_DIR"
-	JOBID_LIST="$ARCHIVE_JOBID $JOBID_LIST"
-	JOBS_COUNT=$((JOBS_COUNT + 1))
-	echo ""
-	
-	# Submit finalization job that depends on archiving
-	echo -e "${BOLD}${CYAN}==========================================${NC}"
-	echo -e "${BOLD}${CYAN}   SUBMITTING FINALIZATION JOB${NC}"
-	echo -e "${BOLD}${CYAN}==========================================${NC}"
-	
-	FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
-	FINAL_JOBID=$(sbatch --dependency=afterok:"$ARCHIVE_JOBID" --parsable \
-		--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
-		--chdir="$RUN_DIR" \
-		--job-name="f${RUN_ID: -7}" \
-		--output="$FINAL_OUT" \
-		"$SCRIPT_DIR/wf-finalize.sh")
-	
-	log_success "Submitted finalization job $FINAL_JOBID (depends on $ARCHIVE_JOBID)"
-	log_info "  Output: $FINAL_OUT"
-	log_info "  Email report will be sent when job completes"
-	JOBID_LIST="$FINAL_JOBID $JOBID_LIST"
-	JOBS_COUNT=$((JOBS_COUNT + 1))
-	echo ""
-else
-	if [ "$SKIP_ARCHIVING" = true ]; then
-		log_info "Skipping archiving (--skip-archiving mode)"
-	fi
-	
-	# Submit finalization job without archiving dependency
-	if [ "$BCHG_ONLY" = false ]; then
+# Submit archiving and finalization jobs
+# Note: When SUBWF is used, wf-subwf.sh handles archiving/finalize submission with proper dependencies
+# Here we only submit archiving/finalize for special modes (--skip-bchg, --bchg-only, etc.)
+if [ -z "$SUBWF_JOBID" ]; then
+	# No SUBWF job - submit archiving/finalize directly
+	if [ "$SKIP_ARCHIVING" = false ] && [ "$BCHG_ONLY" = false ]; then
 		echo ""
+		echo -e "${BOLD}${CYAN}==========================================${NC}"
+		echo -e "${BOLD}${CYAN}   SUBMITTING ARCHIVING JOB${NC}"
+		echo -e "${BOLD}${CYAN}==========================================${NC}"
+		
+		ARCHIVE_OUT="$PROCESS_DIR/slurm-$RUN_ID.archive.out"
+		
+		# Archive depends on bchg job if it exists
+		if [ -n "$BCHG_JOBID" ]; then
+			ARCHIVE_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable \
+				--export=ALL \
+				--chdir="$RUN_DIR" \
+				--job-name="a${RUN_ID: -7}" \
+				--output="$ARCHIVE_OUT" \
+				"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
+			log_success "Submitted archiving job $ARCHIVE_JOBID (depends on $BCHG_JOBID)"
+		else
+			ARCHIVE_JOBID=$(sbatch --parsable \
+				--export=ALL \
+				--chdir="$RUN_DIR" \
+				--job-name="a${RUN_ID: -7}" \
+				--output="$ARCHIVE_OUT" \
+				"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
+			log_success "Submitted archiving job $ARCHIVE_JOBID"
+		fi
+		
+		log_info "  Output: $ARCHIVE_OUT"
+		log_info "  Destination: $ARCHIVING_DIR"
+		JOBID_LIST="$ARCHIVE_JOBID $JOBID_LIST"
+		JOBS_COUNT=$((JOBS_COUNT + 1))
+		echo ""
+		
+		# Submit finalization job that depends on archiving
 		echo -e "${BOLD}${CYAN}==========================================${NC}"
 		echo -e "${BOLD}${CYAN}   SUBMITTING FINALIZATION JOB${NC}"
 		echo -e "${BOLD}${CYAN}==========================================${NC}"
 		
 		FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
+		FINAL_JOBID=$(sbatch --dependency=afterok:"$ARCHIVE_JOBID" --parsable \
+			--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+			--chdir="$RUN_DIR" \
+			--job-name="f${RUN_ID: -7}" \
+			--output="$FINAL_OUT" \
+			"$SCRIPT_DIR/wf-finalize.sh")
 		
-		if [ -n "$SUBWF_JOBID" ]; then
-			FINAL_JOBID=$(sbatch --dependency=afterok:"$SUBWF_JOBID" --parsable \
-				--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
-				--chdir="$RUN_DIR" \
-				--job-name="f${RUN_ID: -7}" \
-				--output="$FINAL_OUT" \
-				"$SCRIPT_DIR/wf-finalize.sh")
-			log_success "Submitted finalization job $FINAL_JOBID (depends on $SUBWF_JOBID)"
-		elif [ -n "$BCHG_JOBID" ]; then
-			FINAL_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable \
-				--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
-				--chdir="$RUN_DIR" \
-				--job-name="f${RUN_ID: -7}" \
-				--output="$FINAL_OUT" \
-				"$SCRIPT_DIR/wf-finalize.sh")
-			log_success "Submitted finalization job $FINAL_JOBID (depends on $BCHG_JOBID)"
-		else
-			FINAL_JOBID=$(sbatch --parsable \
-				--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
-				--chdir="$RUN_DIR" \
-				--job-name="f${RUN_ID: -7}" \
-				--output="$FINAL_OUT" \
-				"$SCRIPT_DIR/wf-finalize.sh")
-			log_success "Submitted finalization job $FINAL_JOBID"
-		fi
-		
+		log_success "Submitted finalization job $FINAL_JOBID (depends on $ARCHIVE_JOBID)"
 		log_info "  Output: $FINAL_OUT"
 		log_info "  Email report will be sent when job completes"
 		JOBID_LIST="$FINAL_JOBID $JOBID_LIST"
 		JOBS_COUNT=$((JOBS_COUNT + 1))
 		echo ""
+	else
+		if [ "$SKIP_ARCHIVING" = true ]; then
+			log_info "Skipping archiving (--skip-archiving mode)"
+		fi
+		
+		# Submit finalization job without archiving dependency
+		if [ "$BCHG_ONLY" = false ]; then
+			echo ""
+			echo -e "${BOLD}${CYAN}==========================================${NC}"
+			echo -e "${BOLD}${CYAN}   SUBMITTING FINALIZATION JOB${NC}"
+			echo -e "${BOLD}${CYAN}==========================================${NC}"
+			
+			FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
+			
+			if [ -n "$BCHG_JOBID" ]; then
+				FINAL_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable \
+					--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+					--chdir="$RUN_DIR" \
+					--job-name="f${RUN_ID: -7}" \
+					--output="$FINAL_OUT" \
+					"$SCRIPT_DIR/wf-finalize.sh")
+				log_success "Submitted finalization job $FINAL_JOBID (depends on $BCHG_JOBID)"
+			else
+				FINAL_JOBID=$(sbatch --parsable \
+					--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+					--chdir="$RUN_DIR" \
+					--job-name="f${RUN_ID: -7}" \
+					--output="$FINAL_OUT" \
+					"$SCRIPT_DIR/wf-finalize.sh")
+				log_success "Submitted finalization job $FINAL_JOBID"
+			fi
+			
+			log_info "  Output: $FINAL_OUT"
+			log_info "  Email report will be sent when job completes"
+			JOBID_LIST="$FINAL_JOBID $JOBID_LIST"
+			JOBS_COUNT=$((JOBS_COUNT + 1))
+			echo ""
+		fi
 	fi
+else
+	# SUBWF job exists - archiving/finalize handled by wf-subwf.sh
+	log_info "Archiving and finalization will be submitted by wf-subwf.sh"
 fi
 
 echo ""
