@@ -383,11 +383,19 @@ if [ -f "$SUMMARY_TSV" ]; then
         sample_display="${sample_display:0:32}..."
       fi
     fi
+    # Normalize runtime formatting to HH:MM:SS with leading zeros
+    if [ -n "$runtime" ]; then
+      IFS=: read -r rh rm rs <<< "$runtime"
+      rh=${rh:-0}; rm=${rm:-0}; rs=${rs:-0}
+      printf -v runtime_fmt "%02d:%02d:%02d" "$rh" "$rm" "$rs"
+    else
+      runtime_fmt="00:00:00"
+    fi
     
     append_html "    <tr>"
     append_html "      <td>$sample_display</td>"
     append_html "      <td>$workflow</td>"
-    append_html "      <td>$runtime</td>"
+    append_html "      <td>$runtime_fmt</td>"
     append_html "    </tr>"
   done
   
@@ -581,21 +589,30 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
       append_html "  <div style=\"margin: 10px 0;\">"
       append_html "    <strong>Deletions</strong>"
       append_html "    <table style=\"margin-top: 5px;\">"
-      append_html "      <tr><th>Position</th><th>Length</th><th>Type</th><th>Support</th></tr>"
+      append_html "      <tr><th>Start</th><th>Stop</th><th>Strand</th><th>Length</th></tr>"
       
-      # Parse deletions file (format: position, length, type, support)
-      while IFS=$'\t' read -r pos len type support rest; do
-        # Skip header or empty lines
-        if [[ "$pos" =~ ^#.*$ ]] || [ -z "$pos" ]; then
+      # Parse deletions file (expected: pos1, pos2, strand(+/-), support)
+      # Render columns: Start, Stop, Strand, Length
+  while IFS=$'\t' read -r a b strand rest; do
+        # Skip header or empty/comment lines
+        if [[ "$a" =~ ^#.*$ ]] || [ -z "$a" ]; then
           continue
         fi
-        
-        append_html "      <tr>"
-        append_html "        <td>$pos</td>"
-        append_html "        <td>$len</td>"
-        append_html "        <td>$type</td>"
-        append_html "        <td>$support</td>"
-        append_html "      </tr>"
+        # Ensure numeric coordinates
+        if [[ "$a" =~ ^[0-9]+$ ]] && [[ "$b" =~ ^[0-9]+$ ]]; then
+          if [ "$a" -le "$b" ]; then
+            start=$a; stop=$b
+          else
+            start=$b; stop=$a
+          fi
+          length=$(( stop - start ))
+          append_html "      <tr>"
+          append_html "        <td>$start</td>"
+          append_html "        <td>$stop</td>"
+          append_html "        <td>${strand:-?}</td>"
+          append_html "        <td>$length</td>"
+          append_html "      </tr>"
+        fi
       done < "$del_file"
       
       append_html "    </table>"
