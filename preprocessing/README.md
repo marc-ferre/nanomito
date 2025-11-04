@@ -9,10 +9,12 @@ This directory contains two configuration files to centralize settings for prepr
 Configuration file for Bash scripts running on Linux, WSL, or HPC environments.
 
 **Used by:**
+
 - `wf-getmt.sh` - Mitochondrial read extraction
 - `upload_go.sh` - Upload to Genouest cluster
 
 **Usage in scripts:**
+
 ```bash
 # Source the configuration file
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,6 +26,7 @@ conda activate "$GETMT_ENV"
 ```
 
 **Key variables:**
+
 - `CONDA_SCRIPT` - Path to conda initialization
 - `GETMT_ENV` - Conda environment name
 - `CHRMPIDS_SCRIPT` - Python script for chrM read ID extraction
@@ -36,10 +39,12 @@ conda activate "$GETMT_ENV"
 Configuration file for PowerShell scripts running on Windows.
 
 **Used by:**
+
 - `dorado_run.ps1` - Dorado basecaller execution
 - `pipeline_run.ps1` - Complete pipeline orchestration
 
 **Usage in scripts:**
+
 ```powershell
 # Dot-source the configuration file
 . "$PSScriptRoot\preprocessing.ps1"
@@ -49,6 +54,7 @@ $doradoPath = Join-Path $DoradoBasePath $DoradoExecutable
 ```
 
 **Key variables:**
+
 - `DoradoBasePath`, `DoradoExecutable` - Dorado installation paths
 - `DoradoModel`, `DoradoKit` - Default basecalling settings
 - `DataRoot` - Root directory for run data
@@ -60,21 +66,25 @@ $doradoPath = Join-Path $DoradoBasePath $DoradoExecutable
 ### First-time Setup
 
 1. **For Linux/WSL/HPC:**
+
    ```bash
    cd preprocessing/
    nano preprocessing.config
    ```
+
    Update paths to match your environment:
    - `CONDA_SCRIPT` - Your conda installation path
    - `CHRMPIDS_SCRIPT`, `CREATE_PID_DICT_SCRIPT` - Python script locations
    - `DATA_ROOT` - Your data directory
    - `GO_USER`, `GO_HOST` - Your Genouest credentials
 
-2. **For Windows:**
+1. **For Windows:**
+
    ```powershell
    cd preprocessing/
    notepad preprocessing.ps1
    ```
+
    Update paths to match your environment:
    - `DoradoBasePath`, `DoradoExecutable` - Your Dorado installation
    - `DataRoot` - Your data directory
@@ -102,10 +112,12 @@ All scripts using this configuration will automatically use the new version.
 
 ## Migration from Hardcoded Values
 
-Scripts are being progressively updated to use these configuration files. 
+Scripts are being progressively updated to use these configuration files.
+
 Current status:
+
 - [ ] `wf-getmt.sh` - TODO: Update to source preprocessing.config
-- [ ] `upload_go.sh` - TODO: Update to source preprocessing.config  
+- [ ] `upload_go.sh` - TODO: Update to source preprocessing.config
 - [ ] `dorado_run.ps1` - TODO: Update to dot-source preprocessing.ps1
 - [ ] `pipeline_run.ps1` - TODO: Update to dot-source preprocessing.ps1
 
