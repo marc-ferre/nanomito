@@ -331,14 +331,16 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   
   error_count=0
   if [ -f "$demultmt_err" ]; then
-    demultmt_errors=$(grep -ci "error\|failed\|exception" "$demultmt_err" 2>/dev/null | head -1 || echo "0")
-    demultmt_errors=${demultmt_errors:-0}
-    error_count=$((error_count + demultmt_errors))
+    demultmt_errors=$(grep -ci "error\|failed\|exception" "$demultmt_err" 2>/dev/null | head -1)
+    if [ -n "$demultmt_errors" ] && [ "$demultmt_errors" -eq "$demultmt_errors" ] 2>/dev/null; then
+      error_count=$((error_count + demultmt_errors))
+    fi
   fi
   if [ -f "$modmito_err" ]; then
-    modmito_errors=$(grep -ci "error\|failed\|exception" "$modmito_err" 2>/dev/null | head -1 || echo "0")
-    modmito_errors=${modmito_errors:-0}
-    error_count=$((error_count + modmito_errors))
+    modmito_errors=$(grep -ci "error\|failed\|exception" "$modmito_err" 2>/dev/null | head -1)
+    if [ -n "$modmito_errors" ] && [ "$modmito_errors" -eq "$modmito_errors" ] 2>/dev/null; then
+      error_count=$((error_count + modmito_errors))
+    fi
   fi
   
   if [ $error_count -gt 0 ]; then
