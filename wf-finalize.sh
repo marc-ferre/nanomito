@@ -142,10 +142,14 @@ if [ -f "$SUMMARY_TSV" ]; then
   # Calculate total runtime
   total_seconds=0
   while IFS=$'\t' read -r run_id sample_id workflow runtime; do
-    if [ "$workflow" != "Workflow" ]; then
+    if [ "$workflow" != "Workflow" ] && [ -n "$runtime" ]; then
       # Convert hh:mm:ss to seconds
       IFS=: read -r hours minutes seconds <<< "$runtime"
-      seconds_total=$((10#$hours * 3600 + 10#$minutes * 60 + 10#$seconds))
+      # Remove leading zeros and spaces, default to 0 if empty
+      hours=${hours##*( )}; hours=${hours#0}; hours=${hours:-0}
+      minutes=${minutes##*( )}; minutes=${minutes#0}; minutes=${minutes:-0}
+      seconds=${seconds##*( )}; seconds=${seconds#0}; seconds=${seconds:-0}
+      seconds_total=$((hours * 3600 + minutes * 60 + seconds))
       total_seconds=$((total_seconds + seconds_total))
     fi
   done < <(tail -n +2 "$SUMMARY_TSV")
@@ -327,10 +331,12 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   
   error_count=0
   if [ -f "$demultmt_err" ]; then
-    error_count=$((error_count + $(grep -ci "error\|failed\|exception" "$demultmt_err" 2>/dev/null || echo 0)))
+    demultmt_errors=$(grep -ci "error\|failed\|exception" "$demultmt_err" 2>/dev/null || echo 0)
+    error_count=$((error_count + demultmt_errors))
   fi
   if [ -f "$modmito_err" ]; then
-    error_count=$((error_count + $(grep -ci "error\|failed\|exception" "$modmito_err" 2>/dev/null || echo 0)))
+    modmito_errors=$(grep -ci "error\|failed\|exception" "$modmito_err" 2>/dev/null || echo 0)
+    error_count=$((error_count + modmito_errors))
   fi
   
   if [ $error_count -gt 0 ]; then
