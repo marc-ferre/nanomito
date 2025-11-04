@@ -190,23 +190,30 @@ REPORT_MD=$(find "$RUN_DIR" -maxdepth 1 -name "report_*.md" | head -1)
 
 if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
   append_line ""
-  # Extract key metrics from JSON
-  reads_generated=$(grep -o '"reads_generated"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_JSON" | grep -o '[0-9]*$' || echo "N/A")
-  estimated_bases=$(grep -o '"estimated_bases"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_JSON" | grep -o '[0-9]*$' || echo "N/A")
+  # Extract key metrics from the last snapshot in JSON
+  # The metrics are in the last "yield_summary" of the last acquisition's last snapshot
+  read_count=$(grep -o '"read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
+  basecalled_pass_bases=$(grep -o '"basecalled_pass_bases":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
+  basecalled_pass_read_count=$(grep -o '"basecalled_pass_read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
   
-  if [ "$reads_generated" != "N/A" ]; then
-    reads_formatted=$(format_number "$reads_generated")
-    printf "  %-35s : %s\n" "Reads generated" "$reads_formatted" >> "$EMAIL_BODY_FILE"
+  if [ "$read_count" != "N/A" ] && [ "$read_count" != "" ]; then
+    reads_formatted=$(format_number "$read_count")
+    printf "  %-25s : %s\n" "Total reads" "$reads_formatted" >> "$EMAIL_BODY_FILE"
   fi
   
-  if [ "$estimated_bases" != "N/A" ]; then
-    bases_formatted=$(format_number "$estimated_bases")
+  if [ "$basecalled_pass_read_count" != "N/A" ] && [ "$basecalled_pass_read_count" != "" ]; then
+    pass_reads_formatted=$(format_number "$basecalled_pass_read_count")
+    printf "  %-25s : %s\n" "Passed reads" "$pass_reads_formatted" >> "$EMAIL_BODY_FILE"
+  fi
+  
+  if [ "$basecalled_pass_bases" != "N/A" ] && [ "$basecalled_pass_bases" != "" ]; then
+    bases_formatted=$(format_number "$basecalled_pass_bases")
     # Convert to Gb
-    if [[ "$estimated_bases" =~ ^[0-9]+$ ]]; then
-      bases_gb=$(awk "BEGIN {printf \"%.2f\", $estimated_bases / 1000000000}")
-      printf "  %-35s : %s (%.2f Gb)\n" "Estimated bases" "$bases_formatted" "$bases_gb" >> "$EMAIL_BODY_FILE"
+    if [[ "$basecalled_pass_bases" =~ ^[0-9]+$ ]]; then
+      bases_gb=$(awk "BEGIN {printf \"%.2f\", $basecalled_pass_bases / 1000000000}")
+      printf "  %-25s : %s (%.2f Gb)\n" "Passed bases" "$bases_formatted" "$bases_gb" >> "$EMAIL_BODY_FILE"
     else
-      printf "  %-35s : %s\n" "Estimated bases" "$bases_formatted" >> "$EMAIL_BODY_FILE"
+      printf "  %-25s : %s\n" "Passed bases" "$bases_formatted" >> "$EMAIL_BODY_FILE"
     fi
   fi
   
