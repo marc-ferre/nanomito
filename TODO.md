@@ -14,11 +14,13 @@ Last updated: 2025-11-04
   - ✅ Fixed path resolution for both direct execution and sbatch contexts
   - ✅ Documented in README.md with Configuration section
 
-- [ ] **Create preprocessing.config file for preprocessing scripts**
-  - Extract hardcoded paths from preprocessing/ folder scripts
-  - Follow same pattern as nanomito.config
-  - Update: dorado_run.ps1, pipeline_run.ps1, get_chrMpid.py, wf-getmt.sh, upload_go.sh
-  - Document in README.md
+- [x] **Create preprocessing configuration files** ✅ COMPLETED 2025-11-04
+  - ✅ Created `preprocessing/preprocessing.config` for Bash scripts (Linux/WSL/HPC)
+  - ✅ Created `preprocessing/preprocessing.ps1` for PowerShell scripts (Windows)
+  - ✅ Extracted all hardcoded paths and settings
+  - ✅ Variables: conda, Python scripts, Dorado, references, Genouest settings
+  - ✅ Added `preprocessing/README.md` with usage documentation
+  - 📋 Next: Update scripts to source these config files (wf-getmt.sh, upload_go.sh, dorado_run.ps1, pipeline_run.ps1)
 
 - [x] **Enhance submit_nanomito.sh to replace wf-subwf.sh functionality** ✅ COMPLETED 2025-10-27
   - ✅ Integrated sample detection logic directly into submit_nanomito.sh
@@ -227,6 +229,13 @@ Last updated: 2025-11-04
   - Send summary reports
 
 ## ✅ Completed (Archive)
+
+### v25.11.04 - Feature Enhancements
+
+- [x] Added `--include-unclassified` option to submit_nanomito.sh
+- [x] Created preprocessing configuration files (preprocessing.config and preprocessing.ps1)
+- [x] Added preprocessing/README.md documentation
+- [x] Fixed help message column alignment in submit_nanomito.sh
 
 ### v25.11.03 - Configuration Centralization
 
