@@ -11,6 +11,8 @@
 #   --skip-demultmt   Skip demultmt workflow, only submit modmito
 #   --modmito-only    Only submit modmito workflow (requires --skip-bchg)
 #   --skip-modmito    Skip modmito workflow, only submit demultmt
+#   --archiving-only  Only submit archiving job (archives existing data)
+#   --skip-archiving  Skip archiving step in the workflow
 #   --finalize-only   Only submit finalization job (email report from existing data)
 #   --help            Display this help message
 #
@@ -62,6 +64,8 @@ DEMULTMT_ONLY=false
 SKIP_DEMULTMT=false
 MODMITO_ONLY=false
 SKIP_MODMITO=false
+ARCHIVING_ONLY=false
+SKIP_ARCHIVING=false
 FINALIZE_ONLY=false
 INCLUDE_UNCLASSIFIED=false
 SHOW_HELP=false
@@ -90,6 +94,14 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--skip-modmito)
 			SKIP_MODMITO=true
+			shift
+			;;
+		--archiving-only)
+			ARCHIVING_ONLY=true
+			shift
+			;;
+		--skip-archiving)
+			SKIP_ARCHIVING=true
 			shift
 			;;
 		--finalize-only)
@@ -122,6 +134,8 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "  --skip-demultmt         Skip demultmt workflow, only submit modmito"
 	echo "  --modmito-only          Only submit modmito workflow (requires --skip-bchg)"
 	echo "  --skip-modmito          Skip modmito workflow, only submit demultmt"
+	echo "  --archiving-only        Only submit archiving job (archives existing data)"
+	echo "  --skip-archiving        Skip archiving step in the workflow"
 	echo "  --finalize-only         Only submit finalization job (email report from existing data)"
 	echo "  --include-unclassified  Include 'unclassified' folder in sample processing"
 	echo "  --help, -h              Display this help message"
@@ -133,6 +147,7 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "  $0 --skip-bchg --demultmt-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --skip-bchg --modmito-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --skip-bchg --include-unclassified /scratch/mferre/workbench/250916_MK1B_RUN15/"
+	echo "  $0 --archiving-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --finalize-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	exit 0
 fi
@@ -150,6 +165,11 @@ fi
 
 if [ "$MODMITO_ONLY" = true ] && [ "$SKIP_MODMITO" = true ]; then
 	log_error "Cannot use --modmito-only and --skip-modmito together"
+	exit 128
+fi
+
+if [ "$ARCHIVING_ONLY" = true ] && [ "$SKIP_ARCHIVING" = true ]; then
+	log_error "Cannot use --archiving-only and --skip-archiving together"
 	exit 128
 fi
 
@@ -262,6 +282,40 @@ JOBID_LIST=''
 JOBS_COUNT=0
 BCHG_JOBID=''
 
+# Get archiving configuration
+ARCHIVING_DIR="${ARCHIVING_DIR:-/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/projects/$RUN_ID}"
+
+# SPECIAL CASE: --archiving-only to archive existing data
+if [ "$ARCHIVING_ONLY" = true ]; then
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+	echo -e "${BOLD}${CYAN}   ARCHIVING ONLY MODE${NC}"
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+	log_info "Submitting archiving job only (no dependencies)"
+	log_info "This will archive data from $RUN_DIR to $ARCHIVING_DIR"
+	echo ""
+	
+	ARCHIVE_OUT="$PROCESS_DIR/slurm-$RUN_ID.archive.out"
+	ARCHIVE_JOBID=$(sbatch --parsable \
+		--export=ALL \
+		--chdir="$RUN_DIR" \
+		--job-name="a${RUN_ID: -7}" \
+		--output="$ARCHIVE_OUT" \
+		"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
+	
+	if [ -n "$ARCHIVE_JOBID" ]; then
+		log_success "Submitted archiving job $ARCHIVE_JOBID"
+		log_info "  Output: $ARCHIVE_OUT"
+		log_info "  Destination: $ARCHIVING_DIR"
+		echo ""
+		log_success "Archiving will complete when job finishes"
+	else
+		log_error "Failed to submit archiving job"
+		exit 1
+	fi
+	
+	exit 0
+fi
+
 # SPECIAL CASE: --finalize-only to test email report
 if [ "$FINALIZE_ONLY" = true ]; then
 	echo -e "${BOLD}${CYAN}==========================================${NC}"
@@ -361,6 +415,115 @@ if [ "$BCHG_ONLY" = false ]; then
 else
 	log_info "Skipping analysis workflows (--bchg-only mode)"
 	echo ""
+fi
+
+# Submit archiving job (unless --skip-archiving is set or --bchg-only mode)
+if [ "$SKIP_ARCHIVING" = false ] && [ "$BCHG_ONLY" = false ]; then
+	echo ""
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+	echo -e "${BOLD}${CYAN}   SUBMITTING ARCHIVING JOB${NC}"
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+	
+	ARCHIVE_OUT="$PROCESS_DIR/slurm-$RUN_ID.archive.out"
+	
+	# Archive depends on all previous jobs
+	if [ -n "$SUBWF_JOBID" ]; then
+		ARCHIVE_JOBID=$(sbatch --dependency=afterok:"$SUBWF_JOBID" --parsable \
+			--export=ALL \
+			--chdir="$RUN_DIR" \
+			--job-name="a${RUN_ID: -7}" \
+			--output="$ARCHIVE_OUT" \
+			"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
+		log_success "Submitted archiving job $ARCHIVE_JOBID (depends on $SUBWF_JOBID)"
+	elif [ -n "$BCHG_JOBID" ]; then
+		ARCHIVE_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable \
+			--export=ALL \
+			--chdir="$RUN_DIR" \
+			--job-name="a${RUN_ID: -7}" \
+			--output="$ARCHIVE_OUT" \
+			"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
+		log_success "Submitted archiving job $ARCHIVE_JOBID (depends on $BCHG_JOBID)"
+	else
+		ARCHIVE_JOBID=$(sbatch --parsable \
+			--export=ALL \
+			--chdir="$RUN_DIR" \
+			--job-name="a${RUN_ID: -7}" \
+			--output="$ARCHIVE_OUT" \
+			"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
+		log_success "Submitted archiving job $ARCHIVE_JOBID"
+	fi
+	
+	log_info "  Output: $ARCHIVE_OUT"
+	log_info "  Destination: $ARCHIVING_DIR"
+	JOBID_LIST="$ARCHIVE_JOBID $JOBID_LIST"
+	JOBS_COUNT=$((JOBS_COUNT + 1))
+	echo ""
+	
+	# Submit finalization job that depends on archiving
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+	echo -e "${BOLD}${CYAN}   SUBMITTING FINALIZATION JOB${NC}"
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+	
+	FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
+	FINAL_JOBID=$(sbatch --dependency=afterok:"$ARCHIVE_JOBID" --parsable \
+		--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+		--chdir="$RUN_DIR" \
+		--job-name="f${RUN_ID: -7}" \
+		--output="$FINAL_OUT" \
+		"$SCRIPT_DIR/wf-finalize.sh")
+	
+	log_success "Submitted finalization job $FINAL_JOBID (depends on $ARCHIVE_JOBID)"
+	log_info "  Output: $FINAL_OUT"
+	log_info "  Email report will be sent when job completes"
+	JOBID_LIST="$FINAL_JOBID $JOBID_LIST"
+	JOBS_COUNT=$((JOBS_COUNT + 1))
+	echo ""
+else
+	if [ "$SKIP_ARCHIVING" = true ]; then
+		log_info "Skipping archiving (--skip-archiving mode)"
+	fi
+	
+	# Submit finalization job without archiving dependency
+	if [ "$BCHG_ONLY" = false ]; then
+		echo ""
+		echo -e "${BOLD}${CYAN}==========================================${NC}"
+		echo -e "${BOLD}${CYAN}   SUBMITTING FINALIZATION JOB${NC}"
+		echo -e "${BOLD}${CYAN}==========================================${NC}"
+		
+		FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
+		
+		if [ -n "$SUBWF_JOBID" ]; then
+			FINAL_JOBID=$(sbatch --dependency=afterok:"$SUBWF_JOBID" --parsable \
+				--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+				--chdir="$RUN_DIR" \
+				--job-name="f${RUN_ID: -7}" \
+				--output="$FINAL_OUT" \
+				"$SCRIPT_DIR/wf-finalize.sh")
+			log_success "Submitted finalization job $FINAL_JOBID (depends on $SUBWF_JOBID)"
+		elif [ -n "$BCHG_JOBID" ]; then
+			FINAL_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable \
+				--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+				--chdir="$RUN_DIR" \
+				--job-name="f${RUN_ID: -7}" \
+				--output="$FINAL_OUT" \
+				"$SCRIPT_DIR/wf-finalize.sh")
+			log_success "Submitted finalization job $FINAL_JOBID (depends on $BCHG_JOBID)"
+		else
+			FINAL_JOBID=$(sbatch --parsable \
+				--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+				--chdir="$RUN_DIR" \
+				--job-name="f${RUN_ID: -7}" \
+				--output="$FINAL_OUT" \
+				"$SCRIPT_DIR/wf-finalize.sh")
+			log_success "Submitted finalization job $FINAL_JOBID"
+		fi
+		
+		log_info "  Output: $FINAL_OUT"
+		log_info "  Email report will be sent when job completes"
+		JOBID_LIST="$FINAL_JOBID $JOBID_LIST"
+		JOBS_COUNT=$((JOBS_COUNT + 1))
+		echo ""
+	fi
 fi
 
 echo ""

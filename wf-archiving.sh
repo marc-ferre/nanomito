@@ -33,6 +33,11 @@ echo "Run directory: $RUN_DIR"
 echo "Archiving directory: $ARCHIVING_DIR"
 echo "Date: $(date)"
 
+# Initialize archiving summary file
+PROCESS_DIR="$RUN_DIR/processing"
+ARCHIVING_SUMMARY="$PROCESS_DIR/archiving_summary.$RUN_ID.tsv"
+ERROR_LOG=""
+
 echo
 echo '*************'
 echo '* Clean run *'
@@ -64,13 +69,26 @@ echo "From: $RUN_DIR "
 echo "To  : $ARCHIVING_DIR "
 
 
-if rsync -av --stats --progress --delete "$RUN_DIR/" "$ARCHIVING_DIR/"
+if rsync -av --stats --progress --delete "$RUN_DIR/" "$ARCHIVING_DIR/" 2>&1 | tee /tmp/rsync_output_$$.txt
 then
     echo "[OK] Run copied successfully"
+    ARCHIVE_STATUS="success"
+    
+    # Extract size information from rsync stats
+    TOTAL_SIZE=$(grep "Total file size:" /tmp/rsync_output_$$.txt | awk '{print $4, $5}' || echo "N/A")
+    if [ "$TOTAL_SIZE" = "N/A" ]; then
+        # Fallback: calculate size with du
+        TOTAL_SIZE=$(du -sh "$ARCHIVING_DIR" 2>/dev/null | cut -f1 || echo "N/A")
+    fi
 else
     echo "[ERROR] While copying"
-    exit 1 # die with error
+    ARCHIVE_STATUS="failed"
+    ERROR_LOG="rsync failed during archiving"
+    TOTAL_SIZE="N/A"
 fi
+
+# Clean up temp file
+rm -f /tmp/rsync_output_$$.txt
 
 echo
 echo '***********'
@@ -82,4 +100,19 @@ RUNTIME=$((END - START))
 HOURS=$((RUNTIME / 3600))
 MINUTES=$(( (RUNTIME % 3600) / 60 ))
 SECONDS=$(( (RUNTIME % 3600) % 60 ))
-echo "Runtime: $HOURS:$MINUTES:$SECONDS (hh:mm:ss)"
+RUNTIME_FORMATTED=$(printf "%02d:%02d:%02d" $HOURS $MINUTES $SECONDS)
+echo "Runtime: $RUNTIME_FORMATTED (hh:mm:ss)"
+
+# Write archiving summary file
+echo "Writing archiving summary to: $ARCHIVING_SUMMARY"
+{
+    echo -e "Status\tArchiving directory\tTotal size\tRuntime (hh:mm:ss)\tError"
+    echo -e "$ARCHIVE_STATUS\t$ARCHIVING_DIR\t$TOTAL_SIZE\t$RUNTIME_FORMATTED\t$ERROR_LOG"
+} > "$ARCHIVING_SUMMARY"
+
+echo "[OK] Archiving summary written to: $ARCHIVING_SUMMARY"
+
+# Exit with error if archiving failed
+if [ "$ARCHIVE_STATUS" = "failed" ]; then
+    exit 1
+fi

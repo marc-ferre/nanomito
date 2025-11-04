@@ -678,7 +678,65 @@ fi
 
 append_html "</div>"
 
-# --- 5. FOOTER ------------------------------------------------------------
+# --- 5. ARCHIVING SUMMARY -------------------------------------------------
+ARCHIVING_SUMMARY="$PROCESS_DIR/archiving_summary.$RUN_ID.tsv"
+
+if [ -f "$ARCHIVING_SUMMARY" ]; then
+  append_section "ARCHIVING SUMMARY"
+  
+  # Read archiving info from TSV (skip header)
+  archiving_line=$(tail -n 1 "$ARCHIVING_SUMMARY")
+  archive_status=$(echo "$archiving_line" | awk -F'\t' '{print $1}')
+  archive_dir=$(echo "$archiving_line" | awk -F'\t' '{print $2}')
+  archive_size=$(echo "$archiving_line" | awk -F'\t' '{print $3}')
+  archive_runtime=$(echo "$archiving_line" | awk -F'\t' '{print $4}')
+  archive_error=$(echo "$archiving_line" | awk -F'\t' '{print $5}')
+  
+  # Display status
+  if [ "$archive_status" = "success" ]; then
+    append_html "  <div class=\"metric-row\">"
+    append_html "    <span class=\"metric-label\">Status</span>"
+    append_html "    <span class=\"metric-value success\">✓ Archiving completed successfully</span>"
+    append_html "  </div>"
+  else
+    append_html "  <div class=\"metric-row\">"
+    append_html "    <span class=\"metric-label\">Status</span>"
+    append_html "    <span class=\"metric-value error\">✗ Archiving failed</span>"
+    append_html "  </div>"
+    
+    if [ -n "$archive_error" ]; then
+      append_html "  <div style=\"margin-top: 10px; padding: 10px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;\">"
+      append_html "    <strong>⚠ Error:</strong> $archive_error"
+      append_html "  </div>"
+    fi
+  fi
+  
+  # Display archiving directory
+  append_html "  <div class=\"metric-row\">"
+  append_html "    <span class=\"metric-label\">Destination</span>"
+  append_html "    <span class=\"metric-value\"><code>$archive_dir</code></span>"
+  append_html "  </div>"
+  
+  # Display total size
+  if [ "$archive_size" != "N/A" ] && [ -n "$archive_size" ]; then
+    append_html "  <div class=\"metric-row\">"
+    append_html "    <span class=\"metric-label\">Total size</span>"
+    append_html "    <span class=\"metric-value info\">$archive_size</span>"
+    append_html "  </div>"
+  fi
+  
+  # Display archiving runtime
+  if [ -n "$archive_runtime" ]; then
+    append_html "  <div class=\"metric-row\">"
+    append_html "    <span class=\"metric-label\">Archiving duration</span>"
+    append_html "    <span class=\"metric-value\">$archive_runtime</span>"
+    append_html "  </div>"
+  fi
+  
+  append_html "</div>"
+fi
+
+# --- 6. FOOTER ------------------------------------------------------------
 append_html "<div class=\"footer\">"
 append_html "  <strong>End of Nanomito Report</strong><br>"
 append_html "  Details available in: <code>$PROCESS_DIR</code>"
