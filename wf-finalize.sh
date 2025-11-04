@@ -589,31 +589,54 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
       append_html "  <div style=\"margin: 10px 0;\">"
       append_html "    <strong>Deletions</strong>"
       append_html "    <table style=\"margin-top: 5px;\">"
-      append_html "      <tr><th>Start</th><th>Stop</th><th>Strand</th><th>Length</th></tr>"
+      append_html "      <tr><th>Start</th><th>Stop</th><th>Strand</th><th>Length</th><th>Type</th><th>Count</th></tr>"
       
-      # Parse deletions file (expected: pos1, pos2, strand(+/-), support)
-      # Render columns: Start, Stop, Strand, Length
-  while IFS=$'\t' read -r a b strand rest; do
-        # Skip header or empty/comment lines
-        if [[ "$a" =~ ^#.*$ ]] || [ -z "$a" ]; then
-          continue
-        fi
-        # Ensure numeric coordinates
-        if [[ "$a" =~ ^[0-9]+$ ]] && [[ "$b" =~ ^[0-9]+$ ]]; then
-          if [ "$a" -le "$b" ]; then
-            start=$a; stop=$b
-          else
-            start=$b; stop=$a
-          fi
-          length=$(( stop - start ))
-          append_html "      <tr>"
-          append_html "        <td>$start</td>"
-          append_html "        <td>$stop</td>"
-          append_html "        <td>${strand:-?}</td>"
-          append_html "        <td>$length</td>"
-          append_html "      </tr>"
-        fi
-      done < "$del_file"
+      # Parse deletions and render with sorting and deduplication of mirrored +/- pairs
+      # Expected file columns: pos1, pos2, strand(+/-), [support], type, count (type/count as last two columns)
+      tmp_rows=$(mktemp)
+      awk 'BEGIN{FS="\t"; OFS="\t"} \
+           !/^#/ && NF>=3 { \
+             a=$1+0; b=$2+0; s=$3; \
+             t=(NF>=5?$5:""); c=(NF>=6?$6:0); \
+             if (a==0 && b==0) next; \
+             start=(a<b?a:b); stop=(a<b?b:a); len=stop-start; \
+             if (len<0) len=-len; \
+             if (c=="" || c!~ /^[0-9]+$/) c=0; \
+             print start, stop, s, len, t, c \
+           }' "$del_file" \
+        | sort -t $'\t' -k1,1n -k2,2n -k3,3 \
+        > "$tmp_rows"
+
+      tmp_dedup=$(mktemp)
+      awk 'BEGIN{FS=OFS="\t"} \
+           { \
+             start=$1; stop=$2; strand=$3; len=$4; t=$5; c=$6+0; \
+             key=start OFS stop; \
+             if (!(key in seen)) { \
+               seen[key]=1; splus[key]=0; sminus[key]=0; sumc[key]=0; ty[key]=t; l[key]=len; order[++n]=key; \
+             } \
+             if (strand=="+") splus[key]=1; else if (strand=="-") sminus[key]=1; \
+             sumc[key]+=c; if (ty[key]=="" && t!="") ty[key]=t; \
+           } \
+           END { \
+             for (i=1;i<=n;i++) { key=order[i]; \
+               strand=(splus[key]&&sminus[key]?"±":(splus[key]?"+":(sminus[key]?"-":"?"))); \
+               print key, strand, l[key], ty[key], sumc[key]; \
+             } \
+           }' "$tmp_rows" > "$tmp_dedup"
+
+      while IFS=$'\t' read -r start stop strand length dtype count; do
+        [ -z "$start" ] && continue
+        append_html "      <tr>"
+        append_html "        <td>$start</td>"
+        append_html "        <td>$stop</td>"
+        append_html "        <td>$strand</td>"
+        append_html "        <td>$length</td>"
+        append_html "        <td>${dtype:-}</td>"
+        append_html "        <td>$count</td>"
+        append_html "      </tr>"
+      done < "$tmp_dedup"
+      rm -f "$tmp_rows" "$tmp_dedup"
       
       append_html "    </table>"
       append_html "  </div>"
