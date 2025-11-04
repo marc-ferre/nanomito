@@ -73,9 +73,9 @@ append_section() {
   local title="$1"
   {
     echo ""
-    echo "------------------------------------------------------------------------"
+    echo "------------------------------------------------------------"
     echo "  $title"
-    echo "------------------------------------------------------------------------"
+    echo "------------------------------------------------------------"
   } >> "$EMAIL_BODY_FILE"
 }
 
@@ -122,15 +122,15 @@ log_info "Preparing comprehensive email summary: $EMAIL_BODY_FILE"
 
 # --- Email Header ---------------------------------------------------------
 {
-  echo "========================================================================"
+  echo "============================================================"
   echo ""
-  echo "                 NANOMITO WORKFLOW COMPLETED"
+  echo "         NANOMITO WORKFLOW COMPLETED"
   echo ""
-  echo "========================================================================"
+  echo "============================================================"
   echo ""
-  echo "Run ID       : $RUN_ID"
-  echo "Directory    : $RUN_DIR"
-  echo "Completed at : $(date '+%Y-%m-%d %H:%M:%S')"
+  echo "Run ID    : $RUN_ID"
+  echo "Directory : $RUN_DIR"
+  echo "Completed : $(date '+%Y-%m-%d %H:%M:%S')"
   echo ""
 } >> "$EMAIL_BODY_FILE"
 
@@ -162,24 +162,20 @@ if [ -f "$SUMMARY_TSV" ]; then
   append_line ""
   append_line "*** All jobs completed successfully! ***"
   append_line ""
-  printf "%-40s : %02d:%02d:%02d\n" "Total workflow runtime" "$total_hours" "$total_minutes" "$total_secs" >> "$EMAIL_BODY_FILE"
+  printf "Total runtime: %02d:%02d:%02d\n" "$total_hours" "$total_minutes" "$total_secs" >> "$EMAIL_BODY_FILE"
   append_line ""
-  append_line "Individual job runtimes:"
-  append_line "+--------------------------------------+------------+--------------+"
-  printf "| %-36s | %-10s | %-12s |\n" "Sample" "Workflow" "Runtime" >> "$EMAIL_BODY_FILE"
-  append_line "+--------------------------------------+------------+--------------+"
+  append_line "Job runtimes:"
   
   while IFS=$'\t' read -r run_id sample_id workflow runtime; do
     if [ "$workflow" != "Workflow" ]; then
       sample_display="${sample_id:-N/A}"
-      if [ ${#sample_display} -gt 36 ]; then
-        sample_display="${sample_display:0:33}..."
+      # Truncate long sample names
+      if [ ${#sample_display} -gt 30 ]; then
+        sample_display="${sample_display:0:27}..."
       fi
-      printf "| %-36s | %-10s | %12s |\n" "$sample_display" "$workflow" "$runtime" >> "$EMAIL_BODY_FILE"
+      printf "  %-30s %8s  %s\n" "$sample_display" "$workflow" "$runtime" >> "$EMAIL_BODY_FILE"
     fi
   done < <(tail -n +2 "$SUMMARY_TSV")
-  
-  append_line "+--------------------------------------+------------+--------------+"
 else
   append_line ""
   append_line "WARNING: Workflow summary file not found"
@@ -248,9 +244,9 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   sample_count=$((sample_count + 1))
   
   append_line ""
-  append_line "..........................................................................."
-  printf "  Sample: %-60s\n" "$sample" >> "$EMAIL_BODY_FILE"
-  append_line "..........................................................................."
+  append_line "-----------------------------------------------------------"
+  printf "Sample: %s\n" "$sample" >> "$EMAIL_BODY_FILE"
+  append_line "-----------------------------------------------------------"
   
   # Extract demultiplexing metrics
   if [ -f "$DEMULT_SUMMARY" ]; then
@@ -259,9 +255,9 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     
     if [ -n "$chrM_reads" ]; then
       append_line ""
-      append_line "Alignment metrics:"
-      printf "  %-40s : %15s\n" "Reads aligned to chrM" "$(format_number "$chrM_reads")" >> "$EMAIL_BODY_FILE"
-      printf "  %-40s : %15s\n" "Reads matching both (ref + chrM)" "$(format_number "$matching_both")" >> "$EMAIL_BODY_FILE"
+      append_line "Alignment:"
+      printf "  chrM reads       : %s\n" "$(format_number "$chrM_reads")" >> "$EMAIL_BODY_FILE"
+      printf "  Matching both    : %s\n" "$(format_number "$matching_both")" >> "$EMAIL_BODY_FILE"
     fi
   fi
   
@@ -276,12 +272,12 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
       minor_haplogroup=$(echo "$haplocheck_line" | awk -F'\t' '{print $12}' | tr -d '"')
       
       append_line ""
-      append_line "Haplogroup analysis:"
-      printf "  %-40s : %15s\n" "Contamination Status" "$contamination_status" >> "$EMAIL_BODY_FILE"
-      printf "  %-40s : %15s\n" "Major Haplogroup" "$major_haplogroup" >> "$EMAIL_BODY_FILE"
+      append_line "Haplogroup:"
+      printf "  Status           : %s\n" "$contamination_status" >> "$EMAIL_BODY_FILE"
+      printf "  Major            : %s\n" "$major_haplogroup" >> "$EMAIL_BODY_FILE"
       
       if [ "$major_haplogroup" != "$minor_haplogroup" ] && [ -n "$minor_haplogroup" ]; then
-        printf "  %-40s : %15s\n" "Minor Haplogroup" "$minor_haplogroup" >> "$EMAIL_BODY_FILE"
+        printf "  Minor            : %s\n" "$minor_haplogroup" >> "$EMAIL_BODY_FILE"
       fi
     fi
   fi
@@ -293,14 +289,14 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     pass_variants=$(count_vcf_pass_variants "$vcf_file")
     
     append_line ""
-    append_line "Variant calling:"
-    printf "  %-40s : %15s\n" "Total variants" "$total_variants" >> "$EMAIL_BODY_FILE"
-    printf "  %-40s : %15s\n" "PASS variants" "$pass_variants" >> "$EMAIL_BODY_FILE"
+    append_line "Variants:"
+    printf "  Total            : %s\n" "$total_variants" >> "$EMAIL_BODY_FILE"
+    printf "  PASS             : %s\n" "$pass_variants" >> "$EMAIL_BODY_FILE"
   fi
   
   # Check for important output files
   append_line ""
-  append_line "Key output files:"
+  append_line "Output files:"
   
   bam_file="${sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
   ann_tsv="${sample}.ann.tsv"
@@ -308,21 +304,21 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   
   if [ -f "$sample_dir/$bam_file" ]; then
     bam_size=$(du -h "$sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
-    printf "  [YES] %-40s (%s)\n" "Sorted BAM" "$bam_size" >> "$EMAIL_BODY_FILE"
+    printf "  [OK] BAM (%s)\n" "$bam_size" >> "$EMAIL_BODY_FILE"
   else
-    printf "  [NO ] %-40s\n" "Sorted BAM - NOT FOUND" >> "$EMAIL_BODY_FILE"
+    append_line "  [ X] BAM - NOT FOUND"
   fi
   
   if [ -f "$sample_dir/$ann_vcf" ]; then
-    printf "  [YES] %-40s\n" "Annotated VCF" >> "$EMAIL_BODY_FILE"
+    append_line "  [OK] VCF"
   else
-    printf "  [NO ] %-40s\n" "Annotated VCF - NOT FOUND" >> "$EMAIL_BODY_FILE"
+    append_line "  [ X] VCF - NOT FOUND"
   fi
   
   if [ -f "$sample_dir/$ann_tsv" ]; then
-    printf "  [YES] %-40s\n" "Annotated TSV" >> "$EMAIL_BODY_FILE"
+    append_line "  [OK] TSV"
   else
-    printf "  [NO ] %-40s\n" "Annotated TSV - NOT FOUND" >> "$EMAIL_BODY_FILE"
+    append_line "  [ X] TSV - NOT FOUND"
   fi
   
   # Check for errors in logs
@@ -383,24 +379,24 @@ else
 fi
 
 if [ -f "$DEMULT_SUMMARY" ]; then
-  append_line "  [YES] demult_summary.$RUN_ID.tsv"
+  append_line "  [OK] demult_summary"
 else
-  append_line "  [NO ] demult_summary.$RUN_ID.tsv (not found)"
+  append_line "  [ X] demult_summary (not found)"
 fi
 
 if [ -f "$HAPLOCHECK_SUMMARY" ]; then
-  append_line "  [YES] haplocheck_summary.$RUN_ID.tsv"
+  append_line "  [OK] haplocheck_summary"
 else
-  append_line "  [NO ] haplocheck_summary.$RUN_ID.tsv (not found)"
+  append_line "  [ X] haplocheck_summary (not found)"
 fi
 
 # --- 5. FOOTER ------------------------------------------------------------
 {
   echo ""
-  echo "========================================================================"
+  echo "============================================================"
   echo "  End of Nanomito Report"
-  echo "  For detailed logs, check the processing/ directory"
-  echo "========================================================================"
+  echo "  Details: $PROCESS_DIR"
+  echo "============================================================"
 } >> "$EMAIL_BODY_FILE"
 
 # --- Send email -----------------------------------------------------------
