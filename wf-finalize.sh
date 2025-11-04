@@ -364,10 +364,15 @@ if [ -f "$SUMMARY_TSV" ]; then
   
   while IFS=$'\t' read -r run_id sample_id workflow runtime; do
     if [ "$workflow" != "Workflow" ]; then
-      sample_display="${sample_id:-N/A}"
-      # Truncate long sample names
-      if [ ${#sample_display} -gt 35 ]; then
-        sample_display="${sample_display:0:32}..."
+      # Display "NA" if sample_id is empty, otherwise use the sample_id
+      if [ -z "$sample_id" ] || [ "$sample_id" = "NA" ]; then
+        sample_display="NA"
+      else
+        sample_display="$sample_id"
+        # Truncate long sample names
+        if [ ${#sample_display} -gt 35 ]; then
+          sample_display="${sample_display:0:32}..."
+        fi
       fi
       append_html "    <tr>"
       append_html "      <td>$sample_display</td>"
@@ -566,21 +571,23 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   
   if [ -f "$sample_dir/$bam_file" ]; then
     bam_size=$(du -h "$sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
-    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> BAM ($bam_size)</div>"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $bam_file ($bam_size)</div>"
   else
-    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> BAM - NOT FOUND</div>"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $bam_file - NOT FOUND</div>"
   fi
   
   if [ -f "$sample_dir/$ann_vcf" ]; then
-    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> VCF</div>"
+    vcf_size=$(du -h "$sample_dir/$ann_vcf" 2>/dev/null | cut -f1 || echo "?")
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $ann_vcf ($vcf_size)</div>"
   else
-    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> VCF - NOT FOUND</div>"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $ann_vcf - NOT FOUND</div>"
   fi
   
   if [ -f "$sample_dir/$ann_tsv" ]; then
-    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> TSV</div>"
+    tsv_size=$(du -h "$sample_dir/$ann_tsv" 2>/dev/null | cut -f1 || echo "?")
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $ann_tsv ($tsv_size)</div>"
   else
-    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> TSV - NOT FOUND</div>"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $ann_tsv - NOT FOUND</div>"
   fi
   
   append_html "    </div>"
@@ -644,21 +651,24 @@ append_html "  </div>"
 append_html "  <div style=\"margin-top: 15px;\"><strong>Key summary files:</strong></div>"
 
 if [ -f "$SUMMARY_TSV" ]; then
-  append_html "  <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> workflows_summary</div>"
+  summary_size=$(du -h "$SUMMARY_TSV" 2>/dev/null | cut -f1 || echo "?")
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> workflows_summary.$RUN_ID.tsv ($summary_size)</div>"
 else
-  append_html "  <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> workflows_summary (not found)</div>"
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> workflows_summary.$RUN_ID.tsv (not found)</div>"
 fi
 
 if [ -f "$DEMULT_SUMMARY" ]; then
-  append_html "  <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> demult_summary</div>"
+  demult_size=$(du -h "$DEMULT_SUMMARY" 2>/dev/null | cut -f1 || echo "?")
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> demult_summary.$RUN_ID.tsv ($demult_size)</div>"
 else
-  append_html "  <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> demult_summary (not found)</div>"
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> demult_summary.$RUN_ID.tsv (not found)</div>"
 fi
 
 if [ -f "$HAPLOCHECK_SUMMARY" ]; then
-  append_html "  <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> haplocheck_summary</div>"
+  haplocheck_size=$(du -h "$HAPLOCHECK_SUMMARY" 2>/dev/null | cut -f1 || echo "?")
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> haplocheck_summary.$RUN_ID.tsv ($haplocheck_size)</div>"
 else
-  append_html "  <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> haplocheck_summary (not found)</div>"
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> haplocheck_summary.$RUN_ID.tsv (not found)</div>"
 fi
 
 append_html "</div>"
