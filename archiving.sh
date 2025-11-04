@@ -110,7 +110,7 @@ echo -e "${BOLD}${CYAN}==========================================${NC}"
 echo -e "${BOLD}${CYAN}     SUBMITTING ARCHIVING JOB${NC}"
 echo -e "${BOLD}${CYAN}==========================================${NC}"
 
-SLURM_FILE="$PROJECTS_DIR/slurm-$RUN_ID.log"
+SLURM_FILE="$PROJECTS_DIR/slurm-$RUN_ID.out"
 
 JOBID=$(sbatch --parsable --job-name="a${RUN_ID: -7}" --output="$SLURM_FILE" $WF_ARCHIVING "$RUN_DIR" "$ARCHIVING_DIR")
 

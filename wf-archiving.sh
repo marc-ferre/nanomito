@@ -74,12 +74,8 @@ then
     echo "[OK] Run copied successfully"
     ARCHIVE_STATUS="success"
     
-    # Extract size information from rsync stats
-    TOTAL_SIZE=$(grep "Total file size:" /tmp/rsync_output_$$.txt | awk '{print $4, $5}' || echo "N/A")
-    if [ "$TOTAL_SIZE" = "N/A" ]; then
-        # Fallback: calculate size with du
-        TOTAL_SIZE=$(du -sh "$ARCHIVING_DIR" 2>/dev/null | cut -f1 || echo "N/A")
-    fi
+    # Calculate size with du for human-readable format
+    TOTAL_SIZE=$(du -sh "$ARCHIVING_DIR" 2>/dev/null | cut -f1 || echo "N/A")
 else
     echo "[ERROR] While copying"
     ARCHIVE_STATUS="failed"
