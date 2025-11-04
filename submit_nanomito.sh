@@ -61,6 +61,7 @@ DEMULTMT_ONLY=false
 SKIP_DEMULTMT=false
 MODMITO_ONLY=false
 SKIP_MODMITO=false
+INCLUDE_UNCLASSIFIED=false
 SHOW_HELP=false
 
 while [[ $# -gt 0 ]]; do
@@ -89,6 +90,10 @@ while [[ $# -gt 0 ]]; do
 			SKIP_MODMITO=true
 			shift
 			;;
+		--include-unclassified)
+			INCLUDE_UNCLASSIFIED=true
+			shift
+			;;
 		--help|-h)
 			SHOW_HELP=true
 			shift
@@ -111,6 +116,7 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "  --skip-demultmt   Skip demultmt workflow, only submit modmito"
 	echo "  --modmito-only    Only submit modmito workflow (requires --skip-bchg)"
 	echo "  --skip-modmito    Skip modmito workflow, only submit demultmt"
+	echo "  --include-unclassified  Include 'unclassified' folder in sample processing"
 	echo "  --help, -h        Display this help message"
 	echo ""
 	echo "Examples:"
@@ -119,6 +125,7 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "  $0 --skip-bchg /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --skip-bchg --demultmt-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --skip-bchg --modmito-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
+	echo "  $0 --skip-bchg --include-unclassified /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	exit 0
 fi
 
@@ -287,6 +294,9 @@ if [ "$BCHG_ONLY" = false ]; then
 	fi
 	if [ "$SKIP_MODMITO" = true ]; then
 		SUBWF_ARGS="$SUBWF_ARGS --skip-modmito"
+	fi
+	if [ "$INCLUDE_UNCLASSIFIED" = true ]; then
+		SUBWF_ARGS="$SUBWF_ARGS --include-unclassified"
 	fi
 	
 	# Submit wf-subwf.sh which will discover samples and submit demultmt/modmito jobs

@@ -77,6 +77,7 @@ DEMULTMT_ONLY=false
 SKIP_DEMULTMT=false
 MODMITO_ONLY=false
 SKIP_MODMITO=false
+INCLUDE_UNCLASSIFIED=false
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -94,6 +95,10 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--skip-modmito)
 			SKIP_MODMITO=true
+			shift
+			;;
+		--include-unclassified)
+			INCLUDE_UNCLASSIFIED=true
 			shift
 			;;
 		*)
@@ -218,6 +223,13 @@ while IFS= read -r DIR
 do
 	# Extract sample identifier from directory name
 	SAMPLE_ID=$(basename "$DIR")
+	
+	# Skip 'unclassified' folder unless --include-unclassified is set
+	if [ "$SAMPLE_ID" = "unclassified" ] && [ "$INCLUDE_UNCLASSIFIED" = false ]; then
+		log_info "Skipping unclassified folder (use --include-unclassified to process it)"
+		continue
+	fi
+	
 	log_info "Processing sample: $SAMPLE_ID"
 	
 	SAMPLES_COUNT=$((SAMPLES_COUNT+1))

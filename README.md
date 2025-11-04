@@ -77,6 +77,9 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 # Run full pipeline but skip modmito
 ./submit_nanomito.sh --skip-modmito /path/to/run/directory
 
+# Include 'unclassified' folder in sample processing (skipped by default)
+./submit_nanomito.sh --skip-bchg --include-unclassified /path/to/run/directory
+
 # Display help
 ./submit_nanomito.sh --help
 ```
@@ -89,12 +92,14 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 - `--skip-demultmt` - Skip demultmt workflow, only submit modmito
 - `--modmito-only` - Only submit modmito workflow (requires --skip-bchg)
 - `--skip-modmito` - Skip modmito workflow, only submit demultmt
+- `--include-unclassified` - Include 'unclassified' folder in sample processing (skipped by default)
 - `--help, -h` - Display help message
 
 **Features:**
 
 - Two-step submission architecture for dynamic sample discovery
 - Submits `wf-subwf.sh` which discovers samples after basecalling
+- Automatically skips 'unclassified' folder (use `--include-unclassified` to process it)
 - Manages job dependencies automatically
 - Supports selective workflow execution with filtering options
 - Validation of option compatibility
