@@ -2,7 +2,7 @@
 #SBATCH --job-name=archiving
 #SBATCH --constraint avx2
 #SBATCH --time 600
-#SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
+#SBATCH --mail-type=FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
 #SBATCH --mail-user=marc.ferre@univ-angers.fr
 
 VERSION='25.05.21.1'
