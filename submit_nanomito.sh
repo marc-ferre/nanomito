@@ -11,6 +11,7 @@
 #   --skip-demultmt   Skip demultmt workflow, only submit modmito
 #   --modmito-only    Only submit modmito workflow (requires --skip-bchg)
 #   --skip-modmito    Skip modmito workflow, only submit demultmt
+#   --finalize-only   Only submit finalization job (email report from existing data)
 #   --help            Display this help message
 #
 # Strict error handling
@@ -61,6 +62,7 @@ DEMULTMT_ONLY=false
 SKIP_DEMULTMT=false
 MODMITO_ONLY=false
 SKIP_MODMITO=false
+FINALIZE_ONLY=false
 INCLUDE_UNCLASSIFIED=false
 SHOW_HELP=false
 
@@ -90,6 +92,10 @@ while [[ $# -gt 0 ]]; do
 			SKIP_MODMITO=true
 			shift
 			;;
+		--finalize-only)
+			FINALIZE_ONLY=true
+			shift
+			;;
 		--include-unclassified)
 			INCLUDE_UNCLASSIFIED=true
 			shift
@@ -116,6 +122,7 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "  --skip-demultmt         Skip demultmt workflow, only submit modmito"
 	echo "  --modmito-only          Only submit modmito workflow (requires --skip-bchg)"
 	echo "  --skip-modmito          Skip modmito workflow, only submit demultmt"
+	echo "  --finalize-only         Only submit finalization job (email report from existing data)"
 	echo "  --include-unclassified  Include 'unclassified' folder in sample processing"
 	echo "  --help, -h              Display this help message"
 	echo ""
@@ -126,6 +133,7 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "  $0 --skip-bchg --demultmt-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --skip-bchg --modmito-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --skip-bchg --include-unclassified /scratch/mferre/workbench/250916_MK1B_RUN15/"
+	echo "  $0 --finalize-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	exit 0
 fi
 
@@ -253,6 +261,36 @@ fi
 JOBID_LIST=''
 JOBS_COUNT=0
 BCHG_JOBID=''
+
+# SPECIAL CASE: --finalize-only to test email report
+if [ "$FINALIZE_ONLY" = true ]; then
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+	echo -e "${BOLD}${CYAN}   FINALIZE ONLY MODE${NC}"
+	echo -e "${BOLD}${CYAN}==========================================${NC}"
+	log_info "Submitting finalization job only (no dependencies)"
+	log_info "This will generate an email report from existing data"
+	echo ""
+	
+	FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
+	FINAL_JOBID=$(sbatch --parsable \
+		--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+		--chdir="$RUN_DIR" \
+		--job-name="f${RUN_ID: -7}" \
+		--output="$FINAL_OUT" \
+		"$SCRIPT_DIR/wf-finalize.sh")
+	
+	if [ -n "$FINAL_JOBID" ]; then
+		log_success "Submitted finalization job $FINAL_JOBID"
+		log_info "  Output: $FINAL_OUT"
+		echo ""
+		log_success "Email report will be sent when job completes"
+	else
+		log_error "Failed to submit finalization job"
+		exit 1
+	fi
+	
+	exit 0
+fi
 
 # STEP 1: Submit basecalling & demux if not skipped
 if [ "$SKIP_BCHG" = false ]; then
