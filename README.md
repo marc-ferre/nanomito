@@ -185,8 +185,10 @@ run_directory/
 │   └── ...
 ├── processing/                   # Workflow outputs and logs
 │   ├── sample_1/
-│   │   ├── slurm-sample_1.demultmt.log
-│   │   ├── slurm-sample_1.modmito.log
+│   │   ├── slurm-sample_1.demultmt.out
+│   │   ├── slurm-sample_1.demultmt.err
+│   │   ├── slurm-sample_1.modmito.out
+│   │   ├── slurm-sample_1.modmito.err
 │   │   └── select-both/         # Demultiplexed patient files
 │   ├── slurm-<RUN_ID>.bchg.out  # Basecalling log
 │   ├── slurm-<RUN_ID>.subwf.out # Orchestrator log
@@ -327,7 +329,7 @@ squeue -u $USER
 squeue -j job_id_1,job_id_2
 
 # View logs
-tail -f processing/slurm-*.log
+tail -f processing/slurm-*.out processing/*/slurm-*.out
 ```
 
 ## Configuration
@@ -420,7 +422,7 @@ protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_produ
 - **Demultiplexed reads:** `processing/sample/select-both/*.fastq.gz`
 - **BAM alignments:** `processing/sample/*.sorted.bam`
 - **BedMethyl:** `processing/sample/*.combine.bed`
-- **Logs:** `processing/sample/slurm-*.log`
+- **Logs:** `processing/sample/slurm-*.out` and `processing/sample/slurm-*.err`
 
 ### Summary
 
@@ -464,8 +466,8 @@ protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_produ
 # Check .err files for errors
 cat processing/slurm-*.err
 
-# Check .log files for detailed output
-less processing/sample/slurm-sample.workflow.log
+# Check .out files for detailed output
+less processing/sample/slurm-sample.demultmt.out
 ```
 
 ## Development

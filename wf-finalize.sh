@@ -115,9 +115,11 @@ for d in "$PROCESS_DIR"/*/ ; do
   sample=$(basename "$d")
   count=$((count+1))
   if [ $count -le $MAX_SAMPLES ]; then
-    append_section "Échantillon: $sample"
-    append_file_tail "demultmt" "$d/slurm-$sample.demultmt.log" 60
-    append_file_tail "modmito" "$d/slurm-$sample.modmito.log" 60
+  append_section "Échantillon: $sample"
+  append_file_tail "demultmt (.out)" "$d/slurm-$sample.demultmt.out" 60
+  append_file_tail "demultmt (.err)" "$d/slurm-$sample.demultmt.err" 40
+  append_file_tail "modmito (.out)" "$d/slurm-$sample.modmito.out" 60
+  append_file_tail "modmito (.err)" "$d/slurm-$sample.modmito.err" 40
   else
     REMAINING=$(( $(find "$PROCESS_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l) - MAX_SAMPLES ))
     {

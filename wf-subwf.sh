@@ -237,7 +237,6 @@ do
 	OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 	mkdir -p "$OUT_DIR"
 	SLURM_PRE="slurm-$SAMPLE_ID"
-	SLURM_EXT='log'
 	
 	# ============================================================
 	# Submit demultmt workflow
@@ -247,12 +246,14 @@ do
 	# ============================================================
 	if [ "$SKIP_DEMULTMT" = false ] && [ "$MODMITO_ONLY" = false ]; then
 		WF_ID='demultmt'
-		SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+		SLURM_OUT="$OUT_DIR/$SLURM_PRE.$WF_ID.out"
+		SLURM_ERR="$OUT_DIR/$SLURM_PRE.$WF_ID.err"
 		JOBID=$(sbatch --parsable \
 			--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
 			--chdir="$RUN_DIR" \
 			--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
-			--output="$SLURM_FILE" \
+			--output="$SLURM_OUT" \
+			--error="$SLURM_ERR" \
 			--mail-type="$MAIL_TYPE_ISSUE" \
 			--mail-user="$MAIL_USER" \
 			$WF_DEMULTMT "$SAMPLE_ID")
@@ -262,8 +263,9 @@ do
 			exit 1
 		fi
 		
-		log_success "Submitted job $JOBID ($WF_ID)"
-		log_info "  Output: $SLURM_FILE"
+	log_success "Submitted job $JOBID ($WF_ID)"
+	log_info "  Output: $SLURM_OUT"
+	log_info "  Error : $SLURM_ERR"
 		JOBS_COUNT=$((JOBS_COUNT+1))
 		DEMULTMT_JOBS=$((DEMULTMT_JOBS+1))
 		JOBID_LIST="$JOBID $JOBID_LIST"
@@ -278,8 +280,9 @@ do
 	# Dependency: This job will only start after demultmt job completes successfully
 	# ============================================================
 	if [ "$SKIP_MODMITO" = false ] && [ "$DEMULTMT_ONLY" = false ]; then
-		WF_ID='modmito'
-		SLURM_FILE="$OUT_DIR/$SLURM_PRE.$WF_ID.$SLURM_EXT"
+	WF_ID='modmito'
+	SLURM_OUT="$OUT_DIR/$SLURM_PRE.$WF_ID.out"
+	SLURM_ERR="$OUT_DIR/$SLURM_PRE.$WF_ID.err"
 		
 		# If demultmt was submitted, add dependency
 		if [ "$SKIP_DEMULTMT" = false ] && [ "$MODMITO_ONLY" = false ]; then
@@ -288,7 +291,8 @@ do
 				--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
 				--chdir="$RUN_DIR" \
 				--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
-				--output="$SLURM_FILE" \
+				--output="$SLURM_OUT" \
+				--error="$SLURM_ERR" \
 				--mail-type="$MAIL_TYPE_END" \
 				--mail-user="$MAIL_USER" \
 				$WF_MODMITO "$SAMPLE_ID")
@@ -298,7 +302,8 @@ do
 				--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
 				--chdir="$RUN_DIR" \
 				--job-name="${WF_ID:0:1}${SAMPLE_ID: -7}" \
-				--output="$SLURM_FILE" \
+				--output="$SLURM_OUT" \
+				--error="$SLURM_ERR" \
 				--mail-type="$MAIL_TYPE_END" \
 				--mail-user="$MAIL_USER" \
 				$WF_MODMITO "$SAMPLE_ID")
@@ -315,7 +320,8 @@ do
 		else
 			log_success "Submitted job $JOBID_MODMITO ($WF_ID)"
 		fi
-		log_info "  Output: $SLURM_FILE"
+	log_info "  Output: $SLURM_OUT"
+	log_info "  Error : $SLURM_ERR"
 		JOBS_COUNT=$((JOBS_COUNT+1))
 		MODMITO_JOBS=$((MODMITO_JOBS+1))
 		JOBID_LIST="$JOBID_MODMITO $JOBID_LIST"
