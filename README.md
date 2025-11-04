@@ -197,39 +197,39 @@ run_directory/
 
 1. **Clone the repository:**
 
-```bash
-# Generate SSH key if not already done
-ssh-keygen -t ed25519 -C "your.email@domain.com"
-cat ~/.ssh/id_ed25519.pub  # Add this to GitHub Settings > SSH keys
+   ```bash
+   # Generate SSH key if not already done
+   ssh-keygen -t ed25519 -C "your.email@domain.com"
+   cat ~/.ssh/id_ed25519.pub  # Add this to GitHub Settings > SSH keys
 
-# Clone the repository
-cd /home/genouest/.../your_username/
-git clone git@github.com:marc-ferre/nanomito.git
-cd nanomito
-```
+   # Clone the repository
+   cd /home/genouest/.../your_username/
+   git clone git@github.com:marc-ferre/nanomito.git
+   cd nanomito
+   ```
 
-2. **Configure the environment:**
+1. **Configure the environment:**
 
-Edit `nanomito.config` to match your HPC environment:
+   Edit `nanomito.config` to match your HPC environment:
 
-```bash
-# Open the configuration file
-nano nanomito.config
+   ```bash
+   # Open the configuration file
+   nano nanomito.config
 
-# Update all paths:
-# - DORADO_BIN, BALDUR_BIN, ONT_DEMULT_BIN
-# - All conda environment paths (ANNOTMT_ENV, BCHG_ENV, etc.)
-# - Workflow script paths (WF_BCHG, WF_DEMULTMT, etc.)
-# - Reference genome paths (REF_MT, REF_WHOLE, etc.)
-# - Annotation database paths (ANN_GNOMAD, ANN_MITOMAP_*, etc.)
-# - MAIL_USER with your email address
-```
+   # Update all paths:
+   # - DORADO_BIN, BALDUR_BIN, ONT_DEMULT_BIN
+   # - All conda environment paths (ANNOTMT_ENV, BCHG_ENV, etc.)
+   # - Workflow script paths (WF_BCHG, WF_DEMULTMT, etc.)
+   # - Reference genome paths (REF_MT, REF_WHOLE, etc.)
+   # - Annotation database paths (ANN_GNOMAD, ANN_MITOMAP_*, etc.)
+   # - MAIL_USER with your email address
+   ```
 
-3. **Make scripts executable:**
+1. **Make scripts executable:**
 
-```bash
-chmod +x *.sh
-```
+   ```bash
+   chmod +x *.sh
+   ```
 
 ## Usage
 
