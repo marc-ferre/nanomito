@@ -304,7 +304,8 @@ extract_json_value() {
 format_number() {
   local num="$1"
   if [[ "$num" =~ ^[0-9]+$ ]]; then
-    printf "%'d" "$num" 2>/dev/null || echo "$num"
+    # Format with commas for thousands (English format: 1,234,567)
+    echo "$num" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'
   else
     echo "$num"
   fi
@@ -566,6 +567,38 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     append_html "      <span class=\"metric-value success\">$pass_variants</span>"
     append_html "    </div>"
     append_html "  </div>"
+  fi
+  
+  # Display deletions from Baldur
+  del_file="$sample_dir/${sample}.baldur_del.txt"
+  if [ -f "$del_file" ]; then
+    # Count deletions (skip header if present)
+    del_count=$(grep -v "^#" "$del_file" | grep -v "^$" | wc -l | tr -d ' ')
+    
+    if [ "$del_count" -gt 0 ]; then
+      append_html "  <div style=\"margin: 10px 0;\">"
+      append_html "    <strong>Deletions</strong>"
+      append_html "    <table style=\"margin-top: 5px;\">"
+      append_html "      <tr><th>Position</th><th>Length</th><th>Type</th><th>Support</th></tr>"
+      
+      # Parse deletions file (format: position, length, type, support)
+      while IFS=$'\t' read -r pos len type support rest; do
+        # Skip header or empty lines
+        if [[ "$pos" =~ ^#.*$ ]] || [ -z "$pos" ]; then
+          continue
+        fi
+        
+        append_html "      <tr>"
+        append_html "        <td>$pos</td>"
+        append_html "        <td>$len</td>"
+        append_html "        <td>$type</td>"
+        append_html "        <td>$support</td>"
+        append_html "      </tr>"
+      done < "$del_file"
+      
+      append_html "    </table>"
+      append_html "  </div>"
+    fi
   fi
   
   # Check for important output files
