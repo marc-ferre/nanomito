@@ -362,27 +362,30 @@ if [ -f "$SUMMARY_TSV" ]; then
   append_html "  <table>"
   append_html "    <tr><th>Sample</th><th>Workflow</th><th>Runtime</th></tr>"
   
-  while IFS=$'\t' read -r run_id sample_id workflow runtime; do
-    if [ "$workflow" != "Workflow" ]; then
-      # Display "NA" if sample_id is empty, otherwise use the sample_id
-      # Remove any whitespace from sample_id first
-      sample_id_trimmed=$(echo "$sample_id" | xargs)
-      if [ -z "$sample_id_trimmed" ] || [ "$sample_id_trimmed" = "NA" ]; then
-        sample_display="NA"
-      else
-        sample_display="$sample_id_trimmed"
-        # Truncate long sample names
-        if [ ${#sample_display} -gt 35 ]; then
-          sample_display="${sample_display:0:32}..."
-        fi
+  # Use awk to properly parse TSV with empty fields
+  tail -n +2 "$SUMMARY_TSV" | while IFS=$'\t' read -r line; do
+    # Extract fields using awk to properly handle empty fields
+    sample_id=$(echo "$line" | awk -F'\t' '{print $2}')
+    workflow=$(echo "$line" | awk -F'\t' '{print $3}')
+    runtime=$(echo "$line" | awk -F'\t' '{print $4}')
+    
+    # Display "NA" if sample_id is empty or equals "NA"
+    if [ -z "$sample_id" ] || [ "$sample_id" = "NA" ]; then
+      sample_display="NA"
+    else
+      sample_display="$sample_id"
+      # Truncate long sample names
+      if [ ${#sample_display} -gt 35 ]; then
+        sample_display="${sample_display:0:32}..."
       fi
-      append_html "    <tr>"
-      append_html "      <td>$sample_display</td>"
-      append_html "      <td>$workflow</td>"
-      append_html "      <td>$runtime</td>"
-      append_html "    </tr>"
     fi
-  done < <(tail -n +2 "$SUMMARY_TSV")
+    
+    append_html "    <tr>"
+    append_html "      <td>$sample_display</td>"
+    append_html "      <td>$workflow</td>"
+    append_html "      <td>$runtime</td>"
+    append_html "    </tr>"
+  done
   
   append_html "  </table>"
 else
