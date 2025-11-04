@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=demultmt
-#SBATCH --cpus-per-task=12
-#SBATCH --constraint avx2
-#SBATCH --mem=150G
-#SBATCH --time 12:00:00
+#SBATCH --cpus-per-task=8
+#SBATCH --constraint=avx2
+#SBATCH --mem=100G
+#SBATCH --time=12:00:00
 #SBATCH --output=processing/slurm-%x.%j.out
 #SBATCH --error=processing/slurm-%x.%j.err
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
