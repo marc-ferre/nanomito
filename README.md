@@ -598,7 +598,7 @@ If you use Nanomito in your research, please cite:
   - Color-coded status indicators (success/warning/error)
   - Mobile-optimized layout for iPhone and Android
   - Per-sample results with alignment stats, haplogroups, variant counts, file sizes
-  - Deletions table from Baldur analysis for each sample
+  - Deletions table from Baldur analysis with columns: Start / Stop / Strand / Length / Type / Count (sorted by Start,Stop; mirrored +/- intervals merged as ± with summed Count)
   - Archiving summary section with destination, size, and duration
   - Fixed total runtime calculation (was showing 00:00:00)
   - English number formatting (331,496 and 3.7G instead of French format)
