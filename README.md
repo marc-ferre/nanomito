@@ -522,6 +522,30 @@ cat processing/slurm-*.err
 less processing/sample/slurm-sample.demultmt.out
 ```
 
+### Quick Check (pre-flight validator)
+
+Before sending the final HTML email, you can quickly validate that key artifacts are present for a run directory:
+
+```bash
+# From the repository root
+tools/check_run_ready.sh /path/to/run
+
+# Strict mode (exit 1 if required artifacts are missing)
+tools/check_run_ready.sh /path/to/run --strict
+```
+
+What it checks:
+
+- processing/ directory exists
+- Summary files in processing/: workflows_summary.RUN_ID.tsv, demult_summary.RUN_ID.tsv, haplocheck_summary.RUN_ID.tsv (warn if missing)
+- Per-sample outputs in processing/SAMPLE/:
+  - SAMPLE.chrM.sup,5mC_5hmC,6mA.sorted.bam (required)
+  - SAMPLE.ann.vcf (warn) and SAMPLE.ann.tsv (warn)
+  - varcall/SAMPLE.baldur_del.txt (warn)
+- Archiving summary: archiving_summary.RUN_ID.tsv (warn)
+
+It prints a compact PASS/WARN/FAIL summary and returns non‑zero in strict mode if a required artifact is missing.
+
 ## Development
 
 ### Contributing
