@@ -1,18 +1,24 @@
 # TODO List - Nanomito
 
-Last updated: 2025-10-27
+Last updated: 2025-11-04
 
 ## 🔴 High Priority
 
 ### Configuration Management
 
-- [ ] **Create centralized configuration file for all workflow parameters**
-  - Extract all hardcoded paths from script headers into single config file
-  - Use YAML or shell-sourceable format (e.g., `config/nanomito.conf`)
-  - Include: reference paths, conda environments, binary locations, default parameters
-  - Add validation script to check config before workflow execution
-  - Update all workflows to source the config file
-  - Document config file structure and required variables
+- [x] **Create centralized configuration file for all workflow parameters** ✅ COMPLETED 2025-11-03
+  - ✅ Created `nanomito.config` with all hardcoded paths and variables
+  - ✅ Used shell-sourceable format for easy integration
+  - ✅ Included: reference paths, conda environments, binary locations, workflow scripts
+  - ✅ Updated all 5 workflows to source the config file
+  - ✅ Fixed path resolution for both direct execution and sbatch contexts
+  - ✅ Documented in README.md with Configuration section
+
+- [ ] **Create preprocessing.config file for preprocessing scripts**
+  - Extract hardcoded paths from preprocessing/ folder scripts
+  - Follow same pattern as nanomito.config
+  - Update: dorado_run.ps1, pipeline_run.ps1, get_chrMpid.py, wf-getmt.sh, upload_go.sh
+  - Document in README.md
 
 - [x] **Enhance submit_nanomito.sh to replace wf-subwf.sh functionality** ✅ COMPLETED 2025-10-27
   - ✅ Integrated sample detection logic directly into submit_nanomito.sh
@@ -76,6 +82,12 @@ Last updated: 2025-10-27
   - Use GNU parallel for Pod5 filtering
 
 ### User Experience
+
+- [ ] **Add option to process 'unclassified' folder**
+  - Add command-line option (e.g., --include-unclassified) to submit_nanomito.sh
+  - By default, skip the 'unclassified' folder in fastq_pass/
+  - When enabled, process unclassified samples like regular samples
+  - Update wf-subwf.sh sample discovery logic
 
 - [ ] Add progress bars to long-running operations
   - Use `tqdm` in Python scripts
@@ -214,7 +226,18 @@ Last updated: 2025-10-27
   - Alert on failures
   - Send summary reports
 
-## ✅ Completed (v25.10.27)
+## ✅ Completed (Archive)
+
+### v25.11.03 - Configuration Centralization
+
+- [x] Created `nanomito.config` with all workflow configuration variables
+- [x] Fixed path resolution for relative paths (e.g., `nanomito/script.sh`)
+- [x] Fixed path resolution for sbatch execution using `NANOMITO_DIR` env var
+- [x] Updated all 5 workflows: submit_nanomito.sh, wf-bchg.sh, wf-demultmt.sh, wf-modmito.sh, wf-subwf.sh
+- [x] Added comprehensive documentation in README.md
+- [x] Tested on Genouest cluster with production data
+
+### v25.10.27 - Workflow Improvements
 
 - [x] Create PID dictionary during preprocessing
 - [x] Fix SIGPIPE errors in wf-demultmt.sh
@@ -226,11 +249,21 @@ Last updated: 2025-10-27
 - [x] Add shellcheck compliance
 - [x] Add .gitignore for **pycache**
 
+### v25.10.27 - Submit Script Enhancement
+
+- [x] Integrated sample detection logic directly into submit_nanomito.sh
+- [x] Auto-detect samples in fastq_pass/ directory
+- [x] Submit demultmt and modmito jobs for each detected sample
+- [x] Maintain job dependency management
+- [x] Add option to process specific samples only (--skip-bchg)
+- [x] Deprecated wf-subwf.sh (moved to Archive/)
+- [x] Updated documentation and usage examples
+
 ## 📝 Notes
 
 ### Known Issues
 
-- SLURM path resolution with `${BASH_SOURCE[0]}` requires absolute paths
+- ✅ SOLVED: SLURM path resolution with `${BASH_SOURCE[0]}` - now using `NANOMITO_DIR` env var
 - Some conda environments may conflict - document compatible versions
 - Large Pod5 files (>10GB) may require increased memory allocation
 
