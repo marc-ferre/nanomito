@@ -18,23 +18,38 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 
 ## Workflow Architecture
 
-Rendered diagram (Mermaid):
-
-```mermaid
-flowchart TD
-  A[submit_nanomito.sh<br/>Main orchestrator] -->|submit| B[wf-bchg.sh<br/>GPU basecalling + demux]
-  A -->|submit| C[wf-subwf.sh<br/>sample discovery + submissions]
-  B -->|afterok| C
-
-  C --> D{for each SAMPLE}
-
-  subgraph "Per-sample"
-    E[wf-demultmt.sh<br/>per sample] -->|afterok| F[wf-modmito.sh<br/>per sample]
-  end
-
-  D --> E
-  F -->|afterok: all per-sample jobs| G[wf-finalize.sh<br/>single email]
-```Static SVG (auto-généré par CI): `diagrams/workflow.svg`
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                     submit_nanomito.sh                          │
+│        Main workflow submission orchestrator with options       │
+│  --bchg-only / --skip-bchg / --demultmt-only / --modmito-only   │
+│                --skip-demultmt / --skip-modmito                 │
+└──────────────────┬──────────────────────────────────────────────┘
+                   │
+        ┌──────────┴──────────┐
+        ▼                     ▼
+┌───────────────┐     ┌──────────────┐
+│  wf-bchg.sh   │     │ wf-subwf.sh  │
+│  Basecalling  │────▶│ Discovers    │
+│  & Demux      │     │ samples      │
+└───────────────┘     └──────┬───────┘
+                             │
+                ┌────────────┴────────────┐
+                ▼                         ▼
+        ┌──────────────┐         ┌──────────────┐
+        │wf-demultmt.sh│         │wf-modmito.sh │
+        │ MT reads     │────────▶│ Modification │
+        │ demultiplex  │         │ analysis     │
+        │ (per sample) │         │ (per sample) │
+        └──────────────┘         └──────┬───────┘
+                                        │
+                                        ▼
+                                ┌──────────────┐
+                                │wf-finalize.sh│
+                                │ Single email │
+                                │ notification │
+                                └──────────────┘
+```
 
 **Two-step submission architecture:**
 
