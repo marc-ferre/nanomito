@@ -58,7 +58,7 @@ RUN_ID=$(basename "$RUN_DIR")
 PROCESS_DIR="$RUN_DIR/processing"
 
 MAIL_TO="$MAIL_USER"
-EMAIL_SUBJECT="[Nanomito] Fin du run $RUN_ID"
+EMAIL_SUBJECT="[Nanomito] Run $RUN_ID completed"
 EMAIL_BODY_FILE="$PROCESS_DIR/email-$RUN_ID.txt"
 
 mkdir -p "$PROCESS_DIR"
@@ -88,10 +88,10 @@ append_file_tail() {
 log_info "Preparing summary email body: $EMAIL_BODY_FILE"
 
 {
-  echo "Nanomito - Exécution terminée"
-  echo "Run ID     : $RUN_ID"
-  echo "Répertoire : $RUN_DIR"
-  echo "Date       : $(date '+%Y-%m-%d %H:%M:%S')"
+  echo "Nanomito - Run completed"
+  echo "Run ID    : $RUN_ID"
+  echo "Directory : $RUN_DIR"
+  echo "Date      : $(date '+%Y-%m-%d %H:%M:%S')"
 } >> "$EMAIL_BODY_FILE"
 
 # Workflows summary TSV
@@ -103,9 +103,9 @@ if [ -f "$SUMMARY_TSV" ]; then
 fi
 
 # Main logs (basecalling + subwf)
-append_section "Journaux principaux"
+append_section "Main logs"
 append_file_tail "Basecalling (bchg)" "$PROCESS_DIR/slurm-$RUN_ID.bchg.out" 80
-append_file_tail "Soumissions (subwf)" "$PROCESS_DIR/slurm-$RUN_ID.subwf.out" 80
+append_file_tail "Submissions (subwf)" "$PROCESS_DIR/slurm-$RUN_ID.subwf.out" 80
 
 # Per-sample logs (limit for email length)
 MAX_SAMPLES=30
@@ -115,7 +115,7 @@ for d in "$PROCESS_DIR"/*/ ; do
   sample=$(basename "$d")
   count=$((count+1))
   if [ $count -le $MAX_SAMPLES ]; then
-  append_section "Échantillon: $sample"
+  append_section "Sample: $sample"
   append_file_tail "demultmt (.out)" "$d/slurm-$sample.demultmt.out" 60
   append_file_tail "demultmt (.err)" "$d/slurm-$sample.demultmt.err" 40
   append_file_tail "modmito (.out)" "$d/slurm-$sample.modmito.out" 60
@@ -124,7 +124,7 @@ for d in "$PROCESS_DIR"/*/ ; do
     REMAINING=$(( $(find "$PROCESS_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l) - MAX_SAMPLES ))
     {
       echo ""
-      echo "... $REMAINING échantillon(s) supplémentaire(s) — journaux omis pour l'email"
+      echo "... $REMAINING additional sample(s) — logs omitted for email"
     } >> "$EMAIL_BODY_FILE"
     break
   fi
