@@ -6,16 +6,19 @@ set -euo pipefail
 # Usage: tools/check_run_ready.sh [RUN_DIR=. ] [--strict]
 
 usage() {
-  echo "Usage: $0 [RUN_DIR] [--strict]" >&2
+  echo "Usage: $0 [RUN_DIR] [--strict] [--json|--tsv]" >&2
   exit 1
 }
 
 RUN_DIR="${1:-.}"
 STRICT="false"
+FMT="text" # text|json|tsv
 if [[ $# -ge 1 ]]; then
   for arg in "$@"; do
     case "$arg" in
       --strict) STRICT="true" ;;
+      --json) FMT="json" ;;
+      --tsv) FMT="tsv" ;;
       -h|--help) usage ;;
       *) RUN_DIR="$arg" ;;
     esac
@@ -28,9 +31,11 @@ RUN_ID="$(basename "$RUN_DIR")"
 PROCESS_DIR="$RUN_DIR/processing"
 
 PASS=0; WARN=0; FAIL=0
-err() { echo "[FAIL] $1"; FAIL=$((FAIL+1)); }
-warn() { echo "[WARN] $1"; WARN=$((WARN+1)); }
-ok() { echo "[OK]   $1"; PASS=$((PASS+1)); }
+ITEMS=()
+log_item() { ITEMS+=("$1	$2"); }
+err() { echo "[FAIL] $1"; FAIL=$((FAIL+1)); log_item "FAIL" "$1"; }
+warn() { echo "[WARN] $1"; WARN=$((WARN+1)); log_item "WARN" "$1"; }
+ok() { echo "[OK]   $1"; PASS=$((PASS+1)); log_item "OK" "$1"; }
 
 echo "=========================================="
 echo "  NANOMITO QUICK CHECK for $RUN_ID"
@@ -80,10 +85,33 @@ ARCH_SUM="$PROCESS_DIR/archiving_summary.$RUN_ID.tsv"
 [[ -f "$ARCH_SUM" ]] && ok "archiving_summary.$RUN_ID.tsv" || warn "archiving_summary.$RUN_ID.tsv missing"
 
 # 5) Final status
-echo "------------------------------------------"
-echo "Result: PASS=$PASS  WARN=$WARN  FAIL=$FAIL"
+if [[ "$FMT" == "json" ]]; then
+  # Build simple JSON
+  printf '{"run_id":"%s","pass":%d,"warn":%d,"fail":%d,"items":[' "$RUN_ID" "$PASS" "$WARN" "$FAIL"
+  first=1
+  for it in "${ITEMS[@]}"; do
+    level=${it%%$'\t'*}
+    msg=${it#*$'\t'}
+    # escape quotes and backslashes
+    msg_esc=${msg//\\/\\\\}; msg_esc=${msg_esc//"/\\"}
+    if (( first )); then first=0; else printf ','; fi
+    printf '{"level":"%s","message":"%s"}' "$level" "$msg_esc"
+  done
+  printf ']}'
+  printf '\n'
+else
+  if [[ "$FMT" == "tsv" ]]; then
+    for it in "${ITEMS[@]}"; do
+      printf "%s\n" "$it"
+    done
+  else
+    echo "------------------------------------------"
+    echo "Result: PASS=$PASS  WARN=$WARN  FAIL=$FAIL"
+  fi
+fi
+
 if [[ "$STRICT" == "true" ]] && (( FAIL > 0 )); then
-  echo "Strict mode: failing due to missing required artifacts."
+  [[ "$FMT" == "text" ]] && echo "Strict mode: failing due to missing required artifacts."
   exit 1
 fi
 exit 0

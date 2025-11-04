@@ -324,6 +324,44 @@ append_html "    Completed: $(date '+%Y-%m-%d %H:%M:%S')"
 append_html "  </div>"
 append_html "</div>"
 
+# --- 0. PRE-FLIGHT CHECK (non-blocking) -----------------------------------
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CHECK_SCRIPT="$SCRIPT_DIR/tools/check_run_ready.sh"
+if [ ! -x "$CHECK_SCRIPT" ]; then
+  # Try parent directory layout if script is in repo root
+  [ -x "$SCRIPT_DIR/../tools/check_run_ready.sh" ] && CHECK_SCRIPT="$SCRIPT_DIR/../tools/check_run_ready.sh"
+fi
+if [ -x "$CHECK_SCRIPT" ]; then
+  append_section "PRE-FLIGHT CHECK"
+  tmp_check=$(mktemp)
+  # Run quietly; never fail the email generation
+  if "$CHECK_SCRIPT" "$RUN_DIR" > "$tmp_check" 2>/dev/null; then :; else :; fi
+  # Extract summary counts
+  summary_line=$(grep -E "^Result: PASS=.*WARN=.*FAIL=.*$" "$tmp_check" || true)
+  if [ -n "$summary_line" ]; then
+    append_html "  <div class=\"metric-row\">"
+    append_html "    <span class=\"metric-label\">Summary</span>"
+    append_html "    <span class=\"metric-value\">${summary_line#Result: }</span>"
+    append_html "  </div>"
+  fi
+  # List WARN/FAIL lines for quick visibility
+  warnfail=$(grep -E "^\[(WARN|FAIL)\]" "$tmp_check" || true)
+  if [ -n "$warnfail" ]; then
+    append_html "  <pre style=\"background:#fff8e1;border:1px solid #f0e1a1;padding:8px;white-space:pre-wrap;\">"
+    while IFS= read -r l; do
+      esc=${l//&/&amp;}; esc=${esc//</&lt;}; esc=${esc//>/&gt;}
+      append_html "${esc}"
+    done <<< "$warnfail"
+    append_html "  </pre>"
+  else
+    append_html "  <div class=\"metric-row\">"
+    append_html "    <span class=\"metric-value success\">✓ No pre-flight warnings</span>"
+    append_html "  </div>"
+  fi
+  rm -f "$tmp_check"
+  append_html "</div>"
+fi
+
 # --- 1. WORKFLOW EXECUTION SUMMARY ----------------------------------------
 append_section "WORKFLOW EXECUTION SUMMARY"
 
