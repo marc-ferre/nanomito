@@ -330,7 +330,10 @@ SUMMARY_TSV="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 if [ -f "$SUMMARY_TSV" ]; then
   # Calculate total runtime
   total_seconds=0
-  while IFS=$'\t' read -r run_id sample_id workflow runtime; do
+  tail -n +2 "$SUMMARY_TSV" | while IFS=$'\t' read -r line; do
+    workflow=$(echo "$line" | awk -F'\t' '{print $3}')
+    runtime=$(echo "$line" | awk -F'\t' '{print $4}')
+    
     if [ "$workflow" != "Workflow" ] && [ -n "$runtime" ]; then
       # Convert hh:mm:ss to seconds
       IFS=: read -r hours minutes seconds <<< "$runtime"
@@ -341,7 +344,7 @@ if [ -f "$SUMMARY_TSV" ]; then
       seconds_total=$((hours * 3600 + minutes * 60 + seconds))
       total_seconds=$((total_seconds + seconds_total))
     fi
-  done < <(tail -n +2 "$SUMMARY_TSV")
+  done
   
   # Format total time
   total_hours=$((total_seconds / 3600))

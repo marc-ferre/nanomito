@@ -13,7 +13,8 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 - 🔀 **Sample demultiplexing** - Automated barcode demultiplexing and patient-level separation
 - 🔬 **Modification detection** - 5mC, 5hmC, and 6mA base modification calling
 - 📊 **SLURM integration** - Optimized for HPC environments with automatic job dependency management
-- 📧 **Single final notification email** - One email when all jobs finish, with a summary and log tails
+- � **Automated archiving** - Integrated archiving to project storage with dependency management
+- 📧 **HTML email reports** - Beautiful responsive HTML email notifications with comprehensive summaries
 - ✅ **Robust error handling** - Comprehensive logging and error recovery mechanisms
 
 ## Workflow Architecture
@@ -23,7 +24,8 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 │                     submit_nanomito.sh                          │
 │        Main workflow submission orchestrator with options       │
 │  --bchg-only / --skip-bchg / --demultmt-only / --modmito-only   │
-│                --skip-demultmt / --skip-modmito                 │
+│  --skip-demultmt / --skip-modmito / --archiving-only /          │
+│                   --skip-archiving / --finalize-only            │
 └──────────────────┬──────────────────────────────────────────────┘
                    │
         ┌──────────┴──────────┐
@@ -45,9 +47,16 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
                                         │
                                         ▼
                                 ┌──────────────┐
+                                │wf-archiving  │
+                                │ Archive data │
+                                │ to project   │
+                                └──────┬───────┘
+                                        │
+                                        ▼
+                                ┌──────────────┐
                                 │wf-finalize.sh│
-                                │ Single email │
-                                │ notification │
+                                │ HTML email   │
+                                │ report       │
                                 └──────────────┘
 ```
 
@@ -89,6 +98,15 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 # Include 'unclassified' folder in sample processing (skipped by default)
 ./submit_nanomito.sh --skip-bchg --include-unclassified /path/to/run/directory
 
+# Archive data only (without processing)
+./submit_nanomito.sh --archiving-only /path/to/run/directory
+
+# Skip archiving in workflow
+./submit_nanomito.sh --skip-archiving /path/to/run/directory
+
+# Generate HTML email report only (for testing)
+./submit_nanomito.sh --finalize-only /path/to/run/directory
+
 # Display help
 ./submit_nanomito.sh --help
 ```
@@ -101,6 +119,9 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 - `--skip-demultmt` - Skip demultmt workflow, only submit modmito
 - `--modmito-only` - Only submit modmito workflow (requires --skip-bchg)
 - `--skip-modmito` - Skip modmito workflow, only submit demultmt
+- `--archiving-only` - Only submit archiving job (archives existing data)
+- `--skip-archiving` - Skip archiving step in the workflow
+- `--finalize-only` - Only submit finalization job (email report from existing data)
 - `--include-unclassified` - Include 'unclassified' folder in sample processing (skipped by default)
 - `--help, -h` - Display help message
 
@@ -109,7 +130,8 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 - Two-step submission architecture for dynamic sample discovery
 - Submits `wf-subwf.sh` which discovers samples after basecalling
 - Automatically skips 'unclassified' folder (use `--include-unclassified` to process it)
-- Manages job dependencies automatically
+- Integrated archiving workflow (enabled by default, use `--skip-archiving` to disable)
+- Manages job dependencies automatically (analysis → archiving → finalize)
 - Supports selective workflow execution with filtering options
 - Validation of option compatibility
 
@@ -150,20 +172,37 @@ Intermediate orchestrator that dynamically discovers samples and submits analysi
 - BedMethyl output generation
 - **Resources:** 1 GPU, 6 CPUs, 32GB RAM
 
-### 6. **wf-finalize.sh** (Single final notification)
+### 6. **wf-archiving.sh** (Data Archiving)
 
-- Submitted automatically by `wf-subwf.sh` after all per-sample jobs are queued
+- Automated rsync of run data to project storage
+- Generates archiving summary with size and duration metrics
+- Calculates total archived size in human-readable format
+- Creates `archiving_summary.<RUN_ID>.tsv` with metadata
+- **Resources:** Minimal (I/O bound, < 10 minutes typical)
+
+### 7. **wf-finalize.sh** (HTML Email Report)
+
+- Submitted automatically after all jobs complete (including archiving)
 - Waits for successful completion of all jobs (SLURM `afterok` dependency)
-- Sends a single email to `MAIL_USER` with:
-  - Run metadata (Run ID, date, path)
-  - The `processing/workflows_summary.<RUN_ID>.tsv` content if present
-  - Tails of main logs: `slurm-<RUN_ID>.bchg.out` and `slurm-<RUN_ID>.subwf.out`
-  - Tails of per-sample logs (demultmt/modmito), limited for brevity
-- If no mailer is available (`mail`, `mailx`, or `sendmail`), saves the email body to `processing/email-<RUN_ID>.txt`
+- Generates comprehensive HTML email report with:
+  - **Workflow Execution Summary** - All jobs with runtimes in formatted table
+  - **Sequencing Run Metrics** - Total reads, passed reads/bases from JSON reports
+  - **Per-Sample Results** - Alignment stats, haplogroups, variant counts, output files
+  - **Summary Files** - Location and sizes of all summary TSV files
+  - **Archiving Summary** - Destination, size, duration, and status of archiving
+- **Responsive design** - Optimized for mobile viewing (iPhone, Android)
+- **Color-coded status** - Success (green), warnings (yellow), errors (red)
+- Sends email to `MAIL_USER` configured in `nanomito.config`
+- If no mailer available, saves HTML to `processing/email-<RUN_ID>.txt`
 
-### 7. **archiving.sh**
+### 8. **archiving.sh** (Manual archiving)
 
-Automated run archiving to project storage.
+Manual/interactive wrapper for archiving runs to project storage.
+
+- Prompts for confirmation before overwriting existing archives
+- Useful for standalone archiving without full workflow
+- Calls `wf-archiving.sh` via sbatch
+- **Note:** For automated archiving, use `submit_nanomito.sh` with integrated archiving
 
 ## Preprocessing Workflows
 
