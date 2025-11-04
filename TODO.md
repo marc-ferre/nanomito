@@ -65,6 +65,16 @@ Last updated: 2025-11-04
   - Conda environment activation
   - File I/O operations on shared storage
 
+### Bug Reports
+
+- [ ] **Report Dorado/Pod5 bug requiring --missing-ok flag**
+  - Issue: Pod5 filter fails without --missing-ok even when all read_ids exist
+  - Context: Occurs in wf-demultmt.sh when filtering Pod5 files with pid_dict.tsv
+  - Workaround: Currently using --missing-ok --duplicate-ok flags
+  - Action: Submit bug report to Dorado/Pod5 repositories on GitHub
+  - Version info: Dorado 0.8.3, Pod5 tools (check version)
+  - Include: Sample data, command line, error message, expected vs actual behavior
+
 ## 🟡 Medium Priority
 
 ### Performance Optimization
