@@ -2,6 +2,27 @@
 
 Last updated: 2025-11-04
 
+## ✅ Recently Completed
+
+### Email Reporting (2025-11-04)
+
+- [x] **Convert email to HTML format with responsive design** ✅ COMPLETED 2025-11-04
+  - ✅ Created HTML email template with embedded CSS
+  - ✅ Responsive design for mobile viewing (iPhone, Android)
+  - ✅ Color-coded status indicators (success green, warning yellow, error red)
+  - ✅ Formatted tables with striped rows for better readability
+  - ✅ Sample cards with badges for file status
+  - ✅ Tested on mobile devices - excellent results
+
+- [x] **Integrate archiving into workflow** ✅ COMPLETED 2025-11-04
+  - ✅ Added `wf-archiving.sh` to generate archiving_summary.tsv
+  - ✅ Integrated archiving into submit_nanomito.sh workflow
+  - ✅ Added --archiving-only and --skip-archiving options
+  - ✅ Archiving runs after all jobs, before finalize
+  - ✅ Email includes archiving summary section
+  - ✅ Human-readable sizes (GB, MB) instead of bytes
+  - ✅ Uniformized log extensions (.out instead of .log)
+
 ## 🔴 High Priority
 
 ### Configuration Management
@@ -97,7 +118,11 @@ Last updated: 2025-11-04
 
 - [x] **Improve final workflow email report readability** ✅ COMPLETED 2025-11-04
   - ✅ Synthesized and summarized log content instead of raw tails
-  - ✅ Added structured sections: Workflow Summary, Sequencing Metrics, Per-Sample Results, Summary Files
+  - ✅ Added structured sections: Workflow Summary, Sequencing Metrics, Per-Sample Results, Summary Files, Archiving Summary
+  - ✅ Converted to HTML format with responsive design
+  - ✅ Mobile-optimized for iPhone/Android viewing
+  - ✅ Color-coded status indicators and badges
+  - ✅ Detailed per-sample metrics and file status
   - ✅ Highlighted important metrics (haplogroups, variant counts, alignment stats, runtimes)
   - ✅ Reduced verbosity while keeping essential information
   - ✅ Added visual structure with box drawing characters and icons
