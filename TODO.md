@@ -95,13 +95,15 @@ Last updated: 2025-11-04
 
 ### User Experience
 
-- [ ] **Improve final workflow email report readability**
-  - Synthesize and summarize log content instead of raw tails
-  - Add structured sections: Summary stats, Errors/Warnings only, Key results
-  - Highlight important metrics (haplogroups detected, sample counts, success rate)
-  - Reduce verbosity while keeping essential information
-  - Consider HTML format for better formatting
-  - Add quick status overview at the top (✅ Success / ⚠️ Warnings / ❌ Errors)
+- [x] **Improve final workflow email report readability** ✅ COMPLETED 2025-11-04
+  - ✅ Synthesized and summarized log content instead of raw tails
+  - ✅ Added structured sections: Workflow Summary, Sequencing Metrics, Per-Sample Results, Summary Files
+  - ✅ Highlighted important metrics (haplogroups, variant counts, alignment stats, runtimes)
+  - ✅ Reduced verbosity while keeping essential information
+  - ✅ Added visual structure with box drawing characters and icons
+  - ✅ Included status indicators (✓/✗) for key output files
+  - ✅ Added error detection in sample logs
+  - 📋 Future: Consider HTML format for even better formatting
 
 - [ ] **Add option to process 'unclassified' folder**
   - Add command-line option (e.g., --include-unclassified) to submit_nanomito.sh
