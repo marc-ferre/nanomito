@@ -95,6 +95,14 @@ Last updated: 2025-11-04
 
 ### User Experience
 
+- [ ] **Improve final workflow email report readability**
+  - Synthesize and summarize log content instead of raw tails
+  - Add structured sections: Summary stats, Errors/Warnings only, Key results
+  - Highlight important metrics (haplogroups detected, sample counts, success rate)
+  - Reduce verbosity while keeping essential information
+  - Consider HTML format for better formatting
+  - Add quick status overview at the top (✅ Success / ⚠️ Warnings / ❌ Errors)
+
 - [ ] **Add option to process 'unclassified' folder**
   - Add command-line option (e.g., --include-unclassified) to submit_nanomito.sh
   - By default, skip the 'unclassified' folder in fastq_pass/
