@@ -69,14 +69,206 @@ append_line() {
   echo "$1" >> "$EMAIL_BODY_FILE"
 }
 
+append_html() {
+  echo "$1" >> "$EMAIL_BODY_FILE"
+}
+
+start_html() {
+  cat >> "$EMAIL_BODY_FILE" << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f5f5f5;
+  }
+  .container {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin: -20px -20px 20px -20px;
+  }
+  .header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
+  .header .subtitle {
+    margin-top: 10px;
+    opacity: 0.9;
+    font-size: 14px;
+  }
+  .section {
+    margin: 25px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-left: 4px solid #667eea;
+    border-radius: 4px;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #667eea;
+    margin: 0 0 15px 0;
+  }
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+  }
+  .metric-row:last-child {
+    border-bottom: none;
+  }
+  .metric-label {
+    color: #6c757d;
+    font-weight: 500;
+  }
+  .metric-value {
+    font-family: 'Courier New', Consolas, monospace;
+    font-weight: 600;
+    color: #495057;
+  }
+  .success {
+    color: #28a745;
+  }
+  .warning {
+    color: #ffc107;
+  }
+  .error {
+    color: #dc3545;
+  }
+  .info {
+    color: #17a2b8;
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+  .badge-ok {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  .badge-error {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 13px;
+  }
+  th {
+    background-color: #667eea;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  tr:nth-child(even) {
+    background-color: #f8f9fa;
+  }
+  .sample-card {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 15px 0;
+  }
+  .sample-header {
+    font-size: 16px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #667eea;
+  }
+  .file-list {
+    margin: 10px 0;
+  }
+  .file-item {
+    padding: 5px 0;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 13px;
+  }
+  .footer {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #dee2e6;
+    text-align: center;
+    color: #6c757d;
+    font-size: 14px;
+  }
+  @media (max-width: 600px) {
+    body {
+      padding: 10px;
+    }
+    .container {
+      padding: 15px;
+    }
+    .header {
+      padding: 20px 15px;
+      margin: -15px -15px 15px -15px;
+    }
+    .header h1 {
+      font-size: 20px;
+    }
+    .metric-row {
+      flex-direction: column;
+      gap: 4px;
+    }
+    table {
+      font-size: 11px;
+    }
+    th, td {
+      padding: 6px 8px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+EOF
+}
+
+end_html() {
+  cat >> "$EMAIL_BODY_FILE" << 'EOF'
+</div>
+</body>
+</html>
+EOF
+}
+
 append_section() {
   local title="$1"
-  {
-    echo ""
-    echo "------------------------------------------------------------"
-    echo "  $title"
-    echo "------------------------------------------------------------"
-  } >> "$EMAIL_BODY_FILE"
+  append_html "<div class=\"section\">"
+  append_html "  <div class=\"section-title\">$title</div>"
 }
 
 count_vcf_variants() {
@@ -121,18 +313,15 @@ format_number() {
 log_info "Preparing comprehensive email summary: $EMAIL_BODY_FILE"
 
 # --- Email Header ---------------------------------------------------------
-{
-  echo "============================================================"
-  echo ""
-  echo "         NANOMITO WORKFLOW COMPLETED"
-  echo ""
-  echo "============================================================"
-  echo ""
-  echo "Run ID    : $RUN_ID"
-  echo "Directory : $RUN_DIR"
-  echo "Completed : $(date '+%Y-%m-%d %H:%M:%S')"
-  echo ""
-} >> "$EMAIL_BODY_FILE"
+start_html
+
+append_html "<div class=\"header\">"
+append_html "  <h1>🧬 NANOMITO WORKFLOW COMPLETED</h1>"
+append_html "  <div class=\"subtitle\">"
+append_html "    Run ID: $RUN_ID<br>"
+append_html "    Completed: $(date '+%Y-%m-%d %H:%M:%S')"
+append_html "  </div>"
+append_html "</div>"
 
 # --- 1. WORKFLOW EXECUTION SUMMARY ----------------------------------------
 append_section "WORKFLOW EXECUTION SUMMARY"
@@ -159,27 +348,43 @@ if [ -f "$SUMMARY_TSV" ]; then
   total_minutes=$(((total_seconds % 3600) / 60))
   total_secs=$((total_seconds % 60))
   
-  append_line ""
-  append_line "*** All jobs completed successfully! ***"
-  append_line ""
-  printf "Total runtime: %02d:%02d:%02d\n" "$total_hours" "$total_minutes" "$total_secs" >> "$EMAIL_BODY_FILE"
-  append_line ""
-  append_line "Job runtimes:"
+  append_html "  <div class=\"metric-row\">"
+  append_html "    <span class=\"metric-label\">Status</span>"
+  append_html "    <span class=\"metric-value success\">✓ All jobs completed successfully</span>"
+  append_html "  </div>"
+  
+  append_html "  <div class=\"metric-row\">"
+  append_html "    <span class=\"metric-label\">Total runtime</span>"
+  printf -v runtime_str "%02d:%02d:%02d" "$total_hours" "$total_minutes" "$total_secs"
+  append_html "    <span class=\"metric-value\">$runtime_str</span>"
+  append_html "  </div>"
+  
+  append_html "  <table>"
+  append_html "    <tr><th>Sample</th><th>Workflow</th><th>Runtime</th></tr>"
   
   while IFS=$'\t' read -r run_id sample_id workflow runtime; do
     if [ "$workflow" != "Workflow" ]; then
       sample_display="${sample_id:-N/A}"
       # Truncate long sample names
-      if [ ${#sample_display} -gt 30 ]; then
-        sample_display="${sample_display:0:27}..."
+      if [ ${#sample_display} -gt 35 ]; then
+        sample_display="${sample_display:0:32}..."
       fi
-      printf "  %-30s %8s  %s\n" "$sample_display" "$workflow" "$runtime" >> "$EMAIL_BODY_FILE"
+      append_html "    <tr>"
+      append_html "      <td>$sample_display</td>"
+      append_html "      <td>$workflow</td>"
+      append_html "      <td>$runtime</td>"
+      append_html "    </tr>"
     fi
   done < <(tail -n +2 "$SUMMARY_TSV")
+  
+  append_html "  </table>"
 else
-  append_line ""
-  append_line "WARNING: Workflow summary file not found"
+  append_html "  <div class=\"metric-row\">"
+  append_html "    <span class=\"metric-value warning\">⚠ Workflow summary file not found</span>"
+  append_html "  </div>"
 fi
+
+append_html "</div>"
 
 # --- 2. SEQUENCING RUN METRICS --------------------------------------------
 append_section "SEQUENCING RUN METRICS"
@@ -189,7 +394,6 @@ REPORT_JSON=$(find "$RUN_DIR" -maxdepth 1 -name "report_*.json" | head -1)
 REPORT_MD=$(find "$RUN_DIR" -maxdepth 1 -name "report_*.md" | head -1)
 
 if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
-  append_line ""
   # Extract key metrics from the last snapshot in JSON
   # The metrics are in the last "yield_summary" of the last acquisition's last snapshot
   read_count=$(grep -o '"read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
@@ -198,12 +402,18 @@ if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
   
   if [ "$read_count" != "N/A" ] && [ "$read_count" != "" ]; then
     reads_formatted=$(format_number "$read_count")
-    printf "  %-25s : %s\n" "Total reads" "$reads_formatted" >> "$EMAIL_BODY_FILE"
+    append_html "  <div class=\"metric-row\">"
+    append_html "    <span class=\"metric-label\">Total reads</span>"
+    append_html "    <span class=\"metric-value info\">$reads_formatted</span>"
+    append_html "  </div>"
   fi
   
   if [ "$basecalled_pass_read_count" != "N/A" ] && [ "$basecalled_pass_read_count" != "" ]; then
     pass_reads_formatted=$(format_number "$basecalled_pass_read_count")
-    printf "  %-25s : %s\n" "Passed reads" "$pass_reads_formatted" >> "$EMAIL_BODY_FILE"
+    append_html "  <div class=\"metric-row\">"
+    append_html "    <span class=\"metric-label\">Passed reads</span>"
+    append_html "    <span class=\"metric-value success\">$pass_reads_formatted</span>"
+    append_html "  </div>"
   fi
   
   if [ "$basecalled_pass_bases" != "N/A" ] && [ "$basecalled_pass_bases" != "" ]; then
@@ -211,20 +421,32 @@ if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
     # Convert to Gb
     if [[ "$basecalled_pass_bases" =~ ^[0-9]+$ ]]; then
       bases_gb=$(awk "BEGIN {printf \"%.2f\", $basecalled_pass_bases / 1000000000}")
-      printf "  %-25s : %s (%.2f Gb)\n" "Passed bases" "$bases_formatted" "$bases_gb" >> "$EMAIL_BODY_FILE"
+      append_html "  <div class=\"metric-row\">"
+      append_html "    <span class=\"metric-label\">Passed bases</span>"
+      append_html "    <span class=\"metric-value success\">$bases_formatted <span class=\"info\">($bases_gb Gb)</span></span>"
+      append_html "  </div>"
     else
-      printf "  %-25s : %s\n" "Passed bases" "$bases_formatted" >> "$EMAIL_BODY_FILE"
+      append_html "  <div class=\"metric-row\">"
+      append_html "    <span class=\"metric-label\">Passed bases</span>"
+      append_html "    <span class=\"metric-value\">$bases_formatted</span>"
+      append_html "  </div>"
     fi
   fi
   
 elif [ -n "$REPORT_MD" ] && [ -f "$REPORT_MD" ]; then
-  append_line ""
-  append_line "Report found: $(basename "$REPORT_MD")"
-  append_line "(Metrics extraction from Markdown not yet implemented)"
+  append_html "  <div class=\"metric-row\">"
+  append_html "    <span class=\"metric-value\">Report found: $(basename "$REPORT_MD")</span>"
+  append_html "  </div>"
+  append_html "  <div class=\"metric-row\">"
+  append_html "    <span class=\"metric-value warning\">(Metrics extraction from Markdown not yet implemented)</span>"
+  append_html "  </div>"
 else
-  append_line ""
-  append_line "INFO: No report file found (report_*.json or report_*.md)"
+  append_html "  <div class=\"metric-row\">"
+  append_html "    <span class=\"metric-value warning\">ℹ No report file found (report_*.json or report_*.md)</span>"
+  append_html "  </div>"
 fi
+
+append_html "</div>"
 
 # --- 3. PER-SAMPLE RESULTS ------------------------------------------------
 append_section "PER-SAMPLE RESULTS"
@@ -233,14 +455,18 @@ DEMULT_SUMMARY="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
 HAPLOCHECK_SUMMARY="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
 
 if [ ! -f "$DEMULT_SUMMARY" ]; then
-  append_line ""
-  append_line "WARNING: Demultiplexing summary not found"
+  append_html "  <div class=\"metric-row\">"
+  append_html "    <span class=\"metric-value warning\">⚠ Demultiplexing summary not found</span>"
+  append_html "  </div>"
 fi
 
 if [ ! -f "$HAPLOCHECK_SUMMARY" ]; then
-  append_line ""
-  append_line "WARNING: Haplocheck summary not found"
+  append_html "  <div class=\"metric-row\">"
+  append_html "    <span class=\"metric-value warning\">⚠ Haplocheck summary not found</span>"
+  append_html "  </div>"
 fi
+
+append_html "</div>"
 
 # Process each sample directory
 sample_count=0
@@ -250,10 +476,8 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   sample=$(basename "$sample_dir")
   sample_count=$((sample_count + 1))
   
-  append_line ""
-  append_line "-----------------------------------------------------------"
-  printf "Sample: %s\n" "$sample" >> "$EMAIL_BODY_FILE"
-  append_line "-----------------------------------------------------------"
+  append_html "<div class=\"sample-card\">"
+  append_html "  <div class=\"sample-header\">📊 Sample: $sample</div>"
   
   # Extract demultiplexing metrics
   if [ -f "$DEMULT_SUMMARY" ]; then
@@ -261,10 +485,17 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     matching_both=$(awk -v s="$sample" '$2==s {print $6}' "$DEMULT_SUMMARY")
     
     if [ -n "$chrM_reads" ]; then
-      append_line ""
-      append_line "Alignment:"
-      printf "  chrM reads       : %s\n" "$(format_number "$chrM_reads")" >> "$EMAIL_BODY_FILE"
-      printf "  Matching both    : %s\n" "$(format_number "$matching_both")" >> "$EMAIL_BODY_FILE"
+      append_html "  <div style=\"margin: 10px 0;\">"
+      append_html "    <strong>Alignment</strong>"
+      append_html "    <div class=\"metric-row\">"
+      append_html "      <span class=\"metric-label\">chrM reads</span>"
+      append_html "      <span class=\"metric-value\">$(format_number "$chrM_reads")</span>"
+      append_html "    </div>"
+      append_html "    <div class=\"metric-row\">"
+      append_html "      <span class=\"metric-label\">Matching both</span>"
+      append_html "      <span class=\"metric-value\">$(format_number "$matching_both")</span>"
+      append_html "    </div>"
+      append_html "  </div>"
     fi
   fi
   
@@ -278,14 +509,30 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
       major_haplogroup=$(echo "$haplocheck_line" | awk -F'\t' '{print $10}' | tr -d '"')
       minor_haplogroup=$(echo "$haplocheck_line" | awk -F'\t' '{print $12}' | tr -d '"')
       
-      append_line ""
-      append_line "Haplogroup:"
-      printf "  Status           : %s\n" "$contamination_status" >> "$EMAIL_BODY_FILE"
-      printf "  Major            : %s\n" "$major_haplogroup" >> "$EMAIL_BODY_FILE"
+      # Color code status
+      status_class="success"
+      if [ "$contamination_status" != "OK" ]; then
+        status_class="warning"
+      fi
+      
+      append_html "  <div style=\"margin: 10px 0;\">"
+      append_html "    <strong>Haplogroup</strong>"
+      append_html "    <div class=\"metric-row\">"
+      append_html "      <span class=\"metric-label\">Status</span>"
+      append_html "      <span class=\"metric-value $status_class\">$contamination_status</span>"
+      append_html "    </div>"
+      append_html "    <div class=\"metric-row\">"
+      append_html "      <span class=\"metric-label\">Major</span>"
+      append_html "      <span class=\"metric-value\">$major_haplogroup</span>"
+      append_html "    </div>"
       
       if [ "$major_haplogroup" != "$minor_haplogroup" ] && [ -n "$minor_haplogroup" ]; then
-        printf "  Minor            : %s\n" "$minor_haplogroup" >> "$EMAIL_BODY_FILE"
+        append_html "    <div class=\"metric-row\">"
+        append_html "      <span class=\"metric-label\">Minor</span>"
+        append_html "      <span class=\"metric-value\">$minor_haplogroup</span>"
+        append_html "    </div>"
       fi
+      append_html "  </div>"
     fi
   fi
   
@@ -295,15 +542,23 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     total_variants=$(count_vcf_variants "$vcf_file")
     pass_variants=$(count_vcf_pass_variants "$vcf_file")
     
-    append_line ""
-    append_line "Variants:"
-    printf "  Total            : %s\n" "$total_variants" >> "$EMAIL_BODY_FILE"
-    printf "  PASS             : %s\n" "$pass_variants" >> "$EMAIL_BODY_FILE"
+    append_html "  <div style=\"margin: 10px 0;\">"
+    append_html "    <strong>Variants</strong>"
+    append_html "    <div class=\"metric-row\">"
+    append_html "      <span class=\"metric-label\">Total</span>"
+    append_html "      <span class=\"metric-value\">$total_variants</span>"
+    append_html "    </div>"
+    append_html "    <div class=\"metric-row\">"
+    append_html "      <span class=\"metric-label\">PASS</span>"
+    append_html "      <span class=\"metric-value success\">$pass_variants</span>"
+    append_html "    </div>"
+    append_html "  </div>"
   fi
   
   # Check for important output files
-  append_line ""
-  append_line "Output files:"
+  append_html "  <div style=\"margin: 10px 0;\">"
+  append_html "    <strong>Output files</strong>"
+  append_html "    <div class=\"file-list\">"
   
   bam_file="${sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
   ann_tsv="${sample}.ann.tsv"
@@ -311,22 +566,25 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   
   if [ -f "$sample_dir/$bam_file" ]; then
     bam_size=$(du -h "$sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
-    printf "  [OK] BAM (%s)\n" "$bam_size" >> "$EMAIL_BODY_FILE"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> BAM ($bam_size)</div>"
   else
-    append_line "  [ X] BAM - NOT FOUND"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> BAM - NOT FOUND</div>"
   fi
   
   if [ -f "$sample_dir/$ann_vcf" ]; then
-    append_line "  [OK] VCF"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> VCF</div>"
   else
-    append_line "  [ X] VCF - NOT FOUND"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> VCF - NOT FOUND</div>"
   fi
   
   if [ -f "$sample_dir/$ann_tsv" ]; then
-    append_line "  [OK] TSV"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> TSV</div>"
   else
-    append_line "  [ X] TSV - NOT FOUND"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> TSV - NOT FOUND</div>"
   fi
+  
+  append_html "    </div>"
+  append_html "  </div>"
   
   # Check for errors in logs
   demultmt_err="$sample_dir/slurm-${sample}.demultmt.err"
@@ -350,77 +608,85 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   fi
   
   if [ $error_count -gt 0 ]; then
-    append_line ""
-    append_line "WARNING: $error_count potential error(s) found in logs"
-    append_line "    Check: $demultmt_err"
-    append_line "    Check: $modmito_err"
+    append_html "  <div style=\"margin-top: 10px; padding: 10px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;\">"
+    append_html "    <span class=\"warning\">⚠ $error_count potential error(s) found in logs</span><br>"
+    append_html "    <small>Check: $demultmt_err<br>Check: $modmito_err</small>"
+    append_html "  </div>"
   fi
+  
+  append_html "</div>"
   
 done
 
 if [ $sample_count -eq 0 ]; then
-  append_line ""
-  append_line "WARNING: No sample directories found in processing/"
+  append_html "<div class=\"sample-card\">"
+  append_html "  <span class=\"warning\">⚠ No sample directories found in processing/</span>"
+  append_html "</div>"
 else
-  append_line ""
-  append_line "..........................................................................."
-  append_line "Total samples processed: $sample_count"
+  append_html "<div style=\"text-align: center; margin: 20px 0; font-weight: 600; color: #667eea;\">"
+  append_html "  Total samples processed: $sample_count"
+  append_html "</div>"
 fi
 
 # --- 4. SUMMARY FILES LOCATION --------------------------------------------
 append_section "SUMMARY FILES"
 
-append_line ""
-append_line "Main directory:"
-append_line "  $RUN_DIR"
-append_line ""
-append_line "Processing directory:"
-append_line "  $PROCESS_DIR"
-append_line ""
-append_line "Key summary files:"
+append_html "  <div class=\"metric-row\">"
+append_html "    <span class=\"metric-label\">Main directory</span>"
+append_html "    <span class=\"metric-value\" style=\"font-size: 12px;\">$RUN_DIR</span>"
+append_html "  </div>"
+
+append_html "  <div class=\"metric-row\">"
+append_html "    <span class=\"metric-label\">Processing directory</span>"
+append_html "    <span class=\"metric-value\" style=\"font-size: 12px;\">$PROCESS_DIR</span>"
+append_html "  </div>"
+
+append_html "  <div style=\"margin-top: 15px;\"><strong>Key summary files:</strong></div>"
 
 if [ -f "$SUMMARY_TSV" ]; then
-  append_line "  [OK] workflows_summary"
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> workflows_summary</div>"
 else
-  append_line "  [ X] workflows_summary (not found)"
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> workflows_summary (not found)</div>"
 fi
 
 if [ -f "$DEMULT_SUMMARY" ]; then
-  append_line "  [OK] demult_summary"
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> demult_summary</div>"
 else
-  append_line "  [ X] demult_summary (not found)"
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> demult_summary (not found)</div>"
 fi
 
 if [ -f "$HAPLOCHECK_SUMMARY" ]; then
-  append_line "  [OK] haplocheck_summary"
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> haplocheck_summary</div>"
 else
-  append_line "  [ X] haplocheck_summary (not found)"
+  append_html "  <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> haplocheck_summary (not found)</div>"
 fi
 
+append_html "</div>"
+
 # --- 5. FOOTER ------------------------------------------------------------
-{
-  echo ""
-  echo "============================================================"
-  echo "  End of Nanomito Report"
-  echo "  Details: $PROCESS_DIR"
-  echo "============================================================"
-} >> "$EMAIL_BODY_FILE"
+append_html "<div class=\"footer\">"
+append_html "  <strong>End of Nanomito Report</strong><br>"
+append_html "  Details available in: <code>$PROCESS_DIR</code>"
+append_html "</div>"
+
+end_html
 
 # --- Send email -----------------------------------------------------------
 send_email() {
   local subject="$1"; shift
   local file="$1"; shift
   if command -v mail >/dev/null 2>&1; then
-    mail -s "$subject" "$MAIL_TO" < "$file" || return 1
+    mail -a "Content-Type: text/html; charset=UTF-8" -s "$subject" "$MAIL_TO" < "$file" || return 1
     return 0
   elif command -v mailx >/dev/null 2>&1; then
-    mailx -s "$subject" "$MAIL_TO" < "$file" || return 1
+    mailx -a "Content-Type: text/html; charset=UTF-8" -s "$subject" "$MAIL_TO" < "$file" || return 1
     return 0
   elif command -v sendmail >/dev/null 2>&1; then
     {
       echo "To: $MAIL_TO"
       echo "Subject: $subject"
-      echo "Content-Type: text/plain; charset=UTF-8"
+      echo "Content-Type: text/html; charset=UTF-8"
+      echo "MIME-Version: 1.0"
       echo
       cat "$file"
     } | sendmail -t || return 1
