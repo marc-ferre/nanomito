@@ -373,9 +373,9 @@ append_line ""
 append_line "Key summary files:"
 
 if [ -f "$SUMMARY_TSV" ]; then
-  append_line "  [YES] workflows_summary.$RUN_ID.tsv"
+  append_line "  [OK] workflows_summary"
 else
-  append_line "  [NO ] workflows_summary.$RUN_ID.tsv (not found)"
+  append_line "  [ X] workflows_summary (not found)"
 fi
 
 if [ -f "$DEMULT_SUMMARY" ]; then
