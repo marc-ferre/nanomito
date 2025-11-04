@@ -155,10 +155,10 @@ Intermediate orchestrator that dynamically discovers samples and submits analysi
 - Submitted automatically by `wf-subwf.sh` after all per-sample jobs are queued
 - Waits for successful completion of all jobs (SLURM `afterok` dependency)
 - Sends a single email to `MAIL_USER` with:
-   - Run metadata (Run ID, date, path)
-   - The `processing/workflows_summary.<RUN_ID>.tsv` content if present
-   - Tails of main logs: `slurm-<RUN_ID>.bchg.out` and `slurm-<RUN_ID>.subwf.out`
-   - Tails of per-sample logs (demultmt/modmito), limited for brevity
+  - Run metadata (Run ID, date, path)
+  - The `processing/workflows_summary.<RUN_ID>.tsv` content if present
+  - Tails of main logs: `slurm-<RUN_ID>.bchg.out` and `slurm-<RUN_ID>.subwf.out`
+  - Tails of per-sample logs (demultmt/modmito), limited for brevity
 - If no mailer is available (`mail`, `mailx`, or `sendmail`), saves the email body to `processing/email-<RUN_ID>.txt`
 
 ### 7. **archiving.sh**
@@ -543,9 +543,9 @@ If you use Nanomito in your research, please cite:
 ## Version History
 
 - **v1.0.1** (2025-11-04) - Final notification email and resource tuning
-   - Added `wf-finalize.sh` and automatic final job submission from `wf-subwf.sh`
-   - Sends a single email with run summary and log tails when all jobs finish
-   - Updated recommended SLURM resources (GPU jobs: 6 CPUs/32GB; demultmt: 8 CPUs/100GB)
+  - Added `wf-finalize.sh` and automatic final job submission from `wf-subwf.sh`
+  - Sends a single email with run summary and log tails when all jobs finish
+  - Updated recommended SLURM resources (GPU jobs: 6 CPUs/32GB; demultmt: 8 CPUs/100GB)
 
 - **v1.0.0** (2025-11-03) - Production release with architecture refinement
   - **BREAKING:** Restored two-step workflow architecture with `wf-subwf.sh`
