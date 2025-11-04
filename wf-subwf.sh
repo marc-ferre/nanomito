@@ -375,7 +375,7 @@ if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
 	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
 	log_success "Created workflow summary file"
 fi
-echo "$RUN_ID		subwf	$HOURS:$MINUTES:$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
+printf "%s\t%s\t%s\t%02d:%02d:%02d\n" "$RUN_ID" "NA" "subwf" "$HOURS" "$MINUTES" "$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
 log_success "Updated workflow summary file: $WORKFLOW_SUMMARY_FILE"
 
 echo ""

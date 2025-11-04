@@ -487,6 +487,8 @@ sample_count=0
 for sample_dir in "$PROCESS_DIR"/*/ ; do
   [ -d "$sample_dir" ] || continue
   
+  # Remove trailing slash from sample_dir
+  sample_dir="${sample_dir%/}"
   sample=$(basename "$sample_dir")
   sample_count=$((sample_count + 1))
   
