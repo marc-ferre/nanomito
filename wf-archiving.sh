@@ -74,8 +74,8 @@ then
     echo "[OK] Run copied successfully"
     ARCHIVE_STATUS="success"
     
-    # Calculate size with du for human-readable format
-    TOTAL_SIZE=$(du -sh "$ARCHIVING_DIR" 2>/dev/null | cut -f1 || echo "N/A")
+    # Calculate size with du for human-readable format (force English locale for decimal point)
+    TOTAL_SIZE=$(LC_NUMERIC=C du -sh "$ARCHIVING_DIR" 2>/dev/null | cut -f1 || echo "N/A")
 else
     echo "[ERROR] While copying"
     ARCHIVE_STATUS="failed"
