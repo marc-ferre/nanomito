@@ -1,10 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=subwf
-#SBATCH --time 00:30:00
+#SBATCH --time=00:30:00
 #SBATCH --output=processing/slurm-%x.%j.out
 #SBATCH --error=processing/slurm-%x.%j.err
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_80
-#SBATCH --mail-user=marc.ferre@univ-angers.fr
 #
 #
 # wf-subwf.sh - Workflow submission orchestrator
