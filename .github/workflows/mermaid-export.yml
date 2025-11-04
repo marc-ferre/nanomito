@@ -1,0 +1,36 @@
+name: Export Mermaid diagrams to SVG
+
+on:
+  push:
+    paths:
+      - 'diagrams/**/*.mmd'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install mermaid-cli
+        run: npm i -g @mermaid-js/mermaid-cli
+
+      - name: Generate SVGs
+        run: |
+          mmdc -i diagrams/workflow.mmd -o diagrams/workflow.svg -b transparent
+
+      - name: Commit SVGs
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: 'diagrams/workflow.svg'
+          message: 'docs(diagrams): auto-generate Mermaid SVG'
+          default_author: github_actions

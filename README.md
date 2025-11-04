@@ -13,40 +13,36 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 - 🔀 **Sample demultiplexing** - Automated barcode demultiplexing and patient-level separation
 - 🔬 **Modification detection** - 5mC, 5hmC, and 6mA base modification calling
 - 📊 **SLURM integration** - Optimized for HPC environments with automatic job dependency management
+- 📧 **Single final notification email** - One email when all jobs finish, with a summary and log tails
 - ✅ **Robust error handling** - Comprehensive logging and error recovery mechanisms
 
 ## Workflow Architecture
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                     submit_nanomito.sh                          │
-│        Main workflow submission orchestrator with options       │
-│  --bchg-only / --skip-bchg / --demultmt-only / --modmito-only   │
-│                --skip-demultmt / --skip-modmito                 │
-└──────────────────┬──────────────────────────────────────────────┘
-                   │
-        ┌──────────┴──────────┐
-        ▼                     ▼
-┌───────────────┐     ┌──────────────┐
-│  wf-bchg.sh   │     │ wf-subwf.sh  │
-│  Basecalling  │────▶│ Discovers    │
-│  & Demux      │     │ samples      │
-└───────────────┘     └──────┬───────┘
-                             │
-                ┌────────────┴────────────┐
-                ▼                         ▼
-        ┌──────────────┐         ┌──────────────┐
-        │wf-demultmt.sh│         │wf-modmito.sh │
-        │ MT reads     │────────▶│ Modification │
-        │ demultiplex  │         │ analysis     │
-        │ (per sample) │         │ (per sample) │
-        └──────────────┘         └──────────────┘
+Rendered diagram (Mermaid):
+
+```mermaid
+flowchart TD
+  A[submit_nanomito.sh\nMain orchestrator] -->|submit| B[wf-bchg.sh\nGPU basecalling + demux]
+  A -->|submit| C[wf-subwf.sh\nsample discovery + submissions]
+  B -->|afterok| C
+
+  C --> D{for each SAMPLE}
+
+  subgraph Per-sample
+    E[wf-demultmt.sh\n(per sample)] -->|afterok| F[wf-modmito.sh\n(per sample)]
+  end
+
+  D --> E
+  F -->|afterok: all per-sample jobs| G[wf-finalize.sh\nsingle email]
 ```
+
+Static SVG (auto-généré par CI): `diagrams/workflow.svg`
 
 **Two-step submission architecture:**
 
 1. `submit_nanomito.sh` submits `wf-bchg.sh` and `wf-subwf.sh`
 2. `wf-subwf.sh` waits for basecalling completion, discovers samples, then submits analysis jobs
+3. `wf-subwf.sh` also submits a final job (`wf-finalize.sh`) that sends a single notification email when all jobs finish
 
 This design ensures dynamic sample discovery after basecalling creates the sample directories.
 
@@ -113,6 +109,7 @@ Intermediate orchestrator that dynamically discovers samples and submits analysi
 - Submits demultmt and modmito jobs for each discovered sample
 - Respects filtering options (--demultmt-only, --modmito-only, etc.)
 - Creates proper job dependencies between demultmt and modmito
+- Submits a final notification job (`wf-finalize.sh`) that depends on all submitted jobs and sends one email at the end
 - **Resources:** Minimal (orchestration only, < 1 minute runtime)
 
 ### 3. **wf-bchg.sh** (Basecalling & Demultiplexing)
@@ -121,7 +118,7 @@ Intermediate orchestrator that dynamically discovers samples and submits analysi
 - Automatic sample demultiplexing by barcodes
 - Sample sheet alias mapping for directory organization
 - FASTQ compression and organization
-- **Resources:** 1 GPU, 12 CPUs, 50GB RAM
+- **Resources:** 1 GPU, 6 CPUs, 32GB RAM
 
 ### 4. **wf-demultmt.sh** (Mitochondrial Reads Demultiplexing)
 
@@ -129,7 +126,7 @@ Intermediate orchestrator that dynamically discovers samples and submits analysi
 - Demultiplexes mitochondrial reads by patient
 - Read selection strategies (both/start/either/xor)
 - Creates read_id→parent_id dictionary for Pod5 filtering
-- **Resources:** 12 CPUs, 150GB RAM
+- **Resources:** 8 CPUs, 100GB RAM
 
 **Note:** This workflow expects a `pid_dict.tsv` file created during preprocessing (see `preprocessing/wf-getmt.sh`) that maps read IDs to their parent IDs for proper Pod5 file filtering.
 
@@ -138,9 +135,20 @@ Intermediate orchestrator that dynamically discovers samples and submits analysi
 - Duplex basecalling with modification calling (5mC, 5hmC, 6mA)
 - BAM alignment and sorting
 - BedMethyl output generation
-- **Resources:** 1 GPU, 12 CPUs, 50GB RAM
+- **Resources:** 1 GPU, 6 CPUs, 32GB RAM
 
-### 6. **archiving.sh**
+### 6. **wf-finalize.sh** (Single final notification)
+
+- Submitted automatically by `wf-subwf.sh` after all per-sample jobs are queued
+- Waits for successful completion of all jobs (SLURM `afterok` dependency)
+- Sends a single email to `MAIL_USER` with:
+   - Run metadata (Run ID, date, path)
+   - The `processing/workflows_summary.<RUN_ID>.tsv` content if present
+   - Tails of main logs: `slurm-<RUN_ID>.bchg.out` and `slurm-<RUN_ID>.subwf.out`
+   - Tails of per-sample logs (demultmt/modmito), limited for brevity
+- If no mailer is available (`mail`, `mailx`, or `sendmail`), saves the email body to `processing/email-<RUN_ID>.txt`
+
+### 7. **archiving.sh**
 
 Automated run archiving to project storage.
 
@@ -180,7 +188,11 @@ run_directory/
 │   │   ├── slurm-sample_1.demultmt.log
 │   │   ├── slurm-sample_1.modmito.log
 │   │   └── select-both/         # Demultiplexed patient files
-│   └── workflows_summary.tsv    # Runtime summary
+│   ├── slurm-<RUN_ID>.bchg.out  # Basecalling log
+│   ├── slurm-<RUN_ID>.subwf.out # Orchestrator log
+│   ├── slurm-<RUN_ID>.final.out # Finalization job log
+│   ├── email-<RUN_ID>.txt       # Email body (if mailer unavailable)
+│   └── workflows_summary.<RUN_ID>.tsv    # Runtime summary
 └── sample_sheet_*.csv           # ONT sample sheet
 ```
 
@@ -412,7 +424,9 @@ protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_produ
 
 ### Summary
 
-- **Workflow summary:** `processing/workflows_summary.tsv`
+- **Workflow summary:** `processing/workflows_summary.<RUN_ID>.tsv`
+- **Final email body (fallback if no mailer):** `processing/email-<RUN_ID>.txt`
+- **Finalize job log:** `processing/slurm-<RUN_ID>.final.out`
 
 ## Troubleshooting
 
@@ -512,6 +526,11 @@ If you use Nanomito in your research, please cite:
 - **Dorado** team for basecalling software
 
 ## Version History
+
+- **v1.0.1** (2025-11-04) - Final notification email and resource tuning
+   - Added `wf-finalize.sh` and automatic final job submission from `wf-subwf.sh`
+   - Sends a single email with run summary and log tails when all jobs finish
+   - Updated recommended SLURM resources (GPU jobs: 6 CPUs/32GB; demultmt: 8 CPUs/100GB)
 
 - **v1.0.0** (2025-11-03) - Production release with architecture refinement
   - **BREAKING:** Restored two-step workflow architecture with `wf-subwf.sh`
