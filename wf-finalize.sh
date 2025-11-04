@@ -307,7 +307,7 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   ann_vcf="${sample}.ann.vcf"
   
   if [ -f "$sample_dir/$bam_file" ]; then
-    bam_size=$(du -h "$sample_dir/$bam_file" | cut -f1)
+    bam_size=$(du -h "$sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
     printf "  [YES] %-40s (%s)\n" "Sorted BAM" "$bam_size" >> "$EMAIL_BODY_FILE"
   else
     printf "  [NO ] %-40s\n" "Sorted BAM - NOT FOUND" >> "$EMAIL_BODY_FILE"
@@ -331,16 +331,19 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   
   error_count=0
   if [ -f "$demultmt_err" ]; then
-    demultmt_errors=$(grep -ci "error\|failed\|exception" "$demultmt_err" 2>/dev/null | head -1)
-    if [ -n "$demultmt_errors" ] && [ "$demultmt_errors" -eq "$demultmt_errors" ] 2>/dev/null; then
-      error_count=$((error_count + demultmt_errors))
-    fi
+    demultmt_errors=$(grep -ci "error\|failed\|exception" "$demultmt_err" 2>/dev/null | head -1 || echo "0")
+    # Simple numeric check - if it's a number, use it
+    case "$demultmt_errors" in
+      ''|*[!0-9]*) demultmt_errors=0 ;;
+    esac
+    error_count=$((error_count + demultmt_errors))
   fi
   if [ -f "$modmito_err" ]; then
-    modmito_errors=$(grep -ci "error\|failed\|exception" "$modmito_err" 2>/dev/null | head -1)
-    if [ -n "$modmito_errors" ] && [ "$modmito_errors" -eq "$modmito_errors" ] 2>/dev/null; then
-      error_count=$((error_count + modmito_errors))
-    fi
+    modmito_errors=$(grep -ci "error\|failed\|exception" "$modmito_err" 2>/dev/null | head -1 || echo "0")
+    case "$modmito_errors" in
+      ''|*[!0-9]*) modmito_errors=0 ;;
+    esac
+    error_count=$((error_count + modmito_errors))
   fi
   
   if [ $error_count -gt 0 ]; then
