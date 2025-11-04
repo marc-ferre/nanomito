@@ -542,6 +542,12 @@ If you use Nanomito in your research, please cite:
 
 ## Version History
 
+- **v1.1.1** (2025-11-04) - Email notification optimization
+  - Disabled SLURM success emails (`END` removed from `--mail-type`)
+  - SLURM emails now sent only on failures (FAIL, INVALID_DEPEND, REQUEUE, etc.)
+  - Success notification handled exclusively by `wf-finalize.sh` final email
+  - Significantly reduces email noise while maintaining critical failure alerts
+
 - **v1.1.0** (2025-11-04) - Configuration management and workflow enhancements
   - Added global configuration file `nanomito.config` for centralized settings
   - New `--include-unclassified` option to process unclassified reads (skipped by default)
