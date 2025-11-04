@@ -542,6 +542,15 @@ If you use Nanomito in your research, please cite:
 
 ## Version History
 
+- **v1.1.0** (2025-11-04) - Configuration management and workflow enhancements
+  - Added global configuration file `nanomito.config` for centralized settings
+  - New `--include-unclassified` option to process unclassified reads (skipped by default)
+  - Optimized SLURM resource requests for faster job scheduling
+  - Standardized per-sample logging: split `.out` and `.err` files for demultmt/modmito workflows
+  - Single final notification email with comprehensive log tails and run summary
+  - Improved documentation with ASCII workflow diagram
+  - Enhanced error handling and path resolution in SLURM contexts
+
 - **v1.0.1** (2025-11-04) - Final notification email and resource tuning
   - Added `wf-finalize.sh` and automatic final job submission from `wf-subwf.sh`
   - Sends a single email with run summary and log tails when all jobs finish
