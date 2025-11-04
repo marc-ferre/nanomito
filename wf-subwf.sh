@@ -371,3 +371,26 @@ echo ""
 echo "=========================================="
 log_info "Check detailed logs in processing/ directory"
 echo "=========================================="
+
+# Submit a final notification job that depends on all submitted jobs
+if [ -n "$JOBID_LIST" ]; then
+	# Normalize spaces and build dependency list
+	DEP_IDS=$(echo "$JOBID_LIST" | xargs)
+	DEP_STR="afterok:$(echo "$DEP_IDS" | tr ' ' ':')"
+
+	FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
+	FINAL_JOBID=$(sbatch --parsable \
+		--dependency="$DEP_STR" \
+		--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+		--chdir="$RUN_DIR" \
+		--job-name="f${RUN_ID: -7}" \
+		--output="$FINAL_OUT" \
+		"$SCRIPT_DIR/wf-finalize.sh")
+
+	if [ -n "$FINAL_JOBID" ]; then
+		log_success "Submitted final notification job $FINAL_JOBID (depends on all jobs)"
+		log_info "  Output: $FINAL_OUT"
+	else
+		log_error "Failed to submit final notification job"
+	fi
+fi
