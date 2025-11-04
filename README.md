@@ -46,18 +46,18 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
         └──────────────┘         └──────┬───────┘
                                         │
                                         ▼
-                                ┌──────────────┐
-                                │wf-archiving  │
-                                │ Archive data │
-                                │ to project   │
-                                └──────┬───────┘
-                                       │
-                                       ▼
-                               ┌──────────────┐
-                               │wf-finalize.sh│
-                               │ HTML email   │
-                               │ report       │
-                               └──────────────┘
+                                 ┌──────────────┐
+                                 │wf-archiving  │
+                                 │ Archive data │
+                                 │ to project   │
+                                 └──────┬───────┘
+                                        │
+                                        ▼
+                                 ┌──────────────┐
+                                 │wf-finalize.sh│
+                                 │ HTML email   │
+                                 │ report       │
+                                 └──────────────┘
 ```
 
 **Two-step submission architecture:**
