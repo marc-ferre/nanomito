@@ -328,9 +328,9 @@ append_section "WORKFLOW EXECUTION SUMMARY"
 
 SUMMARY_TSV="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 if [ -f "$SUMMARY_TSV" ]; then
-  # Calculate total runtime
+  # Calculate total runtime (use process substitution to avoid subshell issue)
   total_seconds=0
-  tail -n +2 "$SUMMARY_TSV" | while IFS=$'\t' read -r line; do
+  while IFS=$'\t' read -r line; do
     workflow=$(echo "$line" | awk -F'\t' '{print $3}')
     runtime=$(echo "$line" | awk -F'\t' '{print $4}')
     
@@ -344,7 +344,7 @@ if [ -f "$SUMMARY_TSV" ]; then
       seconds_total=$((hours * 3600 + minutes * 60 + seconds))
       total_seconds=$((total_seconds + seconds_total))
     fi
-  done
+  done < <(tail -n +2 "$SUMMARY_TSV")
   
   # Format total time
   total_hours=$((total_seconds / 3600))
