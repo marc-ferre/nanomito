@@ -365,10 +365,12 @@ if [ -f "$SUMMARY_TSV" ]; then
   while IFS=$'\t' read -r run_id sample_id workflow runtime; do
     if [ "$workflow" != "Workflow" ]; then
       # Display "NA" if sample_id is empty, otherwise use the sample_id
-      if [ -z "$sample_id" ] || [ "$sample_id" = "NA" ]; then
+      # Remove any whitespace from sample_id first
+      sample_id_trimmed=$(echo "$sample_id" | xargs)
+      if [ -z "$sample_id_trimmed" ] || [ "$sample_id_trimmed" = "NA" ]; then
         sample_display="NA"
       else
-        sample_display="$sample_id"
+        sample_display="$sample_id_trimmed"
         # Truncate long sample names
         if [ ${#sample_display} -gt 35 ]; then
           sample_display="${sample_display:0:32}..."
