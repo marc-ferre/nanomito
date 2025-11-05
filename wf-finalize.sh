@@ -59,7 +59,7 @@ PROCESS_DIR="$RUN_DIR/processing"
 
 MAIL_TO="$MAIL_USER"
 EMAIL_SUBJECT="[Nanomito] Run $RUN_ID completed"
-EMAIL_BODY_FILE="$PROCESS_DIR/report_$RUN_ID.html"
+EMAIL_BODY_FILE="$PROCESS_DIR/report.$RUN_ID.html"
 
 mkdir -p "$PROCESS_DIR"
 : > "$EMAIL_BODY_FILE"
