@@ -193,7 +193,7 @@ Intermediate orchestrator that dynamically discovers samples and submits analysi
 - **Responsive design** - Optimized for mobile viewing (iPhone, Android)
 - **Color-coded status** - Success (green), warnings (yellow), errors (red)
 - Sends email to `MAIL_USER` configured in `nanomito.config`
-- If no mailer available, saves HTML to `processing/email-<RUN_ID>.txt`
+- If no mailer available, saves HTML to `processing/report_<RUN_ID>.html`
 
 ### 8. **archiving.sh** (Manual archiving)
 
@@ -245,7 +245,7 @@ run_directory/
 │   ├── slurm-<RUN_ID>.bchg.out  # Basecalling log
 │   ├── slurm-<RUN_ID>.subwf.out # Orchestrator log
 │   ├── slurm-<RUN_ID>.final.out # Finalization job log
-│   ├── email-<RUN_ID>.txt       # Email body (if mailer unavailable)
+│   ├── report_<RUN_ID>.html     # HTML report (if mailer unavailable)
 │   └── workflows_summary.<RUN_ID>.tsv    # Runtime summary
 └── sample_sheet_*.csv           # ONT sample sheet
 ```
@@ -479,7 +479,7 @@ protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_produ
 ### Summary
 
 - **Workflow summary:** `processing/workflows_summary.<RUN_ID>.tsv`
-- **Final email body (fallback if no mailer):** `processing/email-<RUN_ID>.txt`
+- **HTML report (fallback if no mailer):** `processing/report_<RUN_ID>.html`
 - **Finalize job log:** `processing/slurm-<RUN_ID>.final.out`
 
 ## Troubleshooting
