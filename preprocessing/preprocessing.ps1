@@ -46,13 +46,13 @@ $Script:ReferencePath = "C:\data\reference\Homo_sapiens-hg38-GRCh38.p14.mmi"
 # ============================================================================
 
 # Path to Dorado basecalling script
-$Script:DoradoScript = "C:\Users\mferre\Documents\workflows\dorado_run.ps1"
+$Script:DoradoScript = "C:\Users\mferre\nanomito\preprocessing\dorado_run.ps1"
 
 # Path to mitochondrial extraction script (WSL)
-$Script:MitochondrialScript = "C:\Users\mferre\Documents\workflows\wf-getmt.sh"
+$Script:MitochondrialScript = "C:\Users\mferre\nanomito\preprocessing\wf-getmt.sh"
 
 # Path to Genouest upload script (WSL)
-$Script:UploadScript = "C:\Users\mferre\Documents\workflows\upload_go.sh"
+$Script:UploadScript = "C:\Users\mferre\nanomito\preprocessing\upload_go.sh"
 
 # ============================================================================
 # LOGGING

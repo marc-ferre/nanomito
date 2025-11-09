@@ -63,10 +63,13 @@ param(
     [switch]$Help
 )
 
-# Script paths
-$DoradoScript = "C:\Users\mferre\Documents\workflows\dorado_run.ps1"
-$MitochondrialScript = "C:\Users\mferre\Documents\workflows\wf-getmt.sh"
-$UploadScript = "C:\Users\mferre\Documents\workflows\upload_go.sh"
+# Load configuration from centralized config file
+. "$PSScriptRoot\preprocessing.ps1"
+
+# Script paths (from config)
+$DoradoScript = $Script:DoradoScript
+$MitochondrialScript = $Script:MitochondrialScript
+$UploadScript = $Script:UploadScript
 
 # Global variable for SSH passphrase
 $Global:SSHPassphrase = $null
