@@ -255,19 +255,20 @@ function Invoke-GenouestionUpload {
         }
         
         # Execute upload script with real-time output
-        # Use Start-Process to show progress in real-time
-        $process = Start-Process -FilePath "wsl" -ArgumentList "bash", "$WslUploadScript", "$WslRunDir" -NoNewWindow -PassThru -Wait
+        # Use direct WSL call to inherit environment variables
+        & wsl bash "$WslUploadScript" "$WslRunDir"
+        $exitCode = $LASTEXITCODE
         
         # Clean up environment variables
         Remove-Item env:PIPELINE_MODE -ErrorAction SilentlyContinue
         Remove-Item env:SSH_PASSPHRASE -ErrorAction SilentlyContinue
         
-        if ($process.ExitCode -eq 0) {
+        if ($exitCode -eq 0) {
             Write-ColorMessage "[SUCCESS] Genouest upload completed" "Green"
             return $true
         }
         else {
-            Write-ColorMessage "[ERROR] Genouest upload failed with exit code $($process.ExitCode)" "Red"
+            Write-ColorMessage "[ERROR] Genouest upload failed with exit code $exitCode" "Red"
             return $false
         }
     }
