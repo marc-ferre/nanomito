@@ -1,2 +1,8 @@
 .DS_Store
 __pycache__/
+
+# Dorado temporary files
+.temp_dorado_model-*/
+.tmp_pod5_v3_v4_migration_*/
+dorado_run.log
+*.log
