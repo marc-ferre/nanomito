@@ -43,7 +43,8 @@ setup_ssh() {
     if [[ -n "${SSH_PASSPHRASE:-}" ]]; then
         # Temporarily disable errexit for this operation
         set +e
-        echo "$SSH_PASSPHRASE" | SSH_ASKPASS_REQUIRE=never ssh-add ~/.ssh/id_rsa 2>&1
+        # ssh-add reads passphrase from stdin when given no tty
+        echo "$SSH_PASSPHRASE" | SSH_ASKPASS=/bin/cat DISPLAY= ssh-add ~/.ssh/id_rsa < /dev/null 2>&1
         local add_result=$?
         set -e
         
@@ -51,7 +52,20 @@ setup_ssh() {
             echo "[OK] SSH key added successfully with provided passphrase"
             return 0
         else
-            echo "[WARNING] Could not add SSH key with provided passphrase (exit code: $add_result)"
+            # Try alternative method with expect if available
+            if command -v expect > /dev/null 2>&1; then
+                expect << EOF > /dev/null 2>&1
+spawn ssh-add ~/.ssh/id_rsa
+expect "Enter passphrase"
+send "$SSH_PASSPHRASE\r"
+expect eof
+EOF
+                if ssh-add -l > /dev/null 2>&1; then
+                    echo "[OK] SSH key added successfully with expect"
+                    return 0
+                fi
+            fi
+            echo "[WARNING] Could not add SSH key with provided passphrase"
         fi
     fi
     
