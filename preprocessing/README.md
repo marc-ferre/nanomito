@@ -14,15 +14,15 @@ The preprocessing directory contains workflows for preparing Nanopore sequencing
 ┌─────────────────────────────────────────────────────────────┐
 │                   Windows Workstation                       │
 │                                                             │
-│  ┌──────────────┐     ┌──────────────┐     ┌─────────────┐ │
+│  ┌──────────────┐     ┌──────────────┐     ┌─────────────┐  │
 │  │wf-prebchg.ps1│────▶│ wf-getmt.sh  │────▶│wf-uplgo.sh  │ │
-│  │              │     │              │     │             │ │
-│  │  Dorado      │     │ Extract chrM │     │ Upload to   │ │
-│  │  Basecalling │     │ reads        │     │ Genouest    │ │
-│  └──────────────┘     └──────────────┘     └─────────────┘ │
+│  │              │     │              │     │             │  │
+│  │  Dorado      │     │ Extract chrM │     │ Upload to   │  │
+│  │  Basecalling │     │ reads        │     │ Genouest    │  │
+│  └──────────────┘     └──────────────┘     └─────────────┘  │
 │        │                     │                    │         │
 │        ▼                     ▼                    ▼         │
-│    bam/*.bam         pod5_chrM/*.pod5      rsync to HPC    │
+│    bam/*.bam         pod5_chrM/*.pod5      rsync to HPC     │
 └─────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
