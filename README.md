@@ -206,13 +206,27 @@ Manual/interactive wrapper for archiving runs to project storage.
 
 ## Preprocessing Workflows
 
+The `preprocessing/` directory contains **Windows-based preprocessing scripts** that prepare raw Nanopore data on a local PC before uploading to the HPC cluster. These scripts reduce data size by filtering only mitochondrial reads, making the HPC workflow more efficient.
+
+**Purpose:** Prepare data on Windows/WSL before running the main Nanomito HPC workflows
+
+**Platform:** Windows workstation with WSL (Windows Subsystem for Linux)
+
+**Workflow:**
+1. `wf-prebchg.ps1` - Dorado basecalling on Windows (GPU-accelerated)
+2. `wf-getmt.sh` - Extract chrM reads (WSL)
+3. `wf-uplgo.sh` - Upload to Genouest HPC cluster (WSL)
+
+See [preprocessing/README.md](preprocessing/README.md) for complete documentation.
+
 ### **wf-getmt.sh** (Extract chrM reads from raw data)
 
-Located in `preprocessing/`, this script is used to prepare data before the main workflow:
+This script filters raw Nanopore data to keep only mitochondrial chromosome reads, significantly reducing data size for HPC processing.
 
+**Key features:**
 - Analyzes Dorado BAM files to identify reads aligned to chrM
 - Creates a read_id→parent_id dictionary (`pid_dict.tsv`) from BAM tags
-- Filters Pod5 files to extract only chrM-aligned reads
+- Filters Pod5 files to extract only chrM-aligned reads (~90% size reduction)
 - **Platform:** Windows Subsystem for Linux (WSL)
 - **Usage:** `./preprocessing/wf-getmt.sh [/path/to/run]`
 
