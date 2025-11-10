@@ -20,8 +20,8 @@ The preprocessing directory contains workflows for preparing Nanopore sequencing
 │  │  Dorado      │     │ Extract chrM │     │ Upload to   │ │
 │  │  Basecalling │     │ reads        │     │ Genouest    │ │
 │  └──────────────┘     └──────────────┘     └─────────────┘ │
-│        │                     │                     │        │
-│        ▼                     ▼                     ▼        │
+│        │                     │                    │         │
+│        ▼                     ▼                    ▼         │
 │    bam/*.bam         pod5_chrM/*.pod5      rsync to HPC    │
 └─────────────────────────────────────────────────────────────┘
                                 │
