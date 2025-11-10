@@ -71,29 +71,10 @@ $DoradoScript = $Script:DoradoScript
 $MitochondrialScript = $Script:MitochondrialScript
 $UploadScript = $Script:UploadScript
 
-# Global variable for SSH passphrase
-$Global:SSHPassphrase = $null
-
 function Get-SSHPassphrase {
-    if ($SkipUpload) {
-        Write-ColorMessage "[INFO] Upload skipped - SSH passphrase not needed" "Yellow"
-        return $null
-    }
-    
-    if ($DryRun) {
-        Write-ColorMessage "[DRY RUN] SSH passphrase would be requested here" "Magenta"
-        return "dummy-passphrase-for-dryrun"
-    }
-    
-    Write-ColorMessage "[INFO] Please enter your SSH passphrase for Genouest upload" "Cyan"
-    $securePassphrase = Read-Host -Prompt "SSH Passphrase" -AsSecureString
-    
-    # Convert SecureString to plain text (needed for ssh-add via expect)
-    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassphrase)
-    $plainPassphrase = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
-    
-    return $plainPassphrase
+    # SSH passphrase is entered during upload when needed
+    # This function is kept for potential future automation
+    return $null
 }
 
 function Write-ColorMessage {
@@ -246,16 +227,8 @@ function Invoke-GenouestionUpload {
     }
     
     try {
-        # Build environment variables string for WSL
-        $envVars = "export PIPELINE_MODE=true"
-        if ($Global:SSHPassphrase) {
-            # Escape single quotes in passphrase for bash
-            $escapedPassphrase = $Global:SSHPassphrase -replace "'", "'\\''"
-            $envVars += "; export SSH_PASSPHRASE='$escapedPassphrase'"
-        }
-        
-        # Execute upload script with environment variables
-        $wslCommand = "$envVars; bash '$WslUploadScript' '$WslRunDir'"
+        # Build environment variable for WSL to skip upload confirmation
+        $wslCommand = "export PIPELINE_MODE=true; bash '$WslUploadScript' '$WslRunDir'"
         & wsl bash -c $wslCommand
         $exitCode = $LASTEXITCODE
         
@@ -328,9 +301,6 @@ try {
     
     # Check prerequisites
     Test-Prerequisites
-    
-    # Get SSH passphrase if needed for upload
-    $Global:SSHPassphrase = Get-SSHPassphrase
     
     # Show summary
     Show-PipelineSummary -RunDir $RunDirectory

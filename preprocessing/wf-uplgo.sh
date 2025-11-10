@@ -36,44 +36,12 @@ setup_ssh() {
         return 0
     fi
     
-    # Try to add the SSH key
+    # Try to add the SSH key (will prompt for passphrase if needed)
     echo "[INFO] Adding SSH key to agent..."
-    
-    # If passphrase is provided via environment variable, use it with ssh-add
-    if [[ -n "${SSH_PASSPHRASE:-}" ]]; then
-        # Temporarily disable errexit for this operation
-        set +e
-        # ssh-add reads passphrase from stdin when given no tty
-        echo "$SSH_PASSPHRASE" | SSH_ASKPASS=/bin/cat DISPLAY= ssh-add ~/.ssh/id_rsa < /dev/null 2>&1
-        local add_result=$?
-        set -e
-        
-        if [[ $add_result -eq 0 ]] && ssh-add -l > /dev/null 2>&1; then
-            echo "[OK] SSH key added successfully with provided passphrase"
-            return 0
-        else
-            # Try alternative method with expect if available
-            if command -v expect > /dev/null 2>&1; then
-                expect << EOF > /dev/null 2>&1
-spawn ssh-add ~/.ssh/id_rsa
-expect "Enter passphrase"
-send "$SSH_PASSPHRASE\r"
-expect eof
-EOF
-                if ssh-add -l > /dev/null 2>&1; then
-                    echo "[OK] SSH key added successfully with expect"
-                    return 0
-                fi
-            fi
-            echo "[WARNING] Could not add SSH key with provided passphrase"
-        fi
-    fi
-    
-    # Fallback: try to add without passphrase or let it prompt
-    if ssh-add ~/.ssh/id_rsa 2>/dev/null; then
+    if ssh-add ~/.ssh/id_rsa; then
         echo "[OK] SSH key added successfully"
     else
-        echo "[WARNING] Could not add SSH key automatically"
+        echo "[WARNING] Could not add SSH key"
         echo "[INFO] SSH will prompt for passphrase during connection"
     fi
 }
