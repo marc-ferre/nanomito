@@ -41,12 +41,11 @@ setup_ssh() {
     
     # If passphrase is provided via environment variable, use a helper script
     if [[ -n "${SSH_PASSPHRASE:-}" ]]; then
-        # Create a temporary askpass script
-        local askpass_script=$(mktemp)
-        cat > "$askpass_script" << 'ASKPASS_EOF'
-#!/bin/bash
-echo "$SSH_PASSPHRASE"
-ASKPASS_EOF
+        # Create a temporary askpass script that outputs the passphrase
+        local askpass_script
+        askpass_script=$(mktemp)
+        # Use printf to safely write the passphrase (avoiding quote issues)
+        printf '#!/bin/bash\nprintf "%%s\\n" "%s"\n' "$SSH_PASSPHRASE" > "$askpass_script"
         chmod +x "$askpass_script"
         
         # Use SSH_ASKPASS to provide the passphrase
