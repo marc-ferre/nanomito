@@ -246,22 +246,18 @@ function Invoke-GenouestionUpload {
     }
     
     try {
-        # Set pipeline mode to skip confirmation in upload script
-        $env:PIPELINE_MODE = "true"
-        
-        # Pass SSH passphrase if available
+        # Build environment variables string for WSL
+        $envVars = "export PIPELINE_MODE=true"
         if ($Global:SSHPassphrase) {
-            $env:SSH_PASSPHRASE = $Global:SSHPassphrase
+            # Escape single quotes in passphrase for bash
+            $escapedPassphrase = $Global:SSHPassphrase -replace "'", "'\\''"
+            $envVars += "; export SSH_PASSPHRASE='$escapedPassphrase'"
         }
         
-        # Execute upload script with real-time output
-        # Use direct WSL call to inherit environment variables
-        & wsl bash "$WslUploadScript" "$WslRunDir"
+        # Execute upload script with environment variables
+        $wslCommand = "$envVars; bash '$WslUploadScript' '$WslRunDir'"
+        & wsl bash -c $wslCommand
         $exitCode = $LASTEXITCODE
-        
-        # Clean up environment variables
-        Remove-Item env:PIPELINE_MODE -ErrorAction SilentlyContinue
-        Remove-Item env:SSH_PASSPHRASE -ErrorAction SilentlyContinue
         
         if ($exitCode -eq 0) {
             Write-ColorMessage "[SUCCESS] Genouest upload completed" "Green"
@@ -273,9 +269,6 @@ function Invoke-GenouestionUpload {
         }
     }
     catch {
-        # Clean up environment variables in case of error
-        Remove-Item env:PIPELINE_MODE -ErrorAction SilentlyContinue
-        Remove-Item env:SSH_PASSPHRASE -ErrorAction SilentlyContinue
         Write-ColorMessage "[ERROR] Genouest upload failed: $($_.Exception.Message)" "Red"
         return $false
     }
