@@ -85,8 +85,15 @@ function Get-SSHPassphrase {
         return "dummy-passphrase-for-dryrun"
     }
     
-    Write-ColorMessage "[INFO] SSH authentication will be handled during upload" "Cyan"
-    return $null
+    Write-ColorMessage "[INFO] Please enter your SSH passphrase for Genouest upload" "Cyan"
+    $securePassphrase = Read-Host -Prompt "SSH Passphrase" -AsSecureString
+    
+    # Convert SecureString to plain text (needed for ssh-add via expect)
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassphrase)
+    $plainPassphrase = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+    
+    return $plainPassphrase
 }
 
 function Write-ColorMessage {
@@ -242,12 +249,18 @@ function Invoke-GenouestionUpload {
         # Set pipeline mode to skip confirmation in upload script
         $env:PIPELINE_MODE = "true"
         
+        # Pass SSH passphrase if available
+        if ($Global:SSHPassphrase) {
+            $env:SSH_PASSPHRASE = $Global:SSHPassphrase
+        }
+        
         # Execute upload script with real-time output
         # Use Start-Process to show progress in real-time
         $process = Start-Process -FilePath "wsl" -ArgumentList "bash", "$WslUploadScript", "$WslRunDir" -NoNewWindow -PassThru -Wait
         
-        # Clean up environment variable
+        # Clean up environment variables
         Remove-Item env:PIPELINE_MODE -ErrorAction SilentlyContinue
+        Remove-Item env:SSH_PASSPHRASE -ErrorAction SilentlyContinue
         
         if ($process.ExitCode -eq 0) {
             Write-ColorMessage "[SUCCESS] Genouest upload completed" "Green"
@@ -259,8 +272,9 @@ function Invoke-GenouestionUpload {
         }
     }
     catch {
-        # Clean up environment variable in case of error
+        # Clean up environment variables in case of error
         Remove-Item env:PIPELINE_MODE -ErrorAction SilentlyContinue
+        Remove-Item env:SSH_PASSPHRASE -ErrorAction SilentlyContinue
         Write-ColorMessage "[ERROR] Genouest upload failed: $($_.Exception.Message)" "Red"
         return $false
     }

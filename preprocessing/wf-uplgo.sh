@@ -38,6 +38,28 @@ setup_ssh() {
     
     # Try to add the SSH key
     echo "[INFO] Adding SSH key to agent..."
+    
+    # If passphrase is provided via environment variable, use expect
+    if [[ -n "${SSH_PASSPHRASE:-}" ]]; then
+        if command -v expect > /dev/null 2>&1; then
+            expect << EOF > /dev/null 2>&1
+                spawn ssh-add ~/.ssh/id_rsa
+                expect "Enter passphrase"
+                send "$SSH_PASSPHRASE\r"
+                expect eof
+EOF
+            if ssh-add -l > /dev/null 2>&1; then
+                echo "[OK] SSH key added successfully with provided passphrase"
+                return 0
+            else
+                echo "[WARNING] Could not add SSH key with provided passphrase"
+            fi
+        else
+            echo "[WARNING] 'expect' not found, cannot use provided passphrase automatically"
+        fi
+    fi
+    
+    # Fallback: try to add without passphrase or let it prompt
     if ssh-add ~/.ssh/id_rsa 2>/dev/null; then
         echo "[OK] SSH key added successfully"
     else
