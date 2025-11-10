@@ -39,27 +39,19 @@ setup_ssh() {
     # Try to add the SSH key
     echo "[INFO] Adding SSH key to agent..."
     
-    # If passphrase is provided via environment variable, use a helper script
+    # If passphrase is provided via environment variable, use sshpass
     if [[ -n "${SSH_PASSPHRASE:-}" ]]; then
-        # Create a temporary askpass script that outputs the passphrase
-        local askpass_script
-        askpass_script=$(mktemp)
-        # Use printf to safely write the passphrase (avoiding quote issues)
-        printf '#!/bin/bash\nprintf "%%s\\n" "%s"\n' "$SSH_PASSPHRASE" > "$askpass_script"
-        chmod +x "$askpass_script"
-        
-        # Use SSH_ASKPASS to provide the passphrase
-        export SSH_ASKPASS="$askpass_script"
-        export SSH_ASKPASS_REQUIRE=force
-        export DISPLAY=:0
-        
-        if ssh-add ~/.ssh/id_rsa < /dev/null 2>/dev/null; then
-            echo "[OK] SSH key added successfully with provided passphrase"
-            rm -f "$askpass_script"
-            return 0
+        if command -v sshpass > /dev/null 2>&1; then
+            # Use sshpass to provide the passphrase
+            echo "$SSH_PASSPHRASE" | SSH_ASKPASS_REQUIRE=never ssh-add ~/.ssh/id_rsa 2>/dev/null
+            if ssh-add -l > /dev/null 2>&1; then
+                echo "[OK] SSH key added successfully with provided passphrase"
+                return 0
+            else
+                echo "[WARNING] Could not add SSH key with provided passphrase"
+            fi
         else
-            rm -f "$askpass_script"
-            echo "[WARNING] Could not add SSH key with provided passphrase"
+            echo "[WARNING] 'sshpass' not found - install with: sudo apt-get install sshpass"
         fi
     fi
     
