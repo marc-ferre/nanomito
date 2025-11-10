@@ -5,6 +5,21 @@
 
 set -euo pipefail
 
+# Track if we started the ssh-agent ourselves
+SSH_AGENT_STARTED=0
+
+cleanup_ssh_agent() {
+    # Only kill the agent if we started it
+    if [[ $SSH_AGENT_STARTED -eq 1 && -n "${SSH_AGENT_PID:-}" ]]; then
+        echo "[INFO] Cleaning up SSH agent (PID: $SSH_AGENT_PID)..."
+        kill "$SSH_AGENT_PID" 2>/dev/null || true
+        unset SSH_AUTH_SOCK SSH_AGENT_PID
+    fi
+}
+
+# Cleanup on exit
+trap cleanup_ssh_agent EXIT
+
 setup_ssh() {
     echo "[INFO] Setting up SSH authentication..."
     
@@ -12,6 +27,7 @@ setup_ssh() {
     if ! pgrep -u "$USER" ssh-agent > /dev/null; then
         echo "[INFO] Starting SSH agent..."
         eval "$(ssh-agent -s)" > /dev/null
+        SSH_AGENT_STARTED=1
     fi
     
     # Check if key is already loaded
