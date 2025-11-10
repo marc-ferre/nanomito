@@ -15,11 +15,11 @@
 # ============================================================================
 
 # Path to Dorado installation directory
-$Script:DoradoBasePath = "C:\Users\mferre\Documents\bioapps"
+$Script:DoradoBasePath = "C:\Users\mferre\bioapps"
 
 # Relative path to Dorado executable from DoradoBasePath
 # Update this when upgrading Dorado version
-$Script:DoradoExecutable = "dorado-1.1.1-win64\bin\dorado.exe"
+$Script:DoradoExecutable = "dorado-1.2.0-win64\bin\dorado.exe"
 
 # Default basecalling model (fast, hac, sup)
 $Script:DoradoModel = "hac"
