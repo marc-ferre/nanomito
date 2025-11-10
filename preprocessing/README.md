@@ -98,8 +98,6 @@ wsl ./preprocessing/wf-uplgo.sh /mnt/c/data/250822_MK1B_RUN13
 
 ## Detailed Documentation
 
-## Detailed Documentation
-
 ### Scripts
 
 #### 1. **wf-prebchg.ps1** (Windows/PowerShell)
@@ -107,6 +105,7 @@ wsl ./preprocessing/wf-uplgo.sh /mnt/c/data/250822_MK1B_RUN13
 **Purpose:** GPU-accelerated basecalling using Dorado with alignment to reference genome.
 
 **Features:**
+
 - Automatic detection of latest run directory
 - Basecalling with sample demultiplexing
 - Alignment to human reference genome (hg38)
@@ -129,6 +128,7 @@ wsl ./preprocessing/wf-uplgo.sh /mnt/c/data/250822_MK1B_RUN13
 ```
 
 **Parameters:**
+
 - `-RunDirectory` - Path to run directory (auto-detects latest if omitted)
 - `-Model` - Basecalling model: `fast`, `hac`, `sup` (default: `hac`)
 - `-Kit` - Sequencing kit (default: `SQK-NBD114-24`)
@@ -138,6 +138,7 @@ wsl ./preprocessing/wf-uplgo.sh /mnt/c/data/250822_MK1B_RUN13
 - `-LogPath` - Log file path
 
 **Outputs:**
+
 - `bam/` - BAM files with alignment tags
 - `bam/*.bam` - Per-barcode BAM files
 - `bam/dorado_run.log` - Execution log
@@ -151,6 +152,7 @@ wsl ./preprocessing/wf-uplgo.sh /mnt/c/data/250822_MK1B_RUN13
 **Purpose:** Extract reads aligned to mitochondrial chromosome (chrM) from Dorado BAM files.
 
 **Features:**
+
 - Extracts chrM read IDs from BAM files
 - Creates read_id → parent_id dictionary (required for downstream analysis)
 - Filters Pod5 files to keep only chrM reads
@@ -173,10 +175,12 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 ```
 
 **Parameters:**
+
 - `[RUN_DIRECTORY]` - Path to run directory (auto-detects latest if omitted)
 - `-l|--log LOGFILE` - Custom log file path
 
 **Outputs:**
+
 - `pod5_chrM/<RUN_ID>.chrM.pod5` - Filtered Pod5 file (chrM reads only)
 - `pod5_chrM/<RUN_ID>.pid_dict.tsv` - Read-to-parent ID mapping
 - `pod5_chrM/<RUN_ID>.chrM_pids.txt` - List of parent read IDs
@@ -193,6 +197,7 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 **Purpose:** Upload run data to Genouest HPC cluster using rsync.
 
 **Features:**
+
 - Excludes large data files (pod5, bam, fastq) - only syncs metadata
 - SSH key-based authentication
 - Dry-run mode for preview
@@ -219,6 +224,7 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 ```
 
 **Parameters:**
+
 - `[RUN_DIRECTORY]` - Path to run directory (auto-detects latest if omitted)
 - `-u|--user USER` - Genouest username (default: from config)
 - `-h|--host HOST` - Genouest hostname (default: genossh.genouest.org)
@@ -227,6 +233,7 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 - `--help` - Display help message
 
 **What gets uploaded:**
+
 - ✅ Configuration files (sample_sheet, etc.)
 - ✅ Logs and metadata
 - ✅ `pod5_chrM/` directory (filtered Pod5 + dictionaries)
@@ -243,6 +250,7 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 **Purpose:** Orchestrate the complete preprocessing pipeline.
 
 **Features:**
+
 - Runs all three steps in sequence
 - Automatic latest run detection
 - Skip individual steps if needed
@@ -275,6 +283,7 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 ```
 
 **Parameters:**
+
 - `-RunDirectory` - Run directory path
 - `-SkipDorado` - Skip basecalling step
 - `-SkipMitochondrial` - Skip chrM extraction step
@@ -550,6 +559,7 @@ type C:\data\your_run\bam\dorado_run.log
 **Problem:** Windows paths like `C:\data\run` don't work in WSL
 
 **Solution:** Convert to WSL format:
+
 - Windows: `C:\data\run` → WSL: `/mnt/c/data/run`
 - Windows: `D:\data\run` → WSL: `/mnt/d/data/run`
 

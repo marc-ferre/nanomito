@@ -213,6 +213,7 @@ The `preprocessing/` directory contains **Windows-based preprocessing scripts** 
 **Platform:** Windows workstation with WSL (Windows Subsystem for Linux)
 
 **Workflow:**
+
 1. `wf-prebchg.ps1` - Dorado basecalling on Windows (GPU-accelerated)
 2. `wf-getmt.sh` - Extract chrM reads (WSL)
 3. `wf-uplgo.sh` - Upload to Genouest HPC cluster (WSL)
@@ -224,6 +225,7 @@ See [preprocessing/README.md](preprocessing/README.md) for complete documentatio
 This script filters raw Nanopore data to keep only mitochondrial chromosome reads, significantly reducing data size for HPC processing.
 
 **Key features:**
+
 - Analyzes Dorado BAM files to identify reads aligned to chrM
 - Creates a read_id→parent_id dictionary (`pid_dict.tsv`) from BAM tags
 - Filters Pod5 files to extract only chrM-aligned reads (~90% size reduction)
