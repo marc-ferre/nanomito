@@ -410,16 +410,21 @@ All scripts using this configuration will automatically use the new version.
 
 ## Migration from Hardcoded Values
 
-Scripts are being progressively updated to use these configuration files.
+All scripts have been updated to use centralized configuration files.
 
-Current status:
+**Migration status:**
 
-- [ ] `wf-getmt.sh` - TODO: Update to source preprocessing.config
-- [ ] `wf-uplgo.sh` - TODO: Update to source preprocessing.config
-- [ ] `wf-prebchg.ps1` - TODO: Update to dot-source preprocessing.ps1
-- [x] `submit_preprocessing.ps1` - ✅ Already uses preprocessing.ps1
+- [x] `wf-getmt.sh` - ✅ Sources `preprocessing.config`
+- [x] `wf-uplgo.sh` - ✅ Sources `preprocessing.config`
+- [x] `wf-prebchg.ps1` - ✅ Dot-sources `preprocessing.ps1`
+- [x] `submit_preprocessing.ps1` - ✅ Dot-sources `preprocessing.ps1`
 
-See [TODO.md](../TODO.md) for tracking progress.
+**Benefits:**
+
+- No hardcoded paths in any workflow script
+- Single point of configuration per platform (Windows/Linux)
+- Easy to update tool versions
+- Multi-user and multi-environment support
 
 ---
 
@@ -450,15 +455,31 @@ bash Miniconda3-latest-Linux-x86_64.sh
 ### 2. Configure SSH for Genouest
 
 ```bash
-# In WSL, generate SSH key
+# In WSL, generate SSH key if you don't have one
 ssh-keygen -t ed25519 -C "your.email@domain.com"
 
 # Copy public key to Genouest
 ssh-copy-id your_username@genossh.genouest.org
 
-# Test connection
+# Test connection (should not ask for password)
 ssh your_username@genossh.genouest.org
 ```
+
+**Note on SSH authentication:**
+
+The upload workflow (`wf-uplgo.sh`) will automatically:
+
+- Connect to an existing `ssh-agent` or start a new one
+- Prompt **once** for your SSH key passphrase if needed
+- Reuse the key for all subsequent operations
+- Clean up the agent on exit
+
+You will be prompted for:
+
+1. **Pipeline confirmation** at start (one-time, to validate all steps)
+2. **SSH passphrase** during upload if key not already loaded (one-time)
+
+No redundant confirmations or multiple passphrase prompts.
 
 ### 3. Create Conda Environment
 

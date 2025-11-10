@@ -59,7 +59,7 @@ get_latest_run_directory() {
     fi
     
     # Find directories with date format (YYMMDD_) and sort by creation time
-    local latest_di
+    local latest_dir
     latest_dir=$(find "$data_root" -maxdepth 1 -type d -name "[0-9][0-9][0-9][0-9][0-9][0-9]_*" -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
     
     if [[ -z "$latest_dir" ]]; then
