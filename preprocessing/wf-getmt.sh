@@ -17,14 +17,25 @@ set -euo pipefail
 
 VERSION='25.09.19.1'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
-# Conda environment name for running the script
-GETMT_ENV='nanomito'
-# Path to the Python script that extracts chrM read IDs
-CHRMPIDS_SCRIPT='/mnt/c/Users/mferre/Documents/nanomito/get_chrMpid.py'
-# Path to the Python script that creates read_id -> parent_id dictionary
-CREATE_PID_DICT_SCRIPT='/mnt/c/Users/mferre/Documents/nanomito/create_pid_dict.py'
-# Path to the conda initialization script
-CONDA_SCRIPT='/home/mferre/anaconda3/etc/profile.d/conda.sh'
+
+# Source centralized configuration file
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${SCRIPT_DIR}/preprocessing.config"
+
+if [[ -f "$CONFIG_FILE" ]]; then
+    # shellcheck source=preprocessing.config
+    source "$CONFIG_FILE"
+else
+    echo "[ERROR] Configuration file not found: $CONFIG_FILE" >&2
+    exit 1
+fi
+
+# Configuration variables are now loaded from preprocessing.config:
+# - CONDA_SCRIPT: Path to conda initialization
+# - GETMT_ENV: Conda environment name
+# - CHRMPIDS_SCRIPT: Path to get_chrMpid.py
+# - CREATE_PID_DICT_SCRIPT: Path to create_pid_dict.py
+# - DATA_ROOT: Root directory for data
 
 usage() {
     # Display usage information and exit
