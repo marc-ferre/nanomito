@@ -49,9 +49,14 @@ The preprocessing directory contains workflows for preparing Nanopore sequencing
 ### WSL Requirements
 
 - **Conda/Miniconda** - For environment management
-- **pod5 tools** - Pod5 file manipulation
+- **Python 3.9+** - In conda environment
+- **pysam** - Python library for BAM file manipulation
+- **pod5** - Python package for Pod5 file filtering
+- **samtools** - BAM file processing tools
 - **rsync** - File synchronization
 - **SSH key** - For passwordless authentication to Genouest
+
+**Conda environment:** All Python tools should be installed in a dedicated conda environment named `nanomito` (see Installation section).
 
 ## Quick Start
 
@@ -426,19 +431,20 @@ See [TODO.md](../TODO.md) for tracking progress.
 
 ```powershell
 # Install Dorado (download from ONT)
-# Extract to C:\Users\YourName\Documents\bioapps\dorado-X.X.X-win64\
+# Extract to C:\Users\YourName\bioapps\dorado-X.X.X-win64\
 
 # Install WSL2
 wsl --install
+```
 
+**WSL/Linux:**
+
+```bash
 # In WSL, install Conda
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
 
-# Create conda environment with required tools
-conda create -n nanomito python=3.9 pysam
-conda activate nanomito
-pip install pod5
+# Follow the installer prompts, then restart your terminal
 ```
 
 ### 2. Configure SSH for Genouest
@@ -454,11 +460,42 @@ ssh-copy-id your_username@genossh.genouest.org
 ssh your_username@genossh.genouest.org
 ```
 
-### 3. Update Configuration Files
+### 3. Create Conda Environment
+
+Create a dedicated conda environment with all required tools:
+
+```bash
+# In WSL
+conda create -n nanomito python=3.9
+conda activate nanomito
+
+# Install required packages
+conda install -c bioconda pysam samtools
+pip install pod5
+
+# Verify installation
+python -c "import pysam; print('pysam:', pysam.__version__)"
+python -c "import pod5; print('pod5:', pod5.__version__)"
+pod5 --version
+samtools --version
+```
+
+**Environment contents (nanomito):**
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `python` | 3.9+ | Base interpreter |
+| `pysam` | Latest | BAM file manipulation |
+| `pod5` | Latest | Pod5 file filtering |
+| `samtools` | Latest | BAM file processing |
+
+**Note:** The environment name `nanomito` is referenced in `preprocessing.config` (`GETMT_ENV` variable).
+
+### 4. Update Configuration Files
 
 Edit both configuration files to match your environment (see Configuration section above).
 
-### 4. Test Installation
+### 5. Test Installation
 
 ```powershell
 # Test Dorado
@@ -467,6 +504,9 @@ Edit both configuration files to match your environment (see Configuration secti
 # Test WSL scripts
 wsl ./preprocessing/wf-getmt.sh --help
 wsl ./preprocessing/wf-uplgo.sh --help
+
+# Test conda environment (in WSL)
+wsl bash -c "source ~/anaconda3/etc/profile.d/conda.sh && conda activate nanomito && python -c 'import pysam, pod5; print(\"Environment OK\")'"
 ```
 
 ---
@@ -515,10 +555,34 @@ Test-Path "C:\Users\mferre\Documents\bioapps\dorado-1.1.1-win64\bin\dorado.exe"
 ```bash
 # In WSL, find conda script location
 which conda
-# Then update CONDA_SCRIPT to: /home/yourusername/anaconda3/etc/profile.d/conda.sh
+# Output example: /home/yourusername/anaconda3/bin/conda
+
+# The conda.sh script is typically in:
+ls /home/yourusername/anaconda3/etc/profile.d/conda.sh
+
+# Update CONDA_SCRIPT in preprocessing.config to match your path
 ```
 
-#### 3. "No run directories found"
+#### 3. "ModuleNotFoundError: No module named 'pysam'" or "pod5"
+
+**Problem:** Required Python packages not installed in conda environment
+
+**Solution:** Activate the environment and install missing packages:
+
+```bash
+# In WSL
+source ~/anaconda3/etc/profile.d/conda.sh
+conda activate nanomito
+
+# Install missing packages
+conda install -c bioconda pysam samtools
+pip install pod5
+
+# Verify installation
+python -c "import pysam, pod5; print('OK')"
+```
+
+#### 4. "No run directories found"
 
 **Problem:** Auto-detection expects directories matching pattern `YYMMDD_*`
 
@@ -528,7 +592,7 @@ which conda
 .\submit_preprocessing.ps1 -RunDirectory "C:\data\your_run_name"
 ```
 
-#### 4. "SSH connection failed" during upload
+#### 5. "SSH connection failed" during upload
 
 **Solution:** Ensure SSH key is set up correctly
 
@@ -540,7 +604,7 @@ ssh your_username@genossh.genouest.org
 ssh-copy-id your_username@genossh.genouest.org
 ```
 
-#### 5. "pid_dict.tsv is empty or missing"
+#### 6. "pid_dict.tsv is empty or missing"
 
 **Problem:** BAM files don't contain necessary read tags
 
@@ -554,7 +618,7 @@ dir C:\data\your_run\bam\*.bam
 type C:\data\your_run\bam\dorado_run.log
 ```
 
-#### 6. WSL path conversion issues
+#### 7. WSL path conversion issues
 
 **Problem:** Windows paths like `C:\data\run` don't work in WSL
 
