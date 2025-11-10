@@ -53,7 +53,9 @@ Last updated: 2025-11-04
   - ✅ Extracted all hardcoded paths and settings
   - ✅ Variables: conda, Python scripts, Dorado, references, Genouest settings
   - ✅ Added `preprocessing/README.md` with usage documentation
-  - 📋 Next: Update scripts to source these config files (wf-getmt.sh, upload_go.sh, dorado_run.ps1, pipeline_run.ps1)
+  - ✅ Updated all scripts to source config files (wf-getmt.sh, wf-uplgo.sh, wf-prebchg.ps1, submit_preprocessing.ps1)
+  - ✅ Renamed scripts to wf-* convention for consistency
+  - ✅ Simplified SSH authentication (single passphrase prompt, no redundant confirmations)
 
 - [x] **Enhance submit_nanomito.sh to replace wf-subwf.sh functionality** ✅ COMPLETED 2025-10-27
   - ✅ Integrated sample detection logic directly into submit_nanomito.sh
