@@ -15,7 +15,7 @@ The preprocessing directory contains workflows for preparing Nanopore sequencing
 │                   Windows Workstation                       │
 │                                                             │
 │  ┌──────────────┐     ┌──────────────┐     ┌─────────────┐  │
-│  │wf-prebchg.ps1│────▶│ wf-getmt.sh  │────▶│wf-uplgo.sh  │ │
+│  │wf-prebchg.ps1│────▶│ wf-getmt.sh  │────▶│wf-uplgo.sh  │  │
 │  │              │     │              │     │             │  │
 │  │  Dorado      │     │ Extract chrM │     │ Upload to   │  │
 │  │  Basecalling │     │ reads        │     │ Genouest    │  │
