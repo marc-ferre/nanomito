@@ -26,8 +26,23 @@ setup_ssh() {
     # Start SSH agent if not already running
     if ! pgrep -u "$USER" ssh-agent > /dev/null; then
         echo "[INFO] Starting SSH agent..."
-        eval "$(ssh-agent -s)" > /dev/null
+        eval "$(ssh-agent -s)"
         SSH_AGENT_STARTED=1
+    else
+        # Agent is running but we need to connect to it
+        # Try to find existing agent socket
+        if [[ -z "${SSH_AUTH_SOCK:-}" ]]; then
+            SSH_AUTH_SOCK=$(find /tmp/ssh-* -name "agent.*" 2>/dev/null | head -n 1)
+            if [[ -n "$SSH_AUTH_SOCK" ]]; then
+                export SSH_AUTH_SOCK
+                echo "[INFO] Connected to existing SSH agent"
+            else
+                # Start new agent if we can't find the socket
+                echo "[INFO] Starting SSH agent..."
+                eval "$(ssh-agent -s)"
+                SSH_AGENT_STARTED=1
+            fi
+        fi
     fi
     
     # Check if key is already loaded
@@ -36,13 +51,13 @@ setup_ssh() {
         return 0
     fi
     
-    # Try to add the SSH key (will prompt for passphrase if needed)
-    echo "[INFO] Adding SSH key to agent..."
-    if ssh-add ~/.ssh/id_rsa; then
+    # Try to add the SSH key (will prompt for passphrase)
+    echo "[INFO] Adding SSH key to agent (passphrase required)..."
+    if ssh-add ~/.ssh/id_rsa 2>&1; then
         echo "[OK] SSH key added successfully"
     else
-        echo "[WARNING] Could not add SSH key"
-        echo "[INFO] SSH will prompt for passphrase during connection"
+        echo "[WARNING] Could not add SSH key to agent"
+        echo "[INFO] SSH will prompt for passphrase during rsync connection"
     fi
 }
 
