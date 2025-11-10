@@ -8,14 +8,13 @@
     and configurable parameters to process nanopore sequencing data.
 
 .PARAMETER DoradoBasePath
-    Path to Dorado installation (default: C:\Users\mferre\Documents\bioapps)
+    Path to Dorado installation (default: loaded from preprocessing.ps1)
 
 .PARAMETER DoradoExecutable
-    Relative path to Dorado executable from DoradoBasePath (default: dorado-1.1.1-win64\bin\dorado.exe)
+    Relative path to Dorado executable from DoradoBasePath (default: loaded from preprocessing.ps1)
 
 .PARAMETER RunDirectory
-    Path to main run directory (default: automatic detection of latest directory in C:\data\)
-    If specified, InputPath, OutputPath and SampleSheet paths will be automatically deduced
+    Path to main run directory (default: automatic detection of latest directory)
 
 .PARAMETER InputPath
     Path to directory containing POD5 files (deduced from RunDirectory if not specified)
@@ -27,7 +26,7 @@
     Path to sample sheet CSV file (automatic search in RunDirectory if not specified)
 
 .PARAMETER ReferencePath
-    Path to genomic reference file (default: C:\data\reference\Homo_sapiens-hg38-GRCh38.p14.mmi)
+    Path to genomic reference file (default: loaded from preprocessing.ps1)
 
 .PARAMETER Model
     Basecalling model to use (default: hac)
@@ -58,10 +57,10 @@
 [CmdletBinding()]
 param(
     [Parameter(HelpMessage = "Path to Dorado installation")]
-    [string]$DoradoBasePath = "C:\Users\mferre\bioapps",
+    [string]$DoradoBasePath = "",
     
     [Parameter(HelpMessage = "Relative path to Dorado executable from DoradoBasePath")]
-    [string]$DoradoExecutable = "dorado-1.2.0-win64\bin\dorado.exe",
+    [string]$DoradoExecutable = "",
     
     [Parameter(HelpMessage = "Path to main run directory (default: automatic detection of latest directory in C:\data\)")]
     [string]$RunDirectory = "",
@@ -76,14 +75,14 @@ param(
     [string]$SampleSheet = "",
     
     [Parameter(HelpMessage = "Path to genomic reference file")]
-    [string]$ReferencePath = "C:\data\reference\Homo_sapiens-hg38-GRCh38.p14.mmi",
+    [string]$ReferencePath = "",
     
     [Parameter(HelpMessage = "Basecalling model to use")]
     [ValidateSet("fast", "hac", "sup")]
-    [string]$Model = "hac",
+    [string]$Model = "",
     
     [Parameter(HelpMessage = "Sequencing kit used")]
-    [string]$Kit = "SQK-NBD114-24",
+    [string]$Kit = "",
     
     [Parameter(HelpMessage = "Path to log file")]
     [string]$LogPath = ".\dorado_run.log",
@@ -91,6 +90,31 @@ param(
     [Parameter(HelpMessage = "Show help")]
     [switch]$Help
 )
+
+# ============================================================================
+# Load centralized configuration
+# ============================================================================
+$configPath = Join-Path $PSScriptRoot "preprocessing.ps1"
+if (Test-Path $configPath) {
+    . $configPath
+    
+    # Use config values as defaults if parameters not specified
+    if ([string]::IsNullOrEmpty($DoradoBasePath)) { $DoradoBasePath = $Script:DoradoBasePath }
+    if ([string]::IsNullOrEmpty($DoradoExecutable)) { $DoradoExecutable = $Script:DoradoExecutable }
+    if ([string]::IsNullOrEmpty($ReferencePath)) { $ReferencePath = $Script:ReferencePath }
+    if ([string]::IsNullOrEmpty($Model)) { $Model = $Script:DoradoModel }
+    if ([string]::IsNullOrEmpty($Kit)) { $Kit = $Script:DoradoKit }
+} else {
+    Write-Warning "Configuration file not found: $configPath"
+    Write-Warning "Using command-line parameters or script defaults"
+    
+    # Fallback defaults if no config file
+    if ([string]::IsNullOrEmpty($DoradoBasePath)) { $DoradoBasePath = "C:\Users\mferre\bioapps" }
+    if ([string]::IsNullOrEmpty($DoradoExecutable)) { $DoradoExecutable = "dorado-1.2.0-win64\bin\dorado.exe" }
+    if ([string]::IsNullOrEmpty($ReferencePath)) { $ReferencePath = "C:\data\reference\Homo_sapiens-hg38-GRCh38.p14.mmi" }
+    if ([string]::IsNullOrEmpty($Model)) { $Model = "hac" }
+    if ([string]::IsNullOrEmpty($Kit)) { $Kit = "SQK-NBD114-24" }
+}
 
 # Show help if requested
 if ($Help) {
@@ -101,7 +125,7 @@ if ($Help) {
 # Function to automatically detect the latest run directory
 function Get-LatestRunDirectory {
     param(
-        [string]$DataRoot = "C:\data"
+        [string]$DataRoot = $Script:DataRoot
     )
     
     if (-not (Test-Path $DataRoot)) {
