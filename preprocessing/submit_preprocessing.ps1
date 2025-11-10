@@ -203,7 +203,7 @@ function Invoke-MitochondrialExtraction {
     }
     
     try {
-        $result = wsl "$WslMitochondrialScript" "$WslRunDir"
+        $result = wsl bash "$WslMitochondrialScript" "$WslRunDir"
         if ($LASTEXITCODE -eq 0) {
             Write-ColorMessage "[SUCCESS] Mitochondrial extraction completed" "Green"
             return $true
@@ -244,7 +244,7 @@ function Invoke-GenouestionUpload {
         
         # Execute upload script with real-time output
         # Use Start-Process to show progress in real-time
-        $process = Start-Process -FilePath "wsl" -ArgumentList "$WslUploadScript", "$WslRunDir" -NoNewWindow -PassThru -Wait
+        $process = Start-Process -FilePath "wsl" -ArgumentList "bash", "$WslUploadScript", "$WslRunDir" -NoNewWindow -PassThru -Wait
         
         # Clean up environment variable
         Remove-Item env:PIPELINE_MODE -ErrorAction SilentlyContinue
