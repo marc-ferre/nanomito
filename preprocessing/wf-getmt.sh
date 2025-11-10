@@ -2,7 +2,7 @@
 ###############################################################################
 # Script: wf-getmt.sh
 # Description: Filter raw Pod5 data from nanopore sequencing reads aligned (BAM) to chrM
-# Usage: wf-getmt.sh [-l|--log LOGFILE] /Path/to/run/dir
+# Usage: wf-getmt.sh [-l|--log LOGFILE] /Path/to/run/di
 # 
 # This script extracts reads from Nanopore sequencing data that align to the 
 # mitochondrial chromosome (chrM), which can be used for further analysis in 
@@ -48,7 +48,7 @@ get_latest_run_directory() {
     fi
     
     # Find directories with date format (YYMMDD_) and sort by creation time
-    local latest_dir
+    local latest_di
     latest_dir=$(find "$data_root" -maxdepth 1 -type d -name "[0-9][0-9][0-9][0-9][0-9][0-9]_*" -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
     
     if [[ -z "$latest_dir" ]]; then
@@ -222,7 +222,7 @@ main() {
         # Use the pod5 tool to filter and extract only the reads that match chrM
         # --recursive: Search recursively through the input directory
         # --force-overwrite: Overwrite output file if it exists
-        # --ids: File containing read IDs to filter
+        # --ids: File containing read IDs to filte
         # --output: Output file path
         pod5 filter --recursive --force-overwrite "$POD5_ALL_DIR" --ids "$MT_PIDS_FILE" --output "$POD5_MT_IDS_FILE"
         echo
