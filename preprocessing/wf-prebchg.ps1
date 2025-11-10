@@ -58,10 +58,10 @@
 [CmdletBinding()]
 param(
     [Parameter(HelpMessage = "Path to Dorado installation")]
-    [string]$DoradoBasePath = "C:\Users\mferre\Documents\bioapps",
+    [string]$DoradoBasePath = "C:\Users\mferre\bioapps",
     
     [Parameter(HelpMessage = "Relative path to Dorado executable from DoradoBasePath")]
-    [string]$DoradoExecutable = "dorado-1.1.1-win64\bin\dorado.exe",
+    [string]$DoradoExecutable = "dorado-1.2.0-win64\bin\dorado.exe",
     
     [Parameter(HelpMessage = "Path to main run directory (default: automatic detection of latest directory in C:\data\)")]
     [string]$RunDirectory = "",
