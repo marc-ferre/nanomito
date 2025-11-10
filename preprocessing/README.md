@@ -11,7 +11,7 @@ Configuration file for Bash scripts running on Linux, WSL, or HPC environments.
 **Used by:**
 
 - `wf-getmt.sh` - Mitochondrial read extraction
-- `upload_go.sh` - Upload to Genouest cluster
+- `wf-uplgo.sh` - Upload to Genouest cluster
 
 **Usage in scripts:**
 
@@ -40,8 +40,8 @@ Configuration file for PowerShell scripts running on Windows.
 
 **Used by:**
 
-- `dorado_run.ps1` - Dorado basecaller execution
-- `pipeline_run.ps1` - Complete pipeline orchestration
+- `wf-prebchg.ps1` - Dorado basecaller execution (preprocessing before basecalling)
+- `submit_preprocessing.ps1` - Complete pipeline orchestration
 
 **Usage in scripts:**
 
@@ -117,8 +117,8 @@ Scripts are being progressively updated to use these configuration files.
 Current status:
 
 - [ ] `wf-getmt.sh` - TODO: Update to source preprocessing.config
-- [ ] `upload_go.sh` - TODO: Update to source preprocessing.config
-- [ ] `dorado_run.ps1` - TODO: Update to dot-source preprocessing.ps1
-- [ ] `pipeline_run.ps1` - TODO: Update to dot-source preprocessing.ps1
+- [ ] `wf-uplgo.sh` - TODO: Update to source preprocessing.config
+- [ ] `wf-prebchg.ps1` - TODO: Update to dot-source preprocessing.ps1
+- [x] `submit_preprocessing.ps1` - ✅ Already uses preprocessing.ps1
 
 See [TODO.md](../TODO.md) for tracking progress.
