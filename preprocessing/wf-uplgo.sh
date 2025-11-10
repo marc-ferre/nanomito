@@ -39,19 +39,19 @@ setup_ssh() {
     # Try to add the SSH key
     echo "[INFO] Adding SSH key to agent..."
     
-    # If passphrase is provided via environment variable, use sshpass
+    # If passphrase is provided via environment variable, use it with ssh-add
     if [[ -n "${SSH_PASSPHRASE:-}" ]]; then
-        if command -v sshpass > /dev/null 2>&1; then
-            # Use sshpass to provide the passphrase
-            echo "$SSH_PASSPHRASE" | SSH_ASKPASS_REQUIRE=never ssh-add ~/.ssh/id_rsa 2>/dev/null
-            if ssh-add -l > /dev/null 2>&1; then
-                echo "[OK] SSH key added successfully with provided passphrase"
-                return 0
-            else
-                echo "[WARNING] Could not add SSH key with provided passphrase"
-            fi
+        # Temporarily disable errexit for this operation
+        set +e
+        echo "$SSH_PASSPHRASE" | SSH_ASKPASS_REQUIRE=never ssh-add ~/.ssh/id_rsa 2>&1
+        local add_result=$?
+        set -e
+        
+        if [[ $add_result -eq 0 ]] && ssh-add -l > /dev/null 2>&1; then
+            echo "[OK] SSH key added successfully with provided passphrase"
+            return 0
         else
-            echo "[WARNING] 'sshpass' not found - install with: sudo apt-get install sshpass"
+            echo "[WARNING] Could not add SSH key with provided passphrase (exit code: $add_result)"
         fi
     fi
     
