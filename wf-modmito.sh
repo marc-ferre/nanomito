@@ -130,12 +130,31 @@ MODEL_COMPLEX='sup,5mC_5hmC,6mA'
 # Prefixes
 BAM_PREFIX="$SAMPLE_ID.chrM.$MODEL_COMPLEX"
 
-# Files
+# Files - Robust handling of multiple sample_sheet files
 DEMULT_POD5_FILE="$SELECT_DIR/$SAMPLE_ID.demultmt.pod5"
 BAM_FILE="$OUT_DIR/$BAM_PREFIX.bam"
 SORTED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.sorted.bam"
 BEDMETHYL_FILE="$OUT_DIR/$BAM_PREFIX.combine.bed"
-SAMPLESHEET_FILE=$(readlink -f "$(find "$RUN_DIR" -type f -name 'sample_sheet_*.csv' | head -1)")
+
+# Handle multiple sample_sheet files (select oldest if multiple exist)
+mapfile -t SAMPLESHEET_FILES < <(find "$RUN_DIR" -maxdepth 2 -type f -name 'sample_sheet_*.csv')
+if [ ${#SAMPLESHEET_FILES[@]} -eq 0 ]; then
+    log_error "No sample_sheet_*.csv file found in $RUN_DIR"
+    exit 1
+elif [ ${#SAMPLESHEET_FILES[@]} -eq 1 ]; then
+    SAMPLESHEET_FILE=$(readlink -f "${SAMPLESHEET_FILES[0]}")
+else
+    # Multiple files found - select the oldest (first created)
+    OLDEST_FILE="${SAMPLESHEET_FILES[0]}"
+    for file in "${SAMPLESHEET_FILES[@]}"; do
+        if [ "$file" -ot "$OLDEST_FILE" ]; then
+            OLDEST_FILE="$file"
+        fi
+    done
+    SAMPLESHEET_FILE=$(readlink -f "$OLDEST_FILE")
+    log_warning "Found ${#SAMPLESHEET_FILES[@]} sample_sheet files, using oldest: $SAMPLESHEET_FILE"
+fi
+
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 check_dir () { 
