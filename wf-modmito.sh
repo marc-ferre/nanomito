@@ -186,9 +186,7 @@ if [ -f "$NO_DATA_MARKER" ]; then
 	echo "=========================================="
 	echo ""
 	
-	# Update TSV summary and exit successfully
-	append_duration "00:00:00" "Modification analysis (skipped - no data)"
-	update_tsv_summary
+	# Exit successfully to allow dependency chain to continue
 	log_success "Workflow completed successfully (NO DATA - SKIPPED)"
 	exit 0
 fi

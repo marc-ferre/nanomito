@@ -374,9 +374,7 @@ if [ "$COUNT_MATCHED" -eq 0 ]; then
 	echo "=========================================="
 	echo ""
 	
-	# Update TSV summary and exit successfully
-	append_duration "00:00:00" "Demultiplexing"
-	update_tsv_summary
+	# Exit successfully to allow dependency chain to continue
 	log_success "Workflow completed successfully (NO DATA)"
 	exit 0
 fi
