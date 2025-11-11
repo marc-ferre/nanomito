@@ -158,8 +158,11 @@ export_run() {
         
         local export_sample_dir="$export_run_dir/$sample_id"
         
-        if export_sample "$sample_dir" "$export_sample_dir"; then
-            ((exported_count++))
+        # Don't fail the script if export_sample returns 1
+        if export_sample "$sample_dir" "$export_sample_dir" || true; then
+            if [ -d "$export_sample_dir" ] && [ "$(ls -A "$export_sample_dir" 2>/dev/null)" ]; then
+                ((exported_count++))
+            fi
         fi
     done
     
