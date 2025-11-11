@@ -135,7 +135,7 @@ DEMULT_POD5_FILE="$SELECT_DIR/$SAMPLE_ID.demultmt.pod5"
 BAM_FILE="$OUT_DIR/$BAM_PREFIX.bam"
 SORTED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.sorted.bam"
 BEDMETHYL_FILE="$OUT_DIR/$BAM_PREFIX.combine.bed"
-SAMPLESHEET_FILE=$(readlink -f "$(find "$RUN_DIR" -type f -name 'sample_sheet_*.csv')")
+SAMPLESHEET_FILE=$(readlink -f "$(find "$RUN_DIR" -type f -name 'sample_sheet_*.csv' | head -1)")
 WORKFLOW_SUMMARY_FILE="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
 
 check_dir () { 
