@@ -98,6 +98,12 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 # Include 'unclassified' folder in sample processing (skipped by default)
 ./submit_nanomito.sh --skip-bchg --include-unclassified /path/to/run/directory
 
+# Process only specific samples (reprocess failed samples without touching successful ones)
+./submit_nanomito.sh --only-samples SAMPLE1,SAMPLE2 /path/to/run/directory
+
+# Re-run analysis for specific samples only (skip basecalling)
+./submit_nanomito.sh --skip-bchg --only-samples SAMPLE1,SAMPLE2 /path/to/run/directory
+
 # Archive data only (without processing)
 ./submit_nanomito.sh --archiving-only /path/to/run/directory
 
@@ -123,6 +129,7 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 - `--skip-archiving` - Skip archiving step in the workflow
 - `--finalize-only` - Only submit finalization job (email report from existing data)
 - `--include-unclassified` - Include 'unclassified' folder in sample processing (skipped by default)
+- `--only-samples SAMPLES` - Process only specified samples (comma-separated list). Final report includes all samples.
 - `--help, -h` - Display help message
 
 **Features:**
@@ -524,6 +531,12 @@ protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_produ
    - The workflow completes successfully and creates a `NO_DATA.marker` file
    - These samples are automatically skipped in downstream analysis (modmito)
    - The final email report will show these samples with a warning in the PRE-FLIGHT CHECK section
+   - To reprocess only specific samples (e.g., failed or NO DATA samples), use `--only-samples`:
+
+     ```bash
+     ./submit_nanomito.sh --skip-bchg --only-samples SAMPLE1,SAMPLE2 /path/to/run/
+     ```
+
 
 1. **GPU not available**
 
