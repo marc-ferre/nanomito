@@ -243,6 +243,7 @@ main() {
     
     # Parse arguments
     if [ $# -eq 0 ]; then
+        echo ""
         log_error "Missing required argument: RUN_PATH"
         echo ""
         usage
@@ -258,6 +259,7 @@ main() {
         RUN_NAME="$2"
         
     else
+        echo ""
         log_error "Too many arguments"
         echo ""
         usage
