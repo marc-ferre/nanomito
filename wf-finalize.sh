@@ -630,17 +630,12 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     append_html "  </div>"
   fi
   
-  log_info "Processing deletions for sample: $sample"
-  
   # Display deletions from Baldur
   del_file="$sample_dir/varcall/${sample}.baldur_del.txt"
-  log_info "Checking deletion file: $del_file"
   if [ -f "$del_file" ]; then
-    log_info "Deletion file exists, processing..."
     # Count deletions (skip header if present)
     # Use || true to prevent grep from causing script to exit when no matches found (with set -e)
     del_count=$(grep -v "^#" "$del_file" | grep -v "^$" | wc -l | tr -d ' ' || true)
-    log_info "Found $del_count deletions"
     
     if [ "$del_count" -gt 0 ]; then
       append_html "  <div style=\"margin: 10px 0;\">"
