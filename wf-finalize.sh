@@ -424,7 +424,10 @@ if [ -f "$SUMMARY_TSV" ]; then
     # Normalize runtime formatting to HH:MM:SS with leading zeros
     if [ -n "$runtime" ]; then
       IFS=: read -r rh rm rs <<< "$runtime"
-      rh=${rh:-0}; rm=${rm:-0}; rs=${rs:-0}
+      # Remove leading zeros to avoid octal interpretation, default to 0 if empty
+      rh=$((10#${rh:-0}))
+      rm=$((10#${rm:-0}))
+      rs=$((10#${rs:-0}))
       printf -v runtime_fmt "%02d:%02d:%02d" "$rh" "$rm" "$rs"
     else
       runtime_fmt="00:00:00"
