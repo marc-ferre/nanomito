@@ -6,18 +6,40 @@
 #   Copies analysis results (TSV, VCF, BAM, BAI files) from run directories
 #   in /scratch/mferre/workbench to /scratch/mferre/export/<run_id>
 #
-# Usage:
-#   ./export_results.sh [RUN_DIR]
-#
-# Arguments:
-#   RUN_DIR (optional): Specific run directory to export
-#                       If not provided, processes all runs in workbench
-#
-# File patterns exported per sample:
-#   - *.ann.tsv                              (Annotated variants TSV)
-#   - *.ann.vcf                              (Annotated variants VCF)
-#   - *.chrM.sup,5mC_5hmC,6mA.sorted.bam    (Sorted BAM with modifications)
-#   - *.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai (BAM index)
+################################################################################
+# USAGE
+################################################################################
+show_usage() {
+    cat << EOF
+Usage: $0 RUN_PATH [RUN_NAME]
+
+Export analysis results from a run directory to export directory, organized by run and sample.
+
+Arguments:
+    RUN_PATH    Required. Path to the run directory to export
+                (e.g., /scratch/mferre/workbench/250416_run001_recherche_Val)
+    
+    RUN_NAME    Optional. Name to use for the export directory and ZIP file.
+                If not provided, uses the basename of RUN_PATH.
+
+Examples:
+    # Export with automatic name (uses basename)
+    $0 /scratch/mferre/workbench/250416_run001_recherche_Val
+    
+    # Export with custom name
+    $0 /scratch/mferre/workbench/250416_run001_recherche_Val my_custom_name
+
+Output:
+    Files are exported to: $EXPORT_BASE/<run_name>/<sample_id>/
+    ZIP archive created:   $EXPORT_BASE/<run_name>.zip
+
+Exported files:
+    - *.ann.tsv
+    - *.ann.vcf
+    - *.chrM.sup,5mC_5hmC,6mA.sorted.bam
+    - *.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai
+EOF
+}
 #
 # Directory structure:
 #   Source: /scratch/mferre/workbench/<run>/processing/<sample>/
@@ -30,7 +52,6 @@ set -euo pipefail
 shopt -s nullglob
 
 # Configuration
-WORKBENCH_DIR="/scratch/mferre/workbench"
 EXPORT_DIR="/scratch/mferre/export"
 
 # Colors for output
@@ -59,20 +80,34 @@ log_error() {
 
 # Usage information
 usage() {
-    echo "Usage: $0 [RUN_DIR]"
+    echo "Usage: $0 RUN_PATH [RUN_NAME]"
     echo ""
-    echo "Export nanomito analysis results to organized export directory"
+    echo "Export analysis results from a run directory to export directory."
     echo ""
     echo "Arguments:"
-    echo "  RUN_DIR    Optional: specific run directory to export"
-    echo "             If omitted, all runs in $WORKBENCH_DIR are processed"
+    echo "  RUN_PATH    Required. Path to the run directory to export"
+    echo "              (e.g., /scratch/mferre/workbench/250416_run001_recherche_Val)"
+    echo ""
+    echo "  RUN_NAME    Optional. Custom name to use for the export directory and ZIP file."
+    echo "              If not provided, uses the basename of RUN_PATH."
     echo ""
     echo "Examples:"
-    echo "  $0                                    # Export all runs"
-    echo "  $0 /scratch/mferre/workbench/run001   # Export specific run"
-    echo "  $0 run001                             # Export specific run (basename)"
+    echo "  # Export with automatic name (uses basename of path)"
+    echo "  $0 /scratch/mferre/workbench/250416_run001_recherche_Val"
     echo ""
-    exit 1
+    echo "  # Export with custom name"
+    echo "  $0 /scratch/mferre/workbench/250416_run001_recherche_Val my_custom_export"
+    echo ""
+    echo "Output:"
+    echo "  Files are exported to: $EXPORT_DIR/<run_name>/<sample_id>/"
+    echo "  ZIP archive created:   $EXPORT_DIR/<run_name>.zip"
+    echo ""
+    echo "Exported files per sample:"
+    echo "  - *.ann.tsv"
+    echo "  - *.ann.vcf"
+    echo "  - *.chrM.sup,5mC_5hmC,6mA.sorted.bam"
+    echo "  - *.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai"
+    exit 0
 }
 
 # File patterns to export
@@ -116,8 +151,16 @@ export_sample() {
 # Export all samples from a run
 export_run() {
     local run_dir=$1
+    local run_name=$2  # Optional custom name
     local run_id
-    run_id=$(basename "$run_dir")
+    
+    # Use custom name if provided, otherwise use basename
+    if [ -n "$run_name" ]; then
+        run_id="$run_name"
+    else
+        run_id=$(basename "$run_dir")
+    fi
+    
     local processing_dir="$run_dir/processing"
     local export_run_dir="$EXPORT_DIR/$run_id"
     
@@ -198,66 +241,41 @@ main() {
     echo "   Nanomito Results Export"
     echo "=========================================="
     
-    # Check if workbench directory exists
-    if [ ! -d "$WORKBENCH_DIR" ]; then
-        log_error "Workbench directory not found: $WORKBENCH_DIR"
-        exit 1
-    fi
-    
-    # Determine which runs to process
+    # Parse arguments
     if [ $# -eq 0 ]; then
-        # No argument: process all runs
-        log_info "Exporting all runs from $WORKBENCH_DIR"
-        
-        run_dirs=("$WORKBENCH_DIR"/*)
-        
-        if [ ${#run_dirs[@]} -eq 0 ]; then
-            log_error "No run directories found in $WORKBENCH_DIR"
-            exit 1
-        fi
-        
-        total_runs=0
-        successful_runs=0
-        
-        for run_dir in "${run_dirs[@]}"; do
-            if [ -d "$run_dir" ]; then
-                total_runs=$((total_runs + 1))
-                if export_run "$run_dir"; then
-                    successful_runs=$((successful_runs + 1))
-                fi
-            fi
-        done
-        
+        log_error "Missing required argument: RUN_PATH"
         echo ""
-        echo "=========================================="
-        log_success "Export completed: $successful_runs/$total_runs run(s) processed"
-        echo "=========================================="
+        usage
         
     elif [ $# -eq 1 ]; then
-        # One argument: process specific run
-        RUN_ARG=$1
+        # One argument: run path (auto-detect name from basename)
+        RUN_PATH="$1"
+        RUN_NAME=""
         
-        # Check if it's a full path or just basename
-        if [ -d "$RUN_ARG" ]; then
-            RUN_DIR="$RUN_ARG"
-        elif [ -d "$WORKBENCH_DIR/$RUN_ARG" ]; then
-            RUN_DIR="$WORKBENCH_DIR/$RUN_ARG"
-        else
-            log_error "Run directory not found: $RUN_ARG"
-            exit 1
-        fi
-        
-        export_run "$RUN_DIR"
-        
-        echo ""
-        echo "=========================================="
-        log_success "Export completed"
-        echo "=========================================="
+    elif [ $# -eq 2 ]; then
+        # Two arguments: run path + custom name
+        RUN_PATH="$1"
+        RUN_NAME="$2"
         
     else
+        log_error "Too many arguments"
+        echo ""
         usage
     fi
     
+    # Validate run path
+    if [ ! -d "$RUN_PATH" ]; then
+        log_error "Run directory not found: $RUN_PATH"
+        exit 1
+    fi
+    
+    # Export the run
+    export_run "$RUN_PATH" "$RUN_NAME"
+    
+    echo ""
+    echo "=========================================="
+    log_success "Export completed"
+    echo "=========================================="
     log_info "Results exported to: $EXPORT_DIR"
 }
 
