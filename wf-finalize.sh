@@ -544,6 +544,16 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   append_html "<div class=\"sample-card\">"
   append_html "  <div class=\"sample-header\">📊 Sample: $sample</div>"
   
+  # Check for NO_DATA marker file
+  if [ -f "$sample_dir/NO_DATA.marker" ]; then
+    append_html "  <div style=\"margin: 10px 0; padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;\">"
+    append_html "    <strong style=\"color: #856404;\">⚠️ NO DATA</strong>"
+    append_html "    <p style=\"margin: 5px 0 0 0; color: #856404;\">This sample had no reads matching both patient and reference mitochondria. Analysis was skipped.</p>"
+    append_html "  </div>"
+    append_html "</div>"
+    continue
+  fi
+  
   # Extract demultiplexing metrics
   if [ -f "$DEMULT_SUMMARY" ]; then
     chrM_reads=$(awk -v s="$sample" '$2==s {print $5}' "$DEMULT_SUMMARY")
