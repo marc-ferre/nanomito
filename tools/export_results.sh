@@ -99,7 +99,7 @@ export_sample() {
         for file in "$sample_dir"/$pattern; do
             if [ -f "$file" ]; then
                 cp "$file" "$export_sample_dir/"
-                ((file_count++))
+                file_count=$((file_count + 1))
             fi
         done
     done
@@ -154,14 +154,14 @@ export_run() {
             continue
         fi
         
-        ((sample_count++))
+        sample_count=$((sample_count + 1))
         
         local export_sample_dir="$export_run_dir/$sample_id"
         
         # Don't fail the script if export_sample returns 1
         if export_sample "$sample_dir" "$export_sample_dir" || true; then
             if [ -d "$export_sample_dir" ] && [ "$(ls -A "$export_sample_dir" 2>/dev/null)" ]; then
-                ((exported_count++))
+                exported_count=$((exported_count + 1))
             fi
         fi
     done
@@ -221,9 +221,9 @@ main() {
         
         for run_dir in "${run_dirs[@]}"; do
             if [ -d "$run_dir" ]; then
-                ((total_runs++))
+                total_runs=$((total_runs + 1))
                 if export_run "$run_dir"; then
-                    ((successful_runs++))
+                    successful_runs=$((successful_runs + 1))
                 fi
             fi
         done
