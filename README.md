@@ -537,7 +537,6 @@ protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_produ
      ./submit_nanomito.sh --skip-bchg --only-samples SAMPLE1,SAMPLE2 /path/to/run/
      ```
 
-
 1. **GPU not available**
 
    - Ensure `--partition=gpu` is set
