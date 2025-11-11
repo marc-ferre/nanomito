@@ -361,7 +361,7 @@ if [ "$COUNT_MATCHED" -eq 0 ]; then
 	log_success "Updated demultiplexing summary file"
 	
 	# Create empty marker file to indicate no data
-	touch "$OUTPUT_DIR/NO_DATA.marker"
+	touch "$OUT_DIR/NO_DATA.marker"
 	
 	echo ""
 	echo "=========================================="
