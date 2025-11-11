@@ -26,6 +26,9 @@
 
 set -euo pipefail
 
+# Enable nullglob to handle patterns that don't match any files
+shopt -s nullglob
+
 # Configuration
 WORKBENCH_DIR="/scratch/mferre/workbench"
 EXPORT_DIR="/scratch/mferre/export"
