@@ -638,7 +638,8 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   if [ -f "$del_file" ]; then
     log_info "Deletion file exists, processing..."
     # Count deletions (skip header if present)
-    del_count=$(grep -v "^#" "$del_file" | grep -v "^$" | wc -l | tr -d ' ')
+    # Use || true to prevent grep from causing script to exit when no matches found (with set -e)
+    del_count=$(grep -v "^#" "$del_file" | grep -v "^$" | wc -l | tr -d ' ' || true)
     log_info "Found $del_count deletions"
     
     if [ "$del_count" -gt 0 ]; then
