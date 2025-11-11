@@ -68,6 +68,7 @@ ARCHIVING_ONLY=false
 SKIP_ARCHIVING=false
 FINALIZE_ONLY=false
 INCLUDE_UNCLASSIFIED=false
+ONLY_SAMPLES=""
 SHOW_HELP=false
 
 while [[ $# -gt 0 ]]; do
@@ -112,6 +113,10 @@ while [[ $# -gt 0 ]]; do
 			INCLUDE_UNCLASSIFIED=true
 			shift
 			;;
+		--only-samples)
+			ONLY_SAMPLES="$2"
+			shift 2
+			;;
 		--help|-h)
 			SHOW_HELP=true
 			shift
@@ -138,6 +143,7 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "  --skip-archiving        Skip archiving step in the workflow"
 	echo "  --finalize-only         Only submit finalization job (email report from existing data)"
 	echo "  --include-unclassified  Include 'unclassified' folder in sample processing"
+	echo "  --only-samples SAMPLES  Process only specified samples (comma-separated list)"
 	echo "  --help, -h              Display this help message"
 	echo ""
 	echo "Examples:"
@@ -147,6 +153,8 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "  $0 --skip-bchg --demultmt-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --skip-bchg --modmito-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --skip-bchg --include-unclassified /scratch/mferre/workbench/250916_MK1B_RUN15/"
+	echo "  $0 --only-samples 250331_230183003_TRIC,250331_220028830_TRES /scratch/mferre/workbench/250331_P2_run002/"
+	echo "  $0 --skip-bchg --only-samples 250331_230183003_TRIC,250331_220028830_TRES /scratch/mferre/workbench/250331_P2_run002/"
 	echo "  $0 --archiving-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	echo "  $0 --finalize-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
 	exit 0
@@ -390,6 +398,9 @@ if [ "$BCHG_ONLY" = false ]; then
 	if [ "$INCLUDE_UNCLASSIFIED" = true ]; then
 		SUBWF_ARGS="$SUBWF_ARGS --include-unclassified"
 	fi
+	if [ -n "$ONLY_SAMPLES" ]; then
+		SUBWF_ARGS="$SUBWF_ARGS --only-samples $ONLY_SAMPLES"
+	fi
 	
 	# Submit wf-subwf.sh which will discover samples and submit demultmt/modmito jobs
 	WF_ID='subwf'
@@ -397,9 +408,11 @@ if [ "$BCHG_ONLY" = false ]; then
 	
 	# Add dependency on bchg job if it was submitted
 	if [ -n "$BCHG_JOBID" ]; then
+		# shellcheck disable=SC2086  # SUBWF_ARGS intentionally unquoted for word splitting
 		SUBWF_JOBID=$(sbatch --dependency=afterok:"$BCHG_JOBID" --parsable --export=ALL,NANOMITO_DIR="$SCRIPT_DIR" --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF" $SUBWF_ARGS)
 		log_success "Submitted batch job $SUBWF_JOBID (depends on $BCHG_JOBID)"
 	else
+		# shellcheck disable=SC2086  # SUBWF_ARGS intentionally unquoted for word splitting
 		SUBWF_JOBID=$(sbatch --parsable --export=ALL,NANOMITO_DIR="$SCRIPT_DIR" --chdir="$RUN_DIR" --job-name="${WF_ID:0:1}${RUN_ID: -7}" --output="$SLURM_FILE" --mail-type="$MAIL_TYPE_ISSUE" --mail-user="$MAIL_USER" "$WF_SUBWF" $SUBWF_ARGS)
 		log_success "Submitted batch job $SUBWF_JOBID"
 	fi

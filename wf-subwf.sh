@@ -78,6 +78,7 @@ MODMITO_ONLY=false
 SKIP_MODMITO=false
 SKIP_ARCHIVING=false
 INCLUDE_UNCLASSIFIED=false
+ONLY_SAMPLES=""
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -104,6 +105,10 @@ while [[ $# -gt 0 ]]; do
 		--include-unclassified)
 			INCLUDE_UNCLASSIFIED=true
 			shift
+			;;
+		--only-samples)
+			ONLY_SAMPLES="$2"
+			shift 2
 			;;
 		*)
 			log_error "Unknown option: $1"
@@ -227,6 +232,16 @@ while IFS= read -r DIR
 do
 	# Extract sample identifier from directory name
 	SAMPLE_ID=$(basename "$DIR")
+	
+	# Filter samples if --only-samples was specified
+	if [ -n "$ONLY_SAMPLES" ]; then
+		# Check if SAMPLE_ID is in the comma-separated list
+		# Add commas around the list and the sample to avoid partial matches
+		if [[ ",$ONLY_SAMPLES," != *",$SAMPLE_ID,"* ]]; then
+			log_info "Skipping $SAMPLE_ID (not in --only-samples list)"
+			continue
+		fi
+	fi
 	
 	# Skip 'unclassified' folder unless --include-unclassified is set
 	if [ "$SAMPLE_ID" = "unclassified" ] && [ "$INCLUDE_UNCLASSIFIED" = false ]; then
