@@ -65,6 +65,14 @@ if [[ -d "$PROCESS_DIR" ]]; then
     if [[ "$sname" == slurm-* || "$sname" == "email-"* ]]; then continue; fi
 
     SAMPLES_FOUND=$((SAMPLES_FOUND+1))
+    
+    # Check for NO_DATA marker
+    no_data_marker="$sdir/NO_DATA.marker"
+    if [[ -f "$no_data_marker" ]]; then
+      warn "${sname}: NO DATA (no reads matched both references - analysis skipped)"
+      continue
+    fi
+    
     bam="$sdir/${sname}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
     ann_vcf="$sdir/${sname}.ann.vcf"
     ann_tsv="$sdir/${sname}.ann.tsv"

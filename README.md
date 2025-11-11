@@ -518,6 +518,13 @@ protocol_run_id,position_id,flow_cell_id,sample_id,experiment_id,flow_cell_produ
    - Check that `pod5_chrM/<RUN_ID>.pid_dict.tsv` exists
    - Verify the dictionary file is not empty
 
+1. **"NO DATA" warnings in logs/email**
+
+   - This is **not an error** - some samples may have no reads matching both patient and reference mitochondria
+   - The workflow completes successfully and creates a `NO_DATA.marker` file
+   - These samples are automatically skipped in downstream analysis (modmito)
+   - The final email report will show these samples with a warning in the PRE-FLIGHT CHECK section
+
 1. **GPU not available**
 
    - Ensure `--partition=gpu` is set

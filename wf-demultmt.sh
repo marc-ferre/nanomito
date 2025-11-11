@@ -345,6 +345,42 @@ echo "========== Demultiplexing Statistics =========="
 log_info "Reads generated: $COUNT_TOTAL"
 log_info "Reads aligned to reference: $COUNT_ALIGN ($(awk "BEGIN {printf \"%.2f\", ($COUNT_ALIGN/$COUNT_TOTAL)*100}")%)"
 log_info "Reads aligned to chrM: $COUNT_CHRM ($(awk "BEGIN {printf \"%.2f\", ($COUNT_CHRM/$COUNT_TOTAL)*100}")%)"
+
+# Check if no reads matched
+if [ "$COUNT_MATCHED" -eq 0 ]; then
+	log_warning "Reads matching $SELECT: $COUNT_MATCHED (0.00%) - NO DATA TO PROCESS"
+	echo "==============================================="
+	
+	# Update summary file
+	if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
+		echo "Run id	Sample id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" \
+			> "$DEMULT_SUMMARY_FILE"
+		log_success "Created demultiplexing summary file"
+	fi
+	echo "$RUN_ID	$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
+	log_success "Updated demultiplexing summary file"
+	
+	# Create empty marker file to indicate no data
+	touch "$OUTPUT_DIR/NO_DATA.marker"
+	
+	echo ""
+	echo "=========================================="
+	echo "WARNING: NO MATCHING READS DETECTED"
+	echo "=========================================="
+	log_warning "This sample has no reads matching both patient and reference mitochondria"
+	log_warning "This is not an error - the workflow will complete successfully"
+	log_warning "Downstream analysis (modmito) will be skipped automatically"
+	log_warning "A NO_DATA.marker file has been created to signal this condition"
+	echo "=========================================="
+	echo ""
+	
+	# Update TSV summary and exit successfully
+	append_duration "00:00:00" "Demultiplexing"
+	update_tsv_summary
+	log_success "Workflow completed successfully (NO DATA)"
+	exit 0
+fi
+
 log_success "Reads matching $SELECT: $COUNT_MATCHED ($(awk "BEGIN {printf \"%.2f\", ($COUNT_MATCHED/$COUNT_TOTAL)*100}")%)"
 echo "==============================================="
 

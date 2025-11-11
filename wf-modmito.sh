@@ -173,6 +173,26 @@ log_info "Sample sheet: $SAMPLESHEET_FILE"
 log_info "Model complex: $MODEL_COMPLEX"
 log_info "Reference file: $SELECTED_REF"
 
+# Check if demultiplexing found no data
+NO_DATA_MARKER="$OUT_DIR/NO_DATA.marker"
+if [ -f "$NO_DATA_MARKER" ]; then
+	echo ""
+	echo "=========================================="
+	echo "NO DATA DETECTED - SKIPPING ANALYSIS"
+	echo "=========================================="
+	log_warning "The demultiplexing step found no reads matching both references"
+	log_warning "This sample will be skipped (not an error)"
+	log_warning "NO_DATA.marker file detected: $NO_DATA_MARKER"
+	echo "=========================================="
+	echo ""
+	
+	# Update TSV summary and exit successfully
+	append_duration "00:00:00" "Modification analysis (skipped - no data)"
+	update_tsv_summary
+	log_success "Workflow completed successfully (NO DATA - SKIPPED)"
+	exit 0
+fi
+
 echo ""
 echo "========== SLURM Environment =========="
 echo "Node    : ${SLURM_NODELIST:-N/A}"
