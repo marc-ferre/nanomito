@@ -80,33 +80,43 @@ log_error() {
 
 # Usage information
 usage() {
-    echo "Usage: $0 RUN_PATH [RUN_NAME]"
-    echo ""
-    echo "Export analysis results from a run directory to export directory."
-    echo ""
-    echo "Arguments:"
-    echo "  RUN_PATH    Required. Path to the run directory to export"
-    echo "              (e.g., /scratch/mferre/workbench/250416_run001_recherche_Val)"
-    echo ""
-    echo "  RUN_NAME    Optional. Custom name to use for the export directory and ZIP file."
-    echo "              If not provided, uses the basename of RUN_PATH."
-    echo ""
-    echo "Examples:"
-    echo "  # Export with automatic name (uses basename of path)"
-    echo "  $0 /scratch/mferre/workbench/250416_run001_recherche_Val"
-    echo ""
-    echo "  # Export with custom name"
-    echo "  $0 /scratch/mferre/workbench/250416_run001_recherche_Val my_custom_export"
-    echo ""
-    echo "Output:"
-    echo "  Files are exported to: $EXPORT_DIR/<run_name>/<sample_id>/"
-    echo "  ZIP archive created:   $EXPORT_DIR/<run_name>.zip"
-    echo ""
-    echo "Exported files per sample:"
-    echo "  - *.ann.tsv"
-    echo "  - *.ann.vcf"
-    echo "  - *.chrM.sup,5mC_5hmC,6mA.sorted.bam"
-    echo "  - *.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai"
+    local error_msg="$1"
+    
+    if [ -n "$error_msg" ]; then
+        echo ""
+        log_error "$error_msg"
+    fi
+    
+    cat << EOF
+
+Usage: $0 RUN_PATH [RUN_NAME]
+
+Export analysis results from a run directory to export directory.
+
+Arguments:
+  RUN_PATH    Required. Path to the run directory to export
+              (e.g., /scratch/mferre/workbench/250416_run001_recherche_Val)
+
+  RUN_NAME    Optional. Custom name to use for the export directory and ZIP file.
+              If not provided, uses the basename of RUN_PATH.
+
+Examples:
+  # Export with automatic name (uses basename of path)
+  $0 /scratch/mferre/workbench/250416_run001_recherche_Val
+
+  # Export with custom name
+  $0 /scratch/mferre/workbench/250416_run001_recherche_Val my_custom_export
+
+Output:
+  Files are exported to: $EXPORT_DIR/<run_name>/<sample_id>/
+  ZIP archive created:   $EXPORT_DIR/<run_name>.zip
+
+Exported files per sample:
+  - *.ann.tsv
+  - *.ann.vcf
+  - *.chrM.sup,5mC_5hmC,6mA.sorted.bam
+  - *.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai
+EOF
     exit 0
 }
 
@@ -243,10 +253,7 @@ main() {
     
     # Parse arguments
     if [ $# -eq 0 ]; then
-        echo ""
-        log_error "Missing required argument: RUN_PATH"
-        echo ""
-        usage
+        usage "Missing required argument: RUN_PATH"
         
     elif [ $# -eq 1 ]; then
         # One argument: run path (auto-detect name from basename)
@@ -259,10 +266,7 @@ main() {
         RUN_NAME="$2"
         
     else
-        echo ""
-        log_error "Too many arguments"
-        echo ""
-        usage
+        usage "Too many arguments"
     fi
     
     # Validate run path
