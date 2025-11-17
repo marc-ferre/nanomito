@@ -126,6 +126,94 @@ check_output_dir() {
     fi
 }
 
+clean_vcf() {
+    local input_vcf="$1"
+    local output_vcf="$2"
+    local issues_found=0
+    
+    _log INFO "Validating and cleaning VCF file: '$input_vcf'"
+    
+    # Read header and data separately
+    local header_lines=0
+    local total_lines=0
+    local malformed_lines=0
+    local has_samples=true
+    
+    # First pass: detect issues and check if samples are present
+    while IFS= read -r line; do
+        total_lines=$((total_lines + 1))
+        
+        # Skip header lines (but check #CHROM line for sample columns)
+        if [[ "$line" =~ ^## ]]; then
+            header_lines=$((header_lines + 1))
+            continue
+        fi
+        
+        # Check #CHROM line
+        if [[ "$line" =~ ^#CHROM ]]; then
+            header_lines=$((header_lines + 1))
+            IFS=$'\t' read -ra header_fields <<< "$line"
+            # Standard VCF has 8 columns, with samples it has 9+ (FORMAT + sample columns)
+            if [[ ${#header_fields[@]} -eq 9 ]]; then
+                # Has FORMAT column but check if data lines have sample data
+                has_samples=false
+            fi
+            continue
+        fi
+        
+        # Check data lines for malformed FORMAT fields
+        IFS=$'\t' read -ra fields <<< "$line"
+        
+        # VCF should have at least 8 columns (up to INFO)
+        # If header has FORMAT column (9 fields), data lines should have sample data (10 fields)
+        # If data line has exactly 9 columns, it's malformed (FORMAT but no sample)
+        if [[ ${#fields[@]} -eq 9 ]]; then
+            # FORMAT column present but no sample data - malformed
+            malformed_lines=$((malformed_lines + 1))
+            issues_found=1
+            _log WARN "Malformed line at position ${fields[1]}: FORMAT defined but no sample data (9 fields instead of 10)"
+        fi
+    done < "$input_vcf"
+    
+    if [[ $issues_found -eq 0 ]]; then
+        _log INFO "VCF validation passed: no issues found"
+        # Just copy the file
+        cp "$input_vcf" "$output_vcf"
+        return 0
+    fi
+    
+    _log WARN "Found $malformed_lines malformed line(s) in VCF - cleaning..."
+    
+    # Second pass: clean the file (remove malformed lines entirely)
+    local removed_count=0
+    {
+        while IFS= read -r line; do
+            # Copy all header lines as-is
+            if [[ "$line" =~ ^# ]]; then
+                echo "$line"
+                continue
+            fi
+            
+            # Process data lines
+            IFS=$'\t' read -ra fields <<< "$line"
+            
+            # Skip lines with exactly 9 fields (FORMAT but no sample data)
+            if [[ ${#fields[@]} -eq 9 ]]; then
+                ((removed_count++))
+                continue
+            fi
+            
+            # Keep all other lines
+            echo "$line"
+        done < "$input_vcf"
+    } > "$output_vcf"
+    
+    _log INFO "Removed $removed_count malformed line(s) from VCF"
+    
+    _log INFO "VCF cleaning completed: '$output_vcf'"
+    return 0
+}
+
 cleanup_compressed_files() {
     local vcf_file="$1"
     _log INFO "Decompressing and cleaning up: '$vcf_file'"
@@ -142,7 +230,7 @@ cleanup_on_exit() {
     cleanup_compressed_files "$VCF_NANOPORE"
     cleanup_compressed_files "$VCF_ILLUMINA_ANNOTMT"
     
-    local files_to_remove=("$VCF_ILLUMINA_ANNOTMT" "$VCF_NANOPORE_PASS")
+    local files_to_remove=("$VCF_ILLUMINA_ANNOTMT" "$VCF_NANOPORE_PASS" "$VCF_ILLUMINA_CLEAN")
     for file in "${files_to_remove[@]}"; do
         if [[ -f "$file" ]]; then
             if rm -f "$file"; then
@@ -415,12 +503,20 @@ main() {
     VCF_ILLUMINA="${VCF_FILES[1]}"
 
     _log INFO '**********************'
+    _log INFO '* VCF Validation     *'
+    _log INFO '**********************'
+    
+    # Clean Illumina VCF (fix malformed lines)
+    VCF_ILLUMINA_CLEAN="${VCF_ILLUMINA%.vcf}.clean.vcf"
+    clean_vcf "$VCF_ILLUMINA" "$VCF_ILLUMINA_CLEAN"
+
+    _log INFO '**********************'
     _log INFO '* Variant Annotation *'
     _log INFO '**********************'
 
-    # Annotate Illumina VCF
+    # Annotate cleaned Illumina VCF
     VCF_ILLUMINA_ANNOTMT="${VCF_ILLUMINA%.vcf}.ann.vcf"
-    annotate_vcf "$VCF_ILLUMINA" "$VCF_ILLUMINA_ANNOTMT"
+    annotate_vcf "$VCF_ILLUMINA_CLEAN" "$VCF_ILLUMINA_ANNOTMT"
 
     _log INFO '******************'
     _log INFO '* PASS Filtering *'
