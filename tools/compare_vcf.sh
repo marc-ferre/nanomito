@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION='2025-08-21.2'
+VERSION='2025-11-17'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 
 # Description:
@@ -11,7 +11,7 @@ AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 # 4. Exports results in TSV format
 #
 # Usage:
-#   ./wf-comp.sh /path/to/directory
+#   ./tools/compare_vcf.sh /path/to/directory
 # If no argument is provided, the current directory will be used by default.
 
 # Constants and reference paths
@@ -381,11 +381,11 @@ main() {
     recreate_directory "$LOGDIR"
 
     # Setup logging without append
-    LOGFILE="$LOGDIR/${PREFIX}-wf-comp.log"
+    LOGFILE="$LOGDIR/${PREFIX}-compare_vcf.log"
     exec > >(tee "$LOGFILE") 2>&1
 
     # Workflow information
-    _log INFO "Workflow: wf-comp v.$VERSION by $AUTHOR"
+    _log INFO "Tool: compare_vcf v.$VERSION by $AUTHOR"
     _log INFO "Date: $(LC_TIME=C date '+%b %d, %Y %H:%M:%S')"
     _log INFO "Sample: '$PREFIX'"
     _log INFO "Working directory: '$WORKDIR'"
