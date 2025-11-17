@@ -137,27 +137,14 @@ clean_vcf() {
     local header_lines=0
     local total_lines=0
     local malformed_lines=0
-    local has_samples=true
     
-    # First pass: detect issues and check if samples are present
+    # First pass: detect issues
     while IFS= read -r line; do
         total_lines=$((total_lines + 1))
         
-        # Skip header lines (but check #CHROM line for sample columns)
-        if [[ "$line" =~ ^## ]]; then
+        # Skip header lines
+        if [[ "$line" =~ ^# ]]; then
             header_lines=$((header_lines + 1))
-            continue
-        fi
-        
-        # Check #CHROM line
-        if [[ "$line" =~ ^#CHROM ]]; then
-            header_lines=$((header_lines + 1))
-            IFS=$'\t' read -ra header_fields <<< "$line"
-            # Standard VCF has 8 columns, with samples it has 9+ (FORMAT + sample columns)
-            if [[ ${#header_fields[@]} -eq 9 ]]; then
-                # Has FORMAT column but check if data lines have sample data
-                has_samples=false
-            fi
             continue
         fi
         
