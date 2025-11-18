@@ -90,13 +90,15 @@ process_file() {
                 mkdir -p "$out_parent_dir"
             fi
             OUTFILE="$out_parent_dir/$NEW_BASENAME"
-            LOGFILE="$out_parent_dir/${NEW_BASENAME}.anonymize.log"
+            # write logs to the original (source) directory, not to the anonymized out dir
+            LOGFILE="$DIRNAME/${BASENAME}.anonymize.log"
         else
             if [ "$DRY_RUN" -eq 0 ]; then
                 mkdir -p "$OUT_DIR"
             fi
             OUTFILE="$OUT_DIR/$NEW_BASENAME"
-            LOGFILE="$OUT_DIR/${NEW_BASENAME}.anonymize.log"
+            # write logs to the original (source) directory
+            LOGFILE="$DIRNAME/${BASENAME}.anonymize.log"
         fi
     else
         OUTFILE="$DIRNAME/$NEW_BASENAME"
