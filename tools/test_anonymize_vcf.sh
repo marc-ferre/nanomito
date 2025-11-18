@@ -16,7 +16,7 @@ echo "Running anonymization test..."
 "$TOOL" "SAMPLE1" ANON "$TESTVCF"
 
 OUTFILE="$TESTDIR/$(basename "$TESTVCF" | sed 's/SAMPLE1/ANON/g')"
-LOGFILE="$TESTDIR/$(basename "$TESTVCF").anonymize.log"
+LOGFILE="$OUTFILE.anonymize.log"
 
 echo "Checking results..."
 if [ ! -f "$OUTFILE" ]; then

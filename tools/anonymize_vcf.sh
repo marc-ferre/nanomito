@@ -55,8 +55,8 @@ for id in $ID_LIST; do
 done
 OUTFILE="$DIRNAME/$NEW_BASENAME"
 
-# Log file
-LOGFILE="$DIRNAME/${BASENAME}.anonymize.log"
+# Log file (use anonymized basename to avoid leaking original identifiers)
+LOGFILE="$DIRNAME/${NEW_BASENAME}.anonymize.log"
 
 echo "[INFO] Anonymize VCF" > "$LOGFILE"
 date >> "$LOGFILE"
@@ -102,8 +102,8 @@ if [ "$IS_GZ" -eq 1 ]; then
     # zcat -> sed -f -> gzip
     # Prepare header metadata lines
     DATE_NOW=$(date --utc +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
-    CMDLINE=$(printf '%s' "$0 $ID_LIST_RAW $REPL_ID $INFILE")
-    META_LINE="##anonymizeCommand=<Date=\"$DATE_NOW\",Tool=\"anonymize_vcf.sh\",Args=\"$ID_LIST_RAW -> $REPL_ID\",Log=\"$LOGFILE\">"
+    NUM_IDS=$(printf '%s' "$ID_LIST" | wc -w)
+    META_LINE="##anonymizeCommand=<Date=\"$DATE_NOW\",Tool=\"anonymize_vcf.sh\",Args=\"count=$NUM_IDS,replacement=\'$REPL_ID\'\",Log=\"$LOGFILE\">"
     INFO_LINE="##INFO=<ID=ANON,Number=0,Type=Flag,Description=\"This VCF has been anonymized: original identifiers replaced. See log: $LOGFILE\">"
 
     if zcat -- "$INFILE" | sed -f "$SED_SCRIPT" | awk -v meta="$META_LINE" -v info="$INFO_LINE" 'BEGIN{printed=0} /^#CHROM/ { if(!printed){ print meta; print info; printed=1 } print; next } { print }' | gzip > "$OUTFILE"; then
@@ -114,7 +114,8 @@ if [ "$IS_GZ" -eq 1 ]; then
     fi
 else
     DATE_NOW=$(date --utc +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
-    META_LINE="##anonymizeCommand=<Date=\"$DATE_NOW\",Tool=\"anonymize_vcf.sh\",Args=\"$ID_LIST_RAW -> $REPL_ID\",Log=\"$LOGFILE\">"
+    NUM_IDS=$(printf '%s' "$ID_LIST" | wc -w)
+    META_LINE="##anonymizeCommand=<Date=\"$DATE_NOW\",Tool=\"anonymize_vcf.sh\",Args=\"count=$NUM_IDS,replacement=\'$REPL_ID\'\",Log=\"$LOGFILE\">"
     INFO_LINE="##INFO=<ID=ANON,Number=0,Type=Flag,Description=\"This VCF has been anonymized: original identifiers replaced. See log: $LOGFILE\">"
 
     if sed -f "$SED_SCRIPT" -- "$INFILE" | awk -v meta="$META_LINE" -v info="$INFO_LINE" 'BEGIN{printed=0} /^#CHROM/ { if(!printed){ print meta; print info; printed=1 } print; next } { print }' > "$OUTFILE"; then
