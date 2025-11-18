@@ -449,7 +449,8 @@ if [ -f "$SAMPLESHEET_FILE" ] && [ $BARCODE_COL -ge 0 ] && [ $ALIAS_COL -ge 0 ];
 	log_info "Reading sample sheet for barcode→alias mapping"
 	
 	# Read CSV dynamically using column indices
-	while IFS=, read -ra COLS; do
+	# Use || [[ -n "$COLS" ]] to handle last line without newline
+	while IFS=, read -ra COLS || [[ -n "${COLS[*]}" ]]; do
 		# Skip header line
 		if [ "${COLS[$BARCODE_COL]}" = "barcode" ]; then
 			continue
