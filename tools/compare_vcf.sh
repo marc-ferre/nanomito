@@ -146,6 +146,10 @@ generate_html_report() {
     local error_count=$(grep -c '\[ERROR\]' "$log_file" 2>/dev/null | xargs)
     local warn_count=$(grep -c '\[WARN\]' "$log_file" 2>/dev/null | xargs)
     
+    # Extract haplogroups from haplocheck summary (column 10: "Major Haplogroup")
+    local haplogroup_nanopore=$(awk -F'\t' 'NR==2 {gsub(/"/, "", $10); print $10}' "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" 2>/dev/null || echo "N/A")
+    local haplogroup_illumina=$(awk -F'\t' 'NR==3 {gsub(/"/, "", $10); print $10}' "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" 2>/dev/null || echo "N/A")
+    
     # Verify 0002 == 0003
     local count_match_text="Match OK"
     local count_match_class="success"
@@ -219,6 +223,7 @@ generate_html_report() {
         .stat-card.nanopore { border-left-color: #e74c3c; }
         .stat-card.illumina { border-left-color: #3498db; }
         .stat-card.shared { border-left-color: #2ecc71; }
+        .stat-card.haplogroup { border-left-color: #9b59b6; }
         .stat-label {
             font-size: 0.85em;
             color: #7f8c8d;
@@ -354,6 +359,14 @@ generate_html_report() {
                     <div class="stat-label">Total Illumina</div>
                     <div class="stat-value">TOTAL_ILLUMINA</div>
                 </div>
+                <div class="stat-card haplogroup">
+                    <div class="stat-label">Haplogroup Nanopore</div>
+                    <div class="stat-value">HAPLOGROUP_NANOPORE</div>
+                </div>
+                <div class="stat-card haplogroup">
+                    <div class="stat-label">Haplogroup Illumina</div>
+                    <div class="stat-value">HAPLOGROUP_ILLUMINA</div>
+                </div>
             </div>
             <div class="log-status LOG_STATUS_CLASS">
                 LOG_STATUS_MESSAGE
@@ -435,6 +448,8 @@ EOF
         -e "s/COUNT_0002/${count_0002}/g" \
         -e "s/TOTAL_NANOPORE/${total_nanopore}/g" \
         -e "s/TOTAL_ILLUMINA/${total_illumina}/g" \
+        -e "s/HAPLOGROUP_NANOPORE/${haplogroup_nanopore}/g" \
+        -e "s/HAPLOGROUP_ILLUMINA/${haplogroup_illumina}/g" \
         -e "s/LOG_STATUS_CLASS/${log_status_class}/g" \
         -e "s/LOG_STATUS_MESSAGE/${log_status_msg}/g" \
         -e "s/LOG_MATCH_CLASS/${count_match_class}/g" \
