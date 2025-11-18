@@ -137,18 +137,26 @@ generate_html_report() {
     _log INFO "Generating HTML report: '$report_file'"
     
     # Count variants in TSV files (use xargs to trim whitespace and newlines)
-    local count_0000=$(tail -n +2 "${isec_dir}/0000.tsv" 2>/dev/null | wc -l | xargs)
-    local count_0001=$(tail -n +2 "${isec_dir}/0001.tsv" 2>/dev/null | wc -l | xargs)
-    local count_0002=$(tail -n +2 "${isec_dir}/0002.tsv" 2>/dev/null | wc -l | xargs)
-    local count_0003=$(tail -n +2 "${isec_dir}/0003.tsv" 2>/dev/null | wc -l | xargs)
+    local count_0000
+    local count_0001
+    local count_0002
+    local count_0003
+    count_0000=$(tail -n +2 "${isec_dir}/0000.tsv" 2>/dev/null | wc -l | xargs)
+    count_0001=$(tail -n +2 "${isec_dir}/0001.tsv" 2>/dev/null | wc -l | xargs)
+    count_0002=$(tail -n +2 "${isec_dir}/0002.tsv" 2>/dev/null | wc -l | xargs)
+    count_0003=$(tail -n +2 "${isec_dir}/0003.tsv" 2>/dev/null | wc -l | xargs)
     
     # Check for errors and warnings in log (grep -c always succeeds, returns 0 if no match)
-    local error_count=$(grep -c '\[ERROR\]' "$log_file" 2>/dev/null | xargs)
-    local warn_count=$(grep -c '\[WARN\]' "$log_file" 2>/dev/null | xargs)
+    local error_count
+    local warn_count
+    error_count=$(grep -c '\[ERROR\]' "$log_file" 2>/dev/null | xargs)
+    warn_count=$(grep -c '\[WARN\]' "$log_file" 2>/dev/null | xargs)
     
     # Extract haplogroups from haplocheck summary (column 10: "Major Haplogroup")
-    local haplogroup_nanopore=$(awk -F'\t' 'NR==2 {gsub(/"/, "", $10); print $10}' "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" 2>/dev/null || echo "N/A")
-    local haplogroup_illumina=$(awk -F'\t' 'NR==3 {gsub(/"/, "", $10); print $10}' "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" 2>/dev/null || echo "N/A")
+    local haplogroup_nanopore
+    local haplogroup_illumina
+    haplogroup_nanopore=$(awk -F'\t' 'NR==2 {gsub(/"/, "", $10); print $10}' "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" 2>/dev/null || echo "N/A")
+    haplogroup_illumina=$(awk -F'\t' 'NR==3 {gsub(/"/, "", $10); print $10}' "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" 2>/dev/null || echo "N/A")
     
     # Verify 0002 == 0003
     local count_match_text="Match OK"
@@ -458,11 +466,16 @@ EOF
         "$report_file"
     
     # Generate tables
-    local haplocheck_html=$(tsv_to_html "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" "none")
-    local table_0000_html=$(tsv_to_html "${isec_dir}/0000.tsv" "disease")
-    local table_0001_html=$(tsv_to_html "${isec_dir}/0001.tsv" "disease")
-    local table_0002_html=$(tsv_to_html "${isec_dir}/0002.tsv" "disease")
-    local table_0003_html=$(tsv_to_html "${isec_dir}/0003.tsv" "disease")
+    local haplocheck_html
+    local table_0000_html
+    local table_0001_html
+    local table_0002_html
+    local table_0003_html
+    haplocheck_html=$(tsv_to_html "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" "none")
+    table_0000_html=$(tsv_to_html "${isec_dir}/0000.tsv" "disease")
+    table_0001_html=$(tsv_to_html "${isec_dir}/0001.tsv" "disease")
+    table_0002_html=$(tsv_to_html "${isec_dir}/0002.tsv" "disease")
+    table_0003_html=$(tsv_to_html "${isec_dir}/0003.tsv" "disease")
     
     # Replace table placeholders using awk (safer for multi-line)
     awk -v hc="$haplocheck_html" '{gsub(/HAPLOCHECK_TABLE/, hc)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
