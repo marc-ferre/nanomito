@@ -16,7 +16,7 @@ echo "Running anonymization test..."
 "$TOOL" "SAMPLE1" ANON "$TESTVCF"
 
 OUTFILE="$TESTDIR/$(basename "$TESTVCF" | sed 's/SAMPLE1/ANON/g')"
-LOGFILE="$OUTFILE.anonymize.log"
+LOGFILE="$OUTFILE.log"
 
 echo "Checking results (no hash)..."
 if [ ! -f "$OUTFILE" ]; then
@@ -40,7 +40,7 @@ echo "Running anonymization test with --hash..."
 "$TOOL" "SAMPLE1" ANON "$TESTVCF" --hash
 
 OUTFILE_HASH="$TESTDIR/$(basename "$TESTVCF" | sed 's/SAMPLE1/ANON/g')"
-LOGFILE_HASH="$OUTFILE_HASH.anonymize.log"
+LOGFILE_HASH="$OUTFILE_HASH.log"
 
 echo "Checking results (with hash)..."
 if [ ! -f "$OUTFILE_HASH" ]; then
@@ -90,7 +90,7 @@ echo "[OK] --dry-run produced no files"
 echo "Testing --out-dir (files should be written)..."
 "$TOOL" "SAMPLE1" ANON "$TESTVCF" --out-dir "$TMP_OUT" --hash
 OUT_IN_OUTDIR="$TMP_OUT/$(basename "$TESTVCF" | sed 's/SAMPLE1/ANON/g')"
-LOG_IN_OUTDIR="$OUT_IN_OUTDIR.anonymize.log"
+LOG_IN_OUTDIR="$OUT_IN_OUTDIR.log"
 if [ ! -f "$OUT_IN_OUTDIR" ]; then
     echo "[FAIL] Expected output in out-dir not found: $OUT_IN_OUTDIR" >&2
     exit 11

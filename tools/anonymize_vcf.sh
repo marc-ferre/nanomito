@@ -108,7 +108,7 @@ process_file() {
             # write logs to the original (source) directory, not to the anonymized out dir
             # Use a short deterministic hash of the original basename to avoid leaking identifiers
             LOG_HASH=$(compute_short_hash "$BASENAME")
-            LOGFILE="$DIRNAME/anonymize-${LOG_HASH}.anonymize.log"
+            LOGFILE="$DIRNAME/anonymize-${LOG_HASH}.log"
         else
             if [ "$DRY_RUN" -eq 0 ]; then
                 mkdir -p "$OUT_DIR"
@@ -116,11 +116,11 @@ process_file() {
             OUTFILE="$OUT_DIR/$NEW_BASENAME"
             # write logs to the original (source) directory
             LOG_HASH=$(compute_short_hash "$BASENAME")
-            LOGFILE="$DIRNAME/anonymize-${LOG_HASH}.anonymize.log"
+            LOGFILE="$DIRNAME/anonymize-${LOG_HASH}.log"
         fi
     else
         OUTFILE="$DIRNAME/$NEW_BASENAME"
-        LOGFILE="$DIRNAME/${NEW_BASENAME}.anonymize.log"
+            LOGFILE="$DIRNAME/${NEW_BASENAME}.log"
     fi
 
     if [ "$DRY_RUN" -eq 1 ]; then
