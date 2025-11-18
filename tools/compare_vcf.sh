@@ -487,11 +487,12 @@ tsv_to_html() {
             # Data row - check for disease status
             local row_class=""
             if [[ "$coloring" == "disease" ]]; then
-                if echo "$line" | grep -q 'DiseaseStatus=Cfrm-\[P\]'; then
+                # Check for DiseaseStatus values in TSV columns
+                if echo "$line" | grep -qE '\tCfrm-\[P\](\t|$)'; then
                     row_class=' class="pathogenic"'
-                elif echo "$line" | grep -q 'DiseaseStatus=Cfrm-\[LP\]'; then
+                elif echo "$line" | grep -qE '\tCfrm-\[LP\](\t|$)'; then
                     row_class=' class="likely-pathogenic"'
-                elif echo "$line" | grep -q 'DiseaseStatus=Cfrm-\[B\]'; then
+                elif echo "$line" | grep -qE '\tCfrm-\[B\](\t|$)'; then
                     row_class=' class="benign"'
                 fi
             fi
