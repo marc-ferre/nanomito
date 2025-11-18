@@ -126,6 +126,394 @@ check_output_dir() {
     fi
 }
 
+generate_html_report() {
+    local workdir="$1"
+    local prefix="$2"
+    local isec_dir="$3"
+    local hplchk_dir="$4"
+    local log_file="$5"
+    local report_file="${workdir}/report-${prefix}.html"
+    
+    _log INFO "Generating HTML report: '$report_file'"
+    
+    # Count variants in TSV files (use xargs to trim whitespace and newlines)
+    local count_0000=$(tail -n +2 "${isec_dir}/0000.tsv" 2>/dev/null | wc -l | xargs)
+    local count_0001=$(tail -n +2 "${isec_dir}/0001.tsv" 2>/dev/null | wc -l | xargs)
+    local count_0002=$(tail -n +2 "${isec_dir}/0002.tsv" 2>/dev/null | wc -l | xargs)
+    local count_0003=$(tail -n +2 "${isec_dir}/0003.tsv" 2>/dev/null | wc -l | xargs)
+    
+    # Check for errors and warnings in log (grep -c always succeeds, returns 0 if no match)
+    local error_count=$(grep -c '\[ERROR\]' "$log_file" 2>/dev/null | xargs)
+    local warn_count=$(grep -c '\[WARN\]' "$log_file" 2>/dev/null | xargs)
+    
+    # Verify 0002 == 0003
+    local count_match_text="Match OK"
+    local count_match_class="success"
+    if [[ "$count_0002" -ne "$count_0003" ]]; then
+        count_match_text="Mismatch!"
+        count_match_class="error"
+    fi
+    
+    # Generate HTML
+    cat > "$report_file" << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VCF Comparison Report - SAMPLE_ID</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        header {
+            border-bottom: 3px solid #2c3e50;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .meta {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        .summary {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .summary h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        .stat-card.nanopore { border-left-color: #e74c3c; }
+        .stat-card.illumina { border-left-color: #3498db; }
+        .stat-card.shared { border-left-color: #2ecc71; }
+        .stat-label {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .log-status {
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .log-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .log-status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .log-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        .section h3 {
+            color: #34495e;
+            font-size: 1.2em;
+            margin: 20px 0 10px 0;
+        }
+        .table-description {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 0.85em;
+            background: white;
+        }
+        thead {
+            background: #34495e;
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+        th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #2c3e50;
+        }
+        td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+        tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        tbody tr:hover {
+            background: #e8f4f8;
+        }
+        tr.pathogenic {
+            background-color: #ffebee !important;
+        }
+        tr.likely-pathogenic {
+            background-color: #fff3e0 !important;
+        }
+        tr.benign {
+            background-color: #fffde7 !important;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 0.85em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>VCF Comparison Report</h1>
+            <div class="meta">
+                Sample: <strong>SAMPLE_ID</strong> | 
+                Generated: <strong>GENERATION_DATE</strong> | 
+                Script: compare_vcf v.SCRIPT_VERSION
+            </div>
+        </header>
+
+        <div class="summary">
+            <h2>Summary</h2>
+            <div class="stats-grid">
+                <div class="stat-card nanopore">
+                    <div class="stat-label">Nanopore-only</div>
+                    <div class="stat-value">COUNT_0000</div>
+                </div>
+                <div class="stat-card illumina">
+                    <div class="stat-label">Illumina-only</div>
+                    <div class="stat-value">COUNT_0001</div>
+                </div>
+                <div class="stat-card shared">
+                    <div class="stat-label">Shared Variants</div>
+                    <div class="stat-value">COUNT_0002</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Nanopore</div>
+                    <div class="stat-value">TOTAL_NANOPORE</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Illumina</div>
+                    <div class="stat-value">TOTAL_ILLUMINA</div>
+                </div>
+            </div>
+            <div class="log-status LOG_STATUS_CLASS">
+                LOG_STATUS_MESSAGE
+            </div>
+            <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 5px;">
+                <strong>Shared variants check (0002 vs 0003):</strong> 
+                <span class="LOG_MATCH_CLASS">COUNT_MATCH_STATUS</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Haplogroup & Variant Analysis</h2>
+            
+            <h3>Haplogroup Comparison</h3>
+            <div class="table-wrapper">
+                HAPLOCHECK_TABLE
+            </div>
+
+            <h3>Nanopore-only Variants</h3>
+            <div class="table-description">Variants found only in Nanopore sequencing</div>
+            <div class="table-wrapper">
+                TABLE_0000
+            </div>
+
+            <h3>Illumina-only Variants</h3>
+            <div class="table-description">Variants found only in Illumina sequencing</div>
+            <div class="table-wrapper">
+                TABLE_0001
+            </div>
+
+            <h3>Shared Variants (Nanopore format)</h3>
+            <div class="table-description">Variants present in both sequencing methods (Nanopore VCF format)</div>
+            <div class="table-wrapper">
+                TABLE_0002
+            </div>
+
+            <h3>Shared Variants (Illumina format)</h3>
+            <div class="table-description">Variants present in both sequencing methods (Illumina VCF format)</div>
+            <div class="table-wrapper">
+                TABLE_0003
+            </div>
+        </div>
+
+        <footer>
+            Generated by compare_vcf v.SCRIPT_VERSION | Marc FERRE &lt;marc.ferre@univ-angers.fr&gt;
+        </footer>
+    </div>
+</body>
+</html>
+EOF
+
+    # Replace placeholders
+    local total_nanopore=$((count_0000 + count_0002))
+    local total_illumina=$((count_0001 + count_0003))
+    local log_status_class="success"
+    local log_status_msg="No errors or warnings"
+    
+    if [[ $error_count -gt 0 ]] || [[ $warn_count -gt 0 ]]; then
+        log_status_class="warning"
+        log_status_msg="$error_count error(s), $warn_count warning(s) found in logs"
+    fi
+    if [[ $error_count -gt 0 ]]; then
+        log_status_class="error"
+    fi
+    
+    # Use simpler markers for count_match
+    local count_match_text="Match OK"
+    if [[ "$count_0002" -ne "$count_0003" ]]; then
+        count_match_text="Mismatch!"
+        count_match_class="error"
+    fi
+    
+    sed -i '' \
+        -e "s/SAMPLE_ID/${prefix}/g" \
+        -e "s/GENERATION_DATE/$(date '+%Y-%m-%d %H:%M:%S')/g" \
+        -e "s/SCRIPT_VERSION/${VERSION}/g" \
+        -e "s/COUNT_0000/${count_0000}/g" \
+        -e "s/COUNT_0001/${count_0001}/g" \
+        -e "s/COUNT_0002/${count_0002}/g" \
+        -e "s/TOTAL_NANOPORE/${total_nanopore}/g" \
+        -e "s/TOTAL_ILLUMINA/${total_illumina}/g" \
+        -e "s/LOG_STATUS_CLASS/${log_status_class}/g" \
+        -e "s/LOG_STATUS_MESSAGE/${log_status_msg}/g" \
+        -e "s/LOG_MATCH_CLASS/${count_match_class}/g" \
+        -e "s/COUNT_MATCH_STATUS/${count_match_text}/g" \
+        "$report_file"
+    
+    # Generate tables
+    local haplocheck_html=$(tsv_to_html "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" "none")
+    local table_0000_html=$(tsv_to_html "${isec_dir}/0000.tsv" "disease")
+    local table_0001_html=$(tsv_to_html "${isec_dir}/0001.tsv" "disease")
+    local table_0002_html=$(tsv_to_html "${isec_dir}/0002.tsv" "disease")
+    local table_0003_html=$(tsv_to_html "${isec_dir}/0003.tsv" "disease")
+    
+    # Replace table placeholders using awk (safer for multi-line)
+    awk -v hc="$haplocheck_html" '{gsub(/HAPLOCHECK_TABLE/, hc)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
+    awk -v t0="$table_0000_html" '{gsub(/TABLE_0000/, t0)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
+    awk -v t1="$table_0001_html" '{gsub(/TABLE_0001/, t1)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
+    awk -v t2="$table_0002_html" '{gsub(/TABLE_0002/, t2)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
+    awk -v t3="$table_0003_html" '{gsub(/TABLE_0003/, t3)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
+    
+    _log INFO "HTML report generated successfully: '$report_file'"
+}
+
+tsv_to_html() {
+    local tsv_file="$1"
+    local coloring="$2"  # "disease" or "none"
+    
+    if [[ ! -f "$tsv_file" ]]; then
+        echo "<p>File not found: $tsv_file</p>"
+        return
+    fi
+    
+    local html="<table>"
+    local line_num=0
+    
+    while IFS=$'\t' read -r line; do
+        line_num=$((line_num + 1))
+        
+        if [[ $line_num -eq 1 ]]; then
+            # Header row
+            html+="<thead><tr>"
+            IFS=$'\t' read -ra headers <<< "$line"
+            for header in "${headers[@]}"; do
+                # Remove quotes
+                header="${header//\"/}"
+                html+="<th>${header}</th>"
+            done
+            html+="</tr></thead><tbody>"
+        else
+            # Data row - check for disease status
+            local row_class=""
+            if [[ "$coloring" == "disease" ]]; then
+                if echo "$line" | grep -q 'DiseaseStatus=Cfrm-\[P\]'; then
+                    row_class=' class="pathogenic"'
+                elif echo "$line" | grep -q 'DiseaseStatus=Cfrm-\[LP\]'; then
+                    row_class=' class="likely-pathogenic"'
+                elif echo "$line" | grep -q 'DiseaseStatus=Cfrm-\[B\]'; then
+                    row_class=' class="benign"'
+                fi
+            fi
+            
+            html+="<tr${row_class}>"
+            IFS=$'\t' read -ra fields <<< "$line"
+            for field in "${fields[@]}"; do
+                # Remove quotes and escape HTML
+                field="${field//\"/}"
+                field="${field//&/&amp;}"
+                field="${field//</&lt;}"
+                field="${field//>/&gt;}"
+                html+="<td>${field}</td>"
+            done
+            html+="</tr>"
+        fi
+    done < "$tsv_file"
+    
+    html+="</tbody></table>"
+    echo "$html"
+}
+
 clean_vcf() {
     local input_vcf="$1"
     local output_vcf="$2"
@@ -579,6 +967,13 @@ main() {
     else
         _log WARN "Warning: Directory $ISEC_DIR not found. Skipping TSV conversion."
     fi
+
+    # Generate HTML report
+    _log INFO '********************'
+    _log INFO '* Generating Report *'
+    _log INFO '********************'
+    
+    generate_html_report "$WORKDIR" "$PREFIX" "$ISEC_DIR" "$HPLCHK_DIR" "$LOGFILE"
 
     # Print final messages
     _log INFO '**********'
