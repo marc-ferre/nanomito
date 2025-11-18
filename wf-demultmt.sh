@@ -68,6 +68,18 @@ SAMPLE_ID=$1
 # Read selection strategy (start, both, either ,xor)
 SELECT='both' 
 
+# ----------------------------------------------------------------------------
+# GENOUEST: Source Conda environment as early as possible
+# ----------------------------------------------------------------------------
+set +u  # Temporarily disable unset variable check for conda
+if [ -f /local/env/envconda.sh ]; then
+    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
+    . /local/env/envconda.sh 2>/dev/null || echo "[WARN] Could not source /local/env/envconda.sh"
+else
+    echo "[WARN] Conda init script not found at /local/env/envconda.sh"
+fi
+set -u  # Re-enable unset variable check
+
 # ============================================================================
 # DIRECTORY STRUCTURE
 # ============================================================================
