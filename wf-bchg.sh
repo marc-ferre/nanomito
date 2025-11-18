@@ -295,7 +295,62 @@ else
 	exit 1
 fi
 
-log_step "5/6: CONVERTING BAM TO FASTQ"
+log_step "5/7: SAMPLE SHEET VALIDATION"
+STEP_START=$(date +%s)
+log_info "Validating sample sheet format"
+
+# Read CSV header to get column names
+IFS=, read -ra HEADER < "$SAMPLESHEET_FILE"
+log_info "Sample sheet columns: ${HEADER[*]}"
+
+# Check required columns (per Dorado spec)
+REQUIRED_COLS=("kit" "experiment_id")
+MISSING_COLS=()
+for col in "${REQUIRED_COLS[@]}"; do
+    if ! printf '%s\n' "${HEADER[@]}" | grep -qx "$col"; then
+        MISSING_COLS+=("$col")
+    fi
+done
+
+# Check at least one of flow_cell_id or position_id is present
+if ! printf '%s\n' "${HEADER[@]}" | grep -qx "flow_cell_id" && \
+   ! printf '%s\n' "${HEADER[@]}" | grep -qx "position_id"; then
+    MISSING_COLS+=("flow_cell_id OR position_id")
+fi
+
+if [ ${#MISSING_COLS[@]} -gt 0 ]; then
+    log_error "Missing required columns: ${MISSING_COLS[*]}"
+    log_error "Dorado requires: kit, experiment_id, and (flow_cell_id OR position_id)"
+    exit 128
+fi
+
+log_success "Sample sheet contains all required columns"
+
+# Find column indices for barcode and alias (if present)
+BARCODE_COL=-1
+ALIAS_COL=-1
+for i in "${!HEADER[@]}"; do
+    if [ "${HEADER[$i]}" = "barcode" ]; then
+        BARCODE_COL=$i
+        log_info "Found 'barcode' column at index $BARCODE_COL"
+    elif [ "${HEADER[$i]}" = "alias" ]; then
+        ALIAS_COL=$i
+        log_info "Found 'alias' column at index $ALIAS_COL"
+    fi
+done
+
+if [ $BARCODE_COL -eq -1 ]; then
+    log_warning "No 'barcode' column found - barcode aliasing will not be available"
+fi
+if [ $ALIAS_COL -eq -1 ]; then
+    log_warning "No 'alias' column found - barcode aliasing will not be available"
+fi
+
+STEP_END=$(date +%s)
+STEP_RUNTIME=$((STEP_END - STEP_START))
+log_info "Validation duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
+
+log_step "6/7: CONVERTING BAM TO FASTQ"
 CONVERT_START=$(date +%s)
 
 # Source Conda for Genouest cluster compute node
@@ -343,7 +398,7 @@ log_info "Cleaning up BAM files..."
 rm -rf "$BAM_DIR"
 log_success "BAM files removed"
 
-log_step "6/6: COMPRESSION"
+log_step "7/7: COMPRESSION"
 STEP_START=$(date +%s)
 log_info "Compressing FASTQ files in $FASTQ_DIR"
 
@@ -384,25 +439,39 @@ STEP_RUNTIME=$((STEP_END - STEP_START))
 log_success "Compression completed"
 log_info "Compression duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
-log_step "7/7: ORGANIZATION"
+log_step "8/8: ORGANIZATION"
 STEP_START=$(date +%s)
 log_info "Organizing files into sample directories"
 
-# Build barcode to alias mapping from sample sheet
+# Build barcode to alias mapping from sample sheet (if barcode and alias columns exist)
 declare -A BARCODE_ALIAS
-if [ -f "$SAMPLESHEET_FILE" ]; then
-	log_info "Reading sample sheet for alias mapping"
-	# Read CSV: use _ prefix for unused variables to satisfy shellcheck
-	while IFS=, read -r _protocol_run_id _position_id _flow_cell_id _sample_id _experiment_id _flow_cell_product_code _kit barcode alias _type; do
-		# Skip header and empty lines
-		[[ "$barcode" == "barcode" ]] && continue
-		[[ -z "$barcode" ]] && continue
+if [ -f "$SAMPLESHEET_FILE" ] && [ $BARCODE_COL -ge 0 ] && [ $ALIAS_COL -ge 0 ]; then
+	log_info "Reading sample sheet for barcode→alias mapping"
+	
+	# Read CSV dynamically using column indices
+	while IFS=, read -ra COLS; do
+		# Skip header line
+		if [ "${COLS[$BARCODE_COL]}" = "barcode" ]; then
+			continue
+		fi
+		
+		# Extract barcode and alias by column index
+		BARCODE="${COLS[$BARCODE_COL]}"
+		ALIAS="${COLS[$ALIAS_COL]}"
+		
+		# Skip empty lines
+		[[ -z "$BARCODE" ]] && continue
+		
 		# Store mapping: barcode -> alias
-		BARCODE_ALIAS["$barcode"]="$alias"
-		log_info "Mapped $barcode -> $alias"
-	done < <(tail -n +2 "$SAMPLESHEET_FILE")
+		BARCODE_ALIAS["$BARCODE"]="$ALIAS"
+		log_info "Mapped $BARCODE → $ALIAS"
+	done < "$SAMPLESHEET_FILE"
 else
-	log_warning "Sample sheet not found, using default directory names"
+	if [ ! -f "$SAMPLESHEET_FILE" ]; then
+		log_warning "Sample sheet not found, using default directory names"
+	elif [ $BARCODE_COL -eq -1 ] || [ $ALIAS_COL -eq -1 ]; then
+		log_warning "Sample sheet lacks 'barcode' or 'alias' column, using default directory names"
+	fi
 fi
 
 cd "$FASTQ_DIR" || exit
@@ -418,18 +487,21 @@ for FILE in *.fastq.gz; do
 		BARCODE="unclassified"
 	fi
 	
-	# Determine directory name: use alias if available, otherwise use extracted name
+	# Determine directory name: use alias if available, otherwise use barcode name
 	if [ -n "$BARCODE" ] && [ -n "${BARCODE_ALIAS[$BARCODE]:-}" ]; then
 		DIR="${BARCODE_ALIAS[$BARCODE]}"
 		log_info "Using alias for $BARCODE: $DIR"
 	elif [[ "$FILE" =~ unclassified ]]; then
 		DIR="unclassified"
-		log_info "Using default name for unclassified: $DIR"
+		log_info "Using barcode name for unclassified: $DIR"
+	elif [ -n "$BARCODE" ]; then
+		DIR="$BARCODE"
+		log_info "No alias found, using barcode name: $DIR"
 	else
-		# Fallback to old behavior
+		# Ultimate fallback: extract from filename
 		DIR=${FILE#*_}
 		DIR=${DIR%%.*}
-		log_warning "No alias found for $FILE, using default: $DIR"
+		log_warning "Could not extract barcode from $FILE, using default: $DIR"
 	fi
 	
 	mkdir -p "$DIR"
