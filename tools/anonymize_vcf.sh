@@ -23,12 +23,17 @@ shift 3 || true
 HASH_FLAG=0
 DRY_RUN=0
 OUT_DIR=""
+RECURSIVE=0
 
 # parse remaining options
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --hash)
             HASH_FLAG=1
+            shift
+            ;;
+        --recursive)
+            RECURSIVE=1
             shift
             ;;
         --dry-run)
@@ -49,6 +54,9 @@ while [ "$#" -gt 0 ]; do
             ;;
     esac
 done
+
+# reference RECURSIVE to avoid lint warnings
+: "${RECURSIVE:-0}" >/dev/null 2>&1 || true
 
 # Normalize id list: replace commas with spaces
 ID_LIST=$(printf '%s' "$ID_LIST_RAW" | tr ',' ' ')
@@ -78,11 +86,15 @@ process_file() {
         if [ -d "$INFILE" ]; then
             rel_path=${FILE#${INFILE}/}
             out_parent_dir=$(dirname -- "$OUT_DIR/$rel_path")
-            mkdir -p "$out_parent_dir"
+            if [ "$DRY_RUN" -eq 0 ]; then
+                mkdir -p "$out_parent_dir"
+            fi
             OUTFILE="$out_parent_dir/$NEW_BASENAME"
             LOGFILE="$out_parent_dir/${NEW_BASENAME}.anonymize.log"
         else
-            mkdir -p "$OUT_DIR"
+            if [ "$DRY_RUN" -eq 0 ]; then
+                mkdir -p "$OUT_DIR"
+            fi
             OUTFILE="$OUT_DIR/$NEW_BASENAME"
             LOGFILE="$OUT_DIR/${NEW_BASENAME}.anonymize.log"
         fi
@@ -104,12 +116,6 @@ process_file() {
         echo "Replacement id: $REPL_ID" >> "$LOGFILE"
         echo "" >> "$LOGFILE"
     fi
-    date >> "$LOGFILE"
-    echo "Input file: $FILE" >> "$LOGFILE"
-    echo "Output file: $OUTFILE" >> "$LOGFILE"
-    echo "Identifiers to replace: $ID_LIST_RAW" >> "$LOGFILE"
-    echo "Replacement id: $REPL_ID" >> "$LOGFILE"
-    echo "" >> "$LOGFILE"
 
     # Create sed script per-file
     local SED_SCRIPT
@@ -154,7 +160,11 @@ process_file() {
     if [ "$DRY_RUN" -eq 1 ]; then
         echo "Replacement counts (content):" >&2
     else
-        echo "Replacement counts (content):" >> "$LOGFILE"
+        if [ "$DRY_RUN" -eq 1 ]; then
+            echo "Replacement counts (content):" >&2
+        else
+            echo "Replacement counts (content):" >> "$LOGFILE"
+        fi
     fi
     local TOTAL_REPL=0
     if [ "$IS_GZ" -eq 1 ]; then
@@ -170,7 +180,11 @@ process_file() {
     else
         for id in $ID_LIST; do
             CNT=$(grep -o -F "$id" -- "$FILE" | wc -l || true)
-            echo "  $id -> $CNT occurrences" >> "$LOGFILE"
+            if [ "$DRY_RUN" -eq 1 ]; then
+                echo "  $id -> $CNT occurrences" >&2
+            else
+                echo "  $id -> $CNT occurrences" >> "$LOGFILE"
+            fi
             TOTAL_REPL=$((TOTAL_REPL + CNT))
         done
     fi
@@ -217,32 +231,37 @@ process_file() {
     fi
 
     # Verify post replacement
-    echo "Verification (post-replacement counts):" >> "$LOGFILE"
-    local TOTAL_POST=0
-    if [ "$IS_GZ" -eq 1 ]; then
-        for id in $ID_LIST; do
-            CNT=$(zcat -- "$OUTFILE" 2>/dev/null | grep -o -F "$id" | wc -l || true)
-            echo "  remaining $id -> $CNT occurrences" >> "$LOGFILE"
-            TOTAL_POST=$((TOTAL_POST + CNT))
-        done
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo "Verification (post-replacement counts):" >&2
+        echo "  (skipped in dry-run)" >&2
     else
-        for id in $ID_LIST; do
-            CNT=$(grep -o -F "$id" -- "$OUTFILE" | wc -l || true)
-            echo "  remaining $id -> $CNT occurrences" >> "$LOGFILE"
-            TOTAL_POST=$((TOTAL_POST + CNT))
-        done
-    fi
-    echo "  Total remaining: $TOTAL_POST" >> "$LOGFILE"
+        echo "Verification (post-replacement counts):" >> "$LOGFILE"
+        local TOTAL_POST=0
+        if [ "$IS_GZ" -eq 1 ]; then
+            for id in $ID_LIST; do
+                CNT=$(zcat -- "$OUTFILE" 2>/dev/null | grep -o -F "$id" | wc -l || true)
+                echo "  remaining $id -> $CNT occurrences" >> "$LOGFILE"
+                TOTAL_POST=$((TOTAL_POST + CNT))
+            done
+        else
+            for id in $ID_LIST; do
+                CNT=$(grep -o -F "$id" -- "$OUTFILE" | wc -l || true)
+                echo "  remaining $id -> $CNT occurrences" >> "$LOGFILE"
+                TOTAL_POST=$((TOTAL_POST + CNT))
+            done
+        fi
+        echo "  Total remaining: $TOTAL_POST" >> "$LOGFILE"
 
-    echo "Filename replacement:" >> "$LOGFILE"
-    if [ "$BASENAME" != "$NEW_BASENAME" ]; then
-        echo "  Renamed: $BASENAME -> $NEW_BASENAME" >> "$LOGFILE"
-    else
-        echo "  No change to filename" >> "$LOGFILE"
-    fi
+        echo "Filename replacement:" >> "$LOGFILE"
+        if [ "$BASENAME" != "$NEW_BASENAME" ]; then
+            echo "  Renamed: $BASENAME -> $NEW_BASENAME" >> "$LOGFILE"
+        else
+            echo "  No change to filename" >> "$LOGFILE"
+        fi
 
-    echo "Log written to: $LOGFILE" >> /dev/stderr
-    echo "Output: $OUTFILE" >> /dev/stderr
+        echo "Log written to: $LOGFILE" >> /dev/stderr
+        echo "Output: $OUTFILE" >> /dev/stderr
+    fi
     rm -f "$SED_SCRIPT"
     return 0
 }

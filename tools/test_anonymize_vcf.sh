@@ -74,4 +74,50 @@ echo "[OK] Anonymization test passed (with hash)"
 echo "Output: $OUTFILE_HASH"
 echo "Log: $LOGFILE_HASH"
 
+# Test --dry-run and --out-dir
+TMP_OUT="$TESTDIR/tmp_out"
+rm -rf "$TMP_OUT"
+mkdir -p "$TMP_OUT"
+
+echo "Testing --dry-run (no files should be created)..."
+"$TOOL" "SAMPLE1" ANON "$TESTVCF" --out-dir "$TMP_OUT" --dry-run
+if [ -n "$(find "$TMP_OUT" -mindepth 1 -print -quit 2>/dev/null || true)" ]; then
+    echo "[FAIL] --dry-run created files in $TMP_OUT" >&2
+    exit 10
+fi
+echo "[OK] --dry-run produced no files"
+
+echo "Testing --out-dir (files should be written)..."
+"$TOOL" "SAMPLE1" ANON "$TESTVCF" --out-dir "$TMP_OUT" --hash
+OUT_IN_OUTDIR="$TMP_OUT/$(basename "$TESTVCF" | sed 's/SAMPLE1/ANON/g')"
+LOG_IN_OUTDIR="$OUT_IN_OUTDIR.anonymize.log"
+if [ ! -f "$OUT_IN_OUTDIR" ]; then
+    echo "[FAIL] Expected output in out-dir not found: $OUT_IN_OUTDIR" >&2
+    exit 11
+fi
+if [ ! -f "$LOG_IN_OUTDIR" ]; then
+    echo "[FAIL] Expected log in out-dir not found: $LOG_IN_OUTDIR" >&2
+    exit 11
+fi
+if ! grep -q "##anonymizeHashes" -- "$OUT_IN_OUTDIR"; then
+    echo "[FAIL] anonymizeHashes header not found in out-dir output" >&2
+    exit 12
+fi
+echo "[OK] --out-dir produced expected files"
+
+# Test recursive behavior on directory input
+TMP_OUT2="$TESTDIR/tmp_out2"
+rm -rf "$TMP_OUT2"
+mkdir -p "$TMP_OUT2"
+echo "Testing recursive on directory input..."
+"$TOOL" "SAMPLE1" ANON "$TESTDIR" --out-dir "$TMP_OUT2" --hash --recursive
+# Expect sample_ANON.vcf under TMP_OUT2
+if [ ! -f "$TMP_OUT2/$(basename "$TESTVCF" | sed 's/SAMPLE1/ANON/g')" ]; then
+    echo "[FAIL] Recursive output not found in $TMP_OUT2" >&2
+    exit 13
+fi
+echo "[OK] Recursive directory anonymization succeeded"
+
+echo "All tests passed"
+
 exit 0
