@@ -61,6 +61,21 @@ done
 # Normalize id list: replace commas with spaces
 ID_LIST=$(printf '%s' "$ID_LIST_RAW" | tr ',' ' ')
 
+# helper: compute a short deterministic hash for a string (used for log filenames)
+compute_short_hash() {
+    local s="$1"
+    if command -v sha256sum >/dev/null 2>&1; then
+        echo -n "$s" | sha256sum | awk '{print substr($1,1,12)}'
+    elif command -v shasum >/dev/null 2>&1; then
+        echo -n "$s" | shasum -a 256 | awk '{print substr($1,1,12)}'
+    elif command -v md5 >/dev/null 2>&1; then
+        echo -n "$s" | md5 | awk '{print substr($1,1,12)}'
+    else
+        # fallback: timestamp+pid (not deterministic across runs)
+        date +%s%N-$$
+    fi
+}
+
 # Define function to process a single file
 process_file() {
     local FILE="$1"
@@ -91,14 +106,17 @@ process_file() {
             fi
             OUTFILE="$out_parent_dir/$NEW_BASENAME"
             # write logs to the original (source) directory, not to the anonymized out dir
-            LOGFILE="$DIRNAME/${BASENAME}.anonymize.log"
+            # Use a short deterministic hash of the original basename to avoid leaking identifiers
+            LOG_HASH=$(compute_short_hash "$BASENAME")
+            LOGFILE="$DIRNAME/anonymize-${LOG_HASH}.anonymize.log"
         else
             if [ "$DRY_RUN" -eq 0 ]; then
                 mkdir -p "$OUT_DIR"
             fi
             OUTFILE="$OUT_DIR/$NEW_BASENAME"
             # write logs to the original (source) directory
-            LOGFILE="$DIRNAME/${BASENAME}.anonymize.log"
+            LOG_HASH=$(compute_short_hash "$BASENAME")
+            LOGFILE="$DIRNAME/anonymize-${LOG_HASH}.anonymize.log"
         fi
     else
         OUTFILE="$DIRNAME/$NEW_BASENAME"
