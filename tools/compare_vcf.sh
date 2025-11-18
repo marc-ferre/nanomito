@@ -224,6 +224,7 @@ generate_html_report() {
         .stat-card.illumina { border-left-color: #3498db; }
         .stat-card.shared { border-left-color: #2ecc71; }
         .stat-card.haplogroup { border-left-color: #9b59b6; }
+        .stat-card.total { border-left-color: #95a5a6; }
         .stat-label {
             font-size: 0.85em;
             color: #7f8c8d;
@@ -351,11 +352,11 @@ generate_html_report() {
                     <div class="stat-label">Shared Variants</div>
                     <div class="stat-value">COUNT_0002</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card total">
                     <div class="stat-label">Total Nanopore</div>
                     <div class="stat-value">TOTAL_NANOPORE</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card total">
                     <div class="stat-label">Total Illumina</div>
                     <div class="stat-value">TOTAL_ILLUMINA</div>
                 </div>
