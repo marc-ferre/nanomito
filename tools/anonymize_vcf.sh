@@ -13,16 +13,41 @@ if [ "$#" -lt 3 ]; then
     exit 2
 fi
 
+# read positional
 ID_LIST_RAW="$1"
 REPL_ID="$2"
 INFILE="$3"
 shift 3 || true
 
+# defaults for options
 HASH_FLAG=0
-for arg in "$@"; do
-    if [ "$arg" = "--hash" ]; then
-        HASH_FLAG=1
-    fi
+DRY_RUN=0
+OUT_DIR=""
+
+# parse remaining options
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --hash)
+            HASH_FLAG=1
+            shift
+            ;;
+        --dry-run)
+            DRY_RUN=1
+            shift
+            ;;
+        --out-dir)
+            if [ $# -lt 2 ]; then
+                echo "--out-dir requires a directory argument" >&2
+                exit 2
+            fi
+            OUT_DIR="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 2
+            ;;
+    esac
 done
 
 # Normalize id list: replace commas with spaces
@@ -45,10 +70,40 @@ process_file() {
         esc_id=$(printf '%s' "$id" | sed -e 's/[\/&]/\\&/g')
         NEW_BASENAME=$(printf '%s' "$NEW_BASENAME" | sed -e "s/$esc_id/$REPL_ID/g")
     done
-    local OUTFILE="$DIRNAME/$NEW_BASENAME"
-    local LOGFILE="$DIRNAME/${NEW_BASENAME}.anonymize.log"
+    # Determine output locations depending on OUT_DIR and whether input was a directory
+    local OUTFILE
+    local LOGFILE
+    if [ -n "$OUT_DIR" ]; then
+        # if the original INFILE was a directory, preserve relative paths
+        if [ -d "$INFILE" ]; then
+            rel_path=${FILE#${INFILE}/}
+            out_parent_dir=$(dirname -- "$OUT_DIR/$rel_path")
+            mkdir -p "$out_parent_dir"
+            OUTFILE="$out_parent_dir/$NEW_BASENAME"
+            LOGFILE="$out_parent_dir/${NEW_BASENAME}.anonymize.log"
+        else
+            mkdir -p "$OUT_DIR"
+            OUTFILE="$OUT_DIR/$NEW_BASENAME"
+            LOGFILE="$OUT_DIR/${NEW_BASENAME}.anonymize.log"
+        fi
+    else
+        OUTFILE="$DIRNAME/$NEW_BASENAME"
+        LOGFILE="$DIRNAME/${NEW_BASENAME}.anonymize.log"
+    fi
 
-    echo "[INFO] Anonymize VCF" > "$LOGFILE"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo "[DRY-RUN] Would anonymize: $FILE -> $OUTFILE"
+        echo "  Replace IDs: $ID_LIST_RAW -> $REPL_ID"
+        # still compute counts and hashes for info below, but do not write files or logs
+    else
+        echo "[INFO] Anonymize VCF" > "$LOGFILE"
+        date >> "$LOGFILE"
+        echo "Input file: $FILE" >> "$LOGFILE"
+        echo "Output file: $OUTFILE" >> "$LOGFILE"
+        echo "Identifiers to replace: $ID_LIST_RAW" >> "$LOGFILE"
+        echo "Replacement id: $REPL_ID" >> "$LOGFILE"
+        echo "" >> "$LOGFILE"
+    fi
     date >> "$LOGFILE"
     echo "Input file: $FILE" >> "$LOGFILE"
     echo "Output file: $OUTFILE" >> "$LOGFILE"
@@ -74,24 +129,42 @@ process_file() {
             rm -f "$SED_SCRIPT"
             return 1
         fi
-        echo "Identifier hashes:" >> "$LOGFILE"
+        if [ "$DRY_RUN" -eq 1 ]; then
+            echo "Identifier hashes:" >&2
+        else
+            echo "Identifier hashes:" >> "$LOGFILE"
+        fi
         local HASHES_LIST=()
         for id in $ID_LIST; do
             H=$(printf '%s' "$id" | $SHA_CMD | awk '{print $1}')
             HASHES_LIST+=("$H")
-            echo "  $id -> $H" >> "$LOGFILE"
+            if [ "$DRY_RUN" -eq 1 ]; then
+                echo "  $id -> $H" >&2
+            else
+                echo "  $id -> $H" >> "$LOGFILE"
+            fi
         done
         HASHES_JOINED=$(IFS=,; printf '%s' "${HASHES_LIST[*]}")
-        echo "" >> "$LOGFILE"
+        if [ "$DRY_RUN" -eq 0 ]; then
+            echo "" >> "$LOGFILE"
+        fi
     fi
 
     # Count occurrences
-    echo "Replacement counts (content):" >> "$LOGFILE"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo "Replacement counts (content):" >&2
+    else
+        echo "Replacement counts (content):" >> "$LOGFILE"
+    fi
     local TOTAL_REPL=0
     if [ "$IS_GZ" -eq 1 ]; then
         for id in $ID_LIST; do
             CNT=$(zcat -- "$FILE" 2>/dev/null | grep -o -F "$id" | wc -l || true)
-            echo "  $id -> $CNT occurrences" >> "$LOGFILE"
+            if [ "$DRY_RUN" -eq 1 ]; then
+                echo "  $id -> $CNT occurrences" >&2
+            else
+                echo "  $id -> $CNT occurrences" >> "$LOGFILE"
+            fi
             TOTAL_REPL=$((TOTAL_REPL + CNT))
         done
     else
@@ -101,8 +174,13 @@ process_file() {
             TOTAL_REPL=$((TOTAL_REPL + CNT))
         done
     fi
-    echo "  Total occurrences: $TOTAL_REPL" >> "$LOGFILE"
-    echo "" >> "$LOGFILE"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo "  Total occurrences: $TOTAL_REPL" >&2
+        echo "" >&2
+    else
+        echo "  Total occurrences: $TOTAL_REPL" >> "$LOGFILE"
+        echo "" >> "$LOGFILE"
+    fi
 
     # Perform replacement and add header metadata
     DATE_NOW=$(date --utc +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
@@ -115,21 +193,26 @@ process_file() {
     fi
     INFO_LINE="##INFO=<ID=ANON,Number=0,Type=Flag,Description=\"This VCF has been anonymized: original identifiers replaced. See log: $LOGFILE\">"
 
-    if [ "$IS_GZ" -eq 1 ]; then
-        if zcat -- "$FILE" | sed -f "$SED_SCRIPT" | awk -v meta="$META_LINE" -v info="$INFO_LINE" -v mh="$META_HASH_LINE" 'BEGIN{printed=0} /^#CHROM/ { if(!printed){ print meta; if(mh!=""){ print mh }; print info; printed=1 } print; next } { print }' | gzip > "$OUTFILE"; then
-            echo "[OK] Wrote anonymized gz VCF to $OUTFILE" >> "$LOGFILE"
-        else
-            echo "[ERROR] Failed to write anonymized gz VCF" >> "$LOGFILE"
-            rm -f "$SED_SCRIPT"
-            return 1
-        fi
+    if [ "$DRY_RUN" -eq 1 ]; then
+        # do not write files
+        echo "[DRY-RUN] Would write: $OUTFILE" >&2
     else
-        if sed -f "$SED_SCRIPT" -- "$FILE" | awk -v meta="$META_LINE" -v info="$INFO_LINE" -v mh="$META_HASH_LINE" 'BEGIN{printed=0} /^#CHROM/ { if(!printed){ print meta; if(mh!=""){ print mh }; print info; printed=1 } print; next } { print }' > "$OUTFILE"; then
-            echo "[OK] Wrote anonymized VCF to $OUTFILE" >> "$LOGFILE"
+        if [ "$IS_GZ" -eq 1 ]; then
+            if zcat -- "$FILE" | sed -f "$SED_SCRIPT" | awk -v meta="$META_LINE" -v info="$INFO_LINE" -v mh="$META_HASH_LINE" 'BEGIN{printed=0} /^#CHROM/ { if(!printed){ print meta; if(mh!=""){ print mh }; print info; printed=1 } print; next } { print }' | gzip > "$OUTFILE"; then
+                echo "[OK] Wrote anonymized gz VCF to $OUTFILE" >> "$LOGFILE"
+            else
+                echo "[ERROR] Failed to write anonymized gz VCF" >> "$LOGFILE"
+                rm -f "$SED_SCRIPT"
+                return 1
+            fi
         else
-            echo "[ERROR] Failed to write anonymized VCF" >> "$LOGFILE"
-            rm -f "$SED_SCRIPT"
-            return 1
+            if sed -f "$SED_SCRIPT" -- "$FILE" | awk -v meta="$META_LINE" -v info="$INFO_LINE" -v mh="$META_HASH_LINE" 'BEGIN{printed=0} /^#CHROM/ { if(!printed){ print meta; if(mh!=""){ print mh }; print info; printed=1 } print; next } { print }' > "$OUTFILE"; then
+                echo "[OK] Wrote anonymized VCF to $OUTFILE" >> "$LOGFILE"
+            else
+                echo "[ERROR] Failed to write anonymized VCF" >> "$LOGFILE"
+                rm -f "$SED_SCRIPT"
+                return 1
+            fi
         fi
     fi
 
