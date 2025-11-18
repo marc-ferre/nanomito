@@ -15,13 +15,16 @@ Usage: $0 <id_list> <replacement_id> <vcf_file>
   id_list         Comma- or space-separated list of identifiers to anonymize
   replacement_id  Replacement identifier
   vcf_file        Input VCF file (.vcf or .vcf.gz)
+    Optional fourth arg: --hash  Compute SHA256 hashes of original identifiers and
+                                                     include hashes in VCF header (log still contains mapping)
 
 Example:
   $0 "SAMPLE1,SAMPLE2" anonymized sample.vcf.gz
 EOF
 }
 
-if [ "$#" -ne 3 ]; then
+HASH_FLAG=0
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
     print_usage
     exit 2
 fi
@@ -29,6 +32,15 @@ fi
 ID_LIST_RAW="$1"
 REPL_ID="$2"
 INFILE="$3"
+if [ "$#" -eq 4 ]; then
+    if [ "$4" = "--hash" ] || [ "$4" = "hash" ]; then
+        HASH_FLAG=1
+    else
+        echo "[ERROR] Unknown fourth argument: $4" >&2
+        print_usage
+        exit 2
+    fi
+fi
 
 if [ ! -f "$INFILE" ]; then
     echo "[ERROR] Input file not found: $INFILE" >&2
@@ -77,6 +89,28 @@ for id in $ID_LIST; do
     printf 's/%s/%s/g\n' "$esc" "$REPL_ID" >> "$SED_SCRIPT"
 done
 
+# If hash flag set, compute SHA256 per id (for header) and log mapping
+if [ "$HASH_FLAG" -eq 1 ]; then
+    # find available sha256 command
+    if command -v sha256sum >/dev/null 2>&1; then
+        SHA_CMD="sha256sum"
+    elif command -v shasum >/dev/null 2>&1; then
+        SHA_CMD="shasum -a 256"
+    else
+        echo "[ERROR] No SHA256 command found (sha256sum or shasum)" >&2
+        exit 1
+    fi
+    echo "Identifier hashes:" >> "$LOGFILE"
+    HASHES_LIST=()
+    for id in $ID_LIST; do
+        H=$(printf '%s' "$id" | $SHA_CMD | awk '{print $1}')
+        HASHES_LIST+=("$H")
+        echo "  $id -> $H" >> "$LOGFILE"
+    done
+    HASHES_JOINED=$(IFS=,; printf '%s' "${HASHES_LIST[*]}")
+    echo "" >> "$LOGFILE"
+fi
+
 # Count replacements per id in file content
 echo "Replacement counts (content):" >> "$LOGFILE"
 TOTAL_REPL=0
@@ -104,9 +138,14 @@ if [ "$IS_GZ" -eq 1 ]; then
     DATE_NOW=$(date --utc +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
     NUM_IDS=$(printf '%s' "$ID_LIST" | wc -w)
     META_LINE="##anonymizeCommand=<Date=\"$DATE_NOW\",Tool=\"anonymize_vcf.sh\",Args=\"count=$NUM_IDS,replacement=\'$REPL_ID\'\",Log=\"$LOGFILE\">"
+    if [ "$HASH_FLAG" -eq 1 ]; then
+        META_HASH_LINE="##anonymizeHashes=<Algorithm=\"SHA256\",Count=\"$NUM_IDS\",Hashes=\"$HASHES_JOINED\">"
+    else
+        META_HASH_LINE=""
+    fi
     INFO_LINE="##INFO=<ID=ANON,Number=0,Type=Flag,Description=\"This VCF has been anonymized: original identifiers replaced. See log: $LOGFILE\">"
 
-    if zcat -- "$INFILE" | sed -f "$SED_SCRIPT" | awk -v meta="$META_LINE" -v info="$INFO_LINE" 'BEGIN{printed=0} /^#CHROM/ { if(!printed){ print meta; print info; printed=1 } print; next } { print }' | gzip > "$OUTFILE"; then
+    if zcat -- "$INFILE" | sed -f "$SED_SCRIPT" | awk -v meta="$META_LINE" -v info="$INFO_LINE" -v mh="$META_HASH_LINE" 'BEGIN{printed=0} /^#CHROM/ { if(!printed){ print meta; if(mh!=""){ print mh }; print info; printed=1 } print; next } { print }' | gzip > "$OUTFILE"; then
         echo "[OK] Wrote anonymized gz VCF to $OUTFILE" >> "$LOGFILE"
     else
         echo "[ERROR] Failed to write anonymized gz VCF" >> "$LOGFILE"
@@ -116,9 +155,14 @@ else
     DATE_NOW=$(date --utc +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
     NUM_IDS=$(printf '%s' "$ID_LIST" | wc -w)
     META_LINE="##anonymizeCommand=<Date=\"$DATE_NOW\",Tool=\"anonymize_vcf.sh\",Args=\"count=$NUM_IDS,replacement=\'$REPL_ID\'\",Log=\"$LOGFILE\">"
+    if [ "$HASH_FLAG" -eq 1 ]; then
+        META_HASH_LINE="##anonymizeHashes=<Algorithm=\"SHA256\",Count=\"$NUM_IDS\",Hashes=\"$HASHES_JOINED\">"
+    else
+        META_HASH_LINE=""
+    fi
     INFO_LINE="##INFO=<ID=ANON,Number=0,Type=Flag,Description=\"This VCF has been anonymized: original identifiers replaced. See log: $LOGFILE\">"
 
-    if sed -f "$SED_SCRIPT" -- "$INFILE" | awk -v meta="$META_LINE" -v info="$INFO_LINE" 'BEGIN{printed=0} /^#CHROM/ { if(!printed){ print meta; print info; printed=1 } print; next } { print }' > "$OUTFILE"; then
+    if sed -f "$SED_SCRIPT" -- "$INFILE" | awk -v meta="$META_LINE" -v info="$INFO_LINE" -v mh="$META_HASH_LINE" 'BEGIN{printed=0} /^#CHROM/ { if(!printed){ print meta; if(mh!=""){ print mh }; print info; printed=1 } print; next } { print }' > "$OUTFILE"; then
         echo "[OK] Wrote anonymized VCF to $OUTFILE" >> "$LOGFILE"
     else
         echo "[ERROR] Failed to write anonymized VCF" >> "$LOGFILE"
