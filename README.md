@@ -1,6 +1,11 @@
 # Nanomito
 
 Comprehensive SLURM workflows for full-length single-molecule sequencing of mitochondrial DNA using Oxford Nanopore Technology.
+**Logs And Anonymization**
+- **Log format:** : Les fichiers de log générés par `tools/anonymize_vcf.sh` utilisent l'extension `.log` et prennent le même nom que la version anonymisée du VCF (ex. `240503_DEL-1.ann.log`). Ils sont écrits dans le dossier source (à côté du VCF original) afin d'éviter d'écraser les données anonymisées dans `--out-dir`.
+- **Script utilitaire:** : `tools/fix_anonymized_headers.sh` est un petit utilitaire facultatif qui peut réécrire la valeur `Log="..."` dans l'en-tête `##anonymizeCommand` des VCF anonymisés pour pointer vers le log présent dans le dossier source. Il est utile si vous avez déplacé des fichiers et que les chemins des logs dans les en-têtes ne sont plus valides.
+- **Sécurité & sauvegardes:** : Le script crée des sauvegardes `.bak` avant modification. Par défaut il ne modifie que les VCF non compressés et utilise une heuristique de correspondance par nom de fichier (il skippe si la correspondance n'est pas unique). Utilisez `--dry-run` (ou vérifiez d'abord) si vous voulez inspecter les changements avant application.
+
 
 ## Overview
 
