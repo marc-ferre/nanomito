@@ -146,11 +146,15 @@ generate_html_report() {
     count_0002=$(tail -n +2 "${isec_dir}/0002.tsv" 2>/dev/null | wc -l | xargs)
     count_0003=$(tail -n +2 "${isec_dir}/0003.tsv" 2>/dev/null | wc -l | xargs)
     
-    # Check for errors and warnings in log (grep -c always succeeds, returns 0 if no match)
+    # Check for errors and warnings in log (count only actual timestamped log lines)
+    # When the script is run with 'set -x' the shell trace ('+' lines) can be redirected
+    # into the same logfile and contain the literal '[ERROR]' or '[WARN]' tokens.
+    # To avoid counting those trace lines we only count lines that start with the
+    # timestamp format produced by _log: '[YYYY-MM-DD HH:MM:SS] [LEVEL] ...'
     local error_count
     local warn_count
-    error_count=$(grep -c '\[ERROR\]' "$log_file" 2>/dev/null | xargs)
-    warn_count=$(grep -c '\[WARN\]' "$log_file" 2>/dev/null | xargs)
+    error_count=$(grep -E -c '^\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\] \[ERROR\]' "$log_file" 2>/dev/null || true)
+    warn_count=$(grep -E -c '^\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\] \[WARN\]' "$log_file" 2>/dev/null || true)
     
     # Extract haplogroups from haplocheck summary (column 10: "Major Haplogroup")
     local haplogroup_nanopore
