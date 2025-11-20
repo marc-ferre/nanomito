@@ -521,11 +521,13 @@ tsv_to_html() {
             local row_class=""
             if [[ "$coloring" == "disease" ]]; then
                 # Check for DiseaseStatus values in TSV columns
-                if echo "$line" | grep -qE '\tCfrm-\[P\](\t|$)'; then
+                # DiseaseStatus may contain multiple comma-separated tags
+                # e.g. "Cfrm-[P],Cfrm-[LP]" — accept P/LP/B followed by comma, tab or EOL
+                if echo "$line" | grep -qE '\tCfrm-\[P\](,|\t|$)'; then
                     row_class=' class="pathogenic"'
-                elif echo "$line" | grep -qE '\tCfrm-\[LP\](\t|$)'; then
+                elif echo "$line" | grep -qE '\tCfrm-\[LP\](,|\t|$)'; then
                     row_class=' class="likely-pathogenic"'
-                elif echo "$line" | grep -qE '\tCfrm-\[B\](\t|$)'; then
+                elif echo "$line" | grep -qE '\tCfrm-\[B\](,|\t|$)'; then
                     row_class=' class="benign"'
                 fi
             fi
