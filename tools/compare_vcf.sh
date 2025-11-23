@@ -442,11 +442,8 @@ EOF
     local total_nanopore=$((count_0000 + count_0002))
     local total_illumina=$((count_0001 + count_0003))
     local total_variants=$((count_0000 + count_0001 + count_0002))
-    local disease_count
-    disease_count=$(grep -h 'Cfrm-\[P\]\|Cfrm-\[LP\]\|Cfrm-\[B\]' "${isec_dir}/0000.tsv" "${isec_dir}/0001.tsv" "${isec_dir}/0002.tsv" 2>/dev/null | wc -l)
-    local deletion_count
-    deletion_count=$(grep -h '^<DEL' "${isec_dir}/0000.tsv" "${isec_dir}/0001.tsv" "${isec_dir}/0002.tsv" 2>/dev/null | wc -l)
-    local highlighted_count=$((disease_count + deletion_count))
+    local highlighted_count
+    highlighted_count=$(awk 'NR>1 && ($10 ~ /Cfrm-\[P\]/ || $10 ~ /Cfrm-\[LP\]/ || $10 ~ /Cfrm-\[B\]/ || $5 ~ /^<DEL/) {count++} END {print count+0}' "${isec_dir}/0000.tsv" "${isec_dir}/0001.tsv" "${isec_dir}/0002.tsv" 2>/dev/null || echo 0)
     local log_status_class="success"
     local log_status_msg="No errors or warnings"
     
