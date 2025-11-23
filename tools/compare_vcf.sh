@@ -232,9 +232,9 @@ generate_html_report() {
             border-radius: 5px;
             border-left: 4px solid #3498db;
         }
-        .stat-card.nanopore { border-left-color: #e74c3c; }
-        .stat-card.illumina { border-left-color: #3498db; }
-        .stat-card.shared { border-left-color: #2ecc71; }
+        .stat-card.nanopore { border-left-color: #3498db; }
+        .stat-card.illumina { border-left-color: #ff9800; }
+        .stat-card.shared { border-left-color: #e74c3c; }
         .stat-card.haplogroup { border-left-color: #9b59b6; }
         .stat-card.total { border-left-color: #95a5a6; }
         .stat-label {
