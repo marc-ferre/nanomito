@@ -234,7 +234,8 @@ generate_html_report() {
         }
         .stat-card.nanopore { border-left-color: #3498db; }
         .stat-card.illumina { border-left-color: #ff9800; }
-        .stat-card.shared { border-left-color: #e74c3c; }
+        .stat-card.shared { border-left-color: #2ecc71; }
+        .stat-card.highlighted { border-left-color: #e74c3c; }
         .stat-card.haplogroup { border-left-color: #9b59b6; }
         .stat-card.total { border-left-color: #95a5a6; }
         .stat-label {
@@ -375,7 +376,7 @@ generate_html_report() {
                     <div class="stat-label">Total Illumina</div>
                     <div class="stat-value">TOTAL_ILLUMINA</div>
                 </div>
-                <div class="stat-card shared">
+                <div class="stat-card highlighted">
                     <div class="stat-label">Highlighted Lines</div>
                     <div class="stat-value">HIGHLIGHTED_COUNT</div>
                 </div>
