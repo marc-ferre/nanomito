@@ -375,6 +375,10 @@ generate_html_report() {
                     <div class="stat-label">Total Illumina</div>
                     <div class="stat-value">TOTAL_ILLUMINA</div>
                 </div>
+                <div class="stat-card shared">
+                    <div class="stat-label">Total Variants</div>
+                    <div class="stat-value">TOTAL_VARIANTS</div>
+                </div>
                 <div class="stat-card haplogroup">
                     <div class="stat-label">Haplogroup Nanopore</div>
                     <div class="stat-value">HAPLOGROUP_NANOPORE</div>
@@ -437,6 +441,7 @@ EOF
     # Replace placeholders
     local total_nanopore=$((count_0000 + count_0002))
     local total_illumina=$((count_0001 + count_0003))
+    local total_variants=$((count_0000 + count_0001 + count_0002))
     local log_status_class="success"
     local log_status_msg="No errors or warnings"
     
@@ -464,6 +469,7 @@ EOF
         -e "s/COUNT_0002/${count_0002}/g" \
         -e "s/TOTAL_NANOPORE/${total_nanopore}/g" \
         -e "s/TOTAL_ILLUMINA/${total_illumina}/g" \
+        -e "s/TOTAL_VARIANTS/${total_variants}/g" \
         -e "s/HAPLOGROUP_NANOPORE/${haplogroup_nanopore}/g" \
         -e "s/HAPLOGROUP_ILLUMINA/${haplogroup_illumina}/g" \
         -e "s/LOG_STATUS_CLASS/${log_status_class}/g" \
