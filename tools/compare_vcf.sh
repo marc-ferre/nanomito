@@ -376,8 +376,8 @@ generate_html_report() {
                     <div class="stat-value">TOTAL_ILLUMINA</div>
                 </div>
                 <div class="stat-card shared">
-                    <div class="stat-label">Total Variants</div>
-                    <div class="stat-value">TOTAL_VARIANTS</div>
+                    <div class="stat-label">Highlighted Lines</div>
+                    <div class="stat-value">HIGHLIGHTED_COUNT</div>
                 </div>
                 <div class="stat-card haplogroup">
                     <div class="stat-label">Haplogroup Nanopore</div>
@@ -442,6 +442,11 @@ EOF
     local total_nanopore=$((count_0000 + count_0002))
     local total_illumina=$((count_0001 + count_0003))
     local total_variants=$((count_0000 + count_0001 + count_0002))
+    local disease_count
+    disease_count=$(grep -h 'Cfrm-\[P\]\|Cfrm-\[LP\]\|Cfrm-\[B\]' "${isec_dir}/0000.tsv" "${isec_dir}/0001.tsv" "${isec_dir}/0002.tsv" 2>/dev/null | wc -l)
+    local deletion_count
+    deletion_count=$(grep -h '^<DEL' "${isec_dir}/0000.tsv" "${isec_dir}/0001.tsv" "${isec_dir}/0002.tsv" 2>/dev/null | wc -l)
+    local highlighted_count=$((disease_count + deletion_count))
     local log_status_class="success"
     local log_status_msg="No errors or warnings"
     
@@ -470,6 +475,7 @@ EOF
         -e "s/TOTAL_NANOPORE/${total_nanopore}/g" \
         -e "s/TOTAL_ILLUMINA/${total_illumina}/g" \
         -e "s/TOTAL_VARIANTS/${total_variants}/g" \
+        -e "s/HIGHLIGHTED_COUNT/${highlighted_count}/g" \
         -e "s/HAPLOGROUP_NANOPORE/${haplogroup_nanopore}/g" \
         -e "s/HAPLOGROUP_ILLUMINA/${haplogroup_illumina}/g" \
         -e "s/LOG_STATUS_CLASS/${log_status_class}/g" \
