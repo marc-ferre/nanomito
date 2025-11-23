@@ -324,6 +324,9 @@ generate_html_report() {
         tr.benign {
             background-color: #fffde7 !important;
         }
+        tr.deletion {
+            background-color: #e6e6fa !important;
+        }
         .table-wrapper {
             overflow-x: auto;
             margin-bottom: 30px;
@@ -481,12 +484,37 @@ EOF
     table_0002_html=$(tsv_to_html "${isec_dir}/0002.tsv" "disease")
     table_0003_html=$(tsv_to_html "${isec_dir}/0003.tsv" "disease")
     
-    # Replace table placeholders using awk (safer for multi-line)
-    awk -v hc="$haplocheck_html" '{gsub(/HAPLOCHECK_TABLE/, hc)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
-    awk -v t0="$table_0000_html" '{gsub(/TABLE_0000/, t0)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
-    awk -v t1="$table_0001_html" '{gsub(/TABLE_0001/, t1)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
-    awk -v t2="$table_0002_html" '{gsub(/TABLE_0002/, t2)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
-    awk -v t3="$table_0003_html" '{gsub(/TABLE_0003/, t3)}1' "$report_file" > "${report_file}.tmp" && mv "${report_file}.tmp" "$report_file"
+    # Write tables to temp files
+    echo "$haplocheck_html" > "$WORKDIR/haplocheck.html"
+    echo "$table_0000_html" > "$WORKDIR/table_0000.html"
+    echo "$table_0001_html" > "$WORKDIR/table_0001.html"
+    echo "$table_0002_html" > "$WORKDIR/table_0002.html"
+    echo "$table_0003_html" > "$WORKDIR/table_0003.html"
+    
+    # Replace table placeholders using sed
+    sed -i '' '/HAPLOCHECK_TABLE/ {
+r '"$WORKDIR/haplocheck.html"'
+d
+}' "$report_file"
+    sed -i '' '/TABLE_0000/ {
+r '"$WORKDIR/table_0000.html"'
+d
+}' "$report_file"
+    sed -i '' '/TABLE_0001/ {
+r '"$WORKDIR/table_0001.html"'
+d
+}' "$report_file"
+    sed -i '' '/TABLE_0002/ {
+r '"$WORKDIR/table_0002.html"'
+d
+}' "$report_file"
+    sed -i '' '/TABLE_0003/ {
+r '"$WORKDIR/table_0003.html"'
+d
+}' "$report_file"
+    
+    # Clean up temp files
+    rm -f "$WORKDIR/haplocheck.html" "$WORKDIR/table_0000.html" "$WORKDIR/table_0001.html" "$WORKDIR/table_0002.html" "$WORKDIR/table_0003.html"
     
     _log INFO "HTML report generated successfully: '$report_file'"
 }
@@ -518,6 +546,7 @@ tsv_to_html() {
             html+="</tr></thead><tbody>"
         else
             # Data row - check for disease status
+            IFS=$'\t' read -ra fields <<< "$line"
             local row_class=""
             if [[ "$coloring" == "disease" ]]; then
                 # Check for DiseaseStatus values in TSV columns
@@ -531,9 +560,12 @@ tsv_to_html() {
                     row_class=' class="benign"'
                 fi
             fi
+            if [[ "${fields[4]}" =~ ^"<DEL" ]]; then
+                row_class=' class="deletion"'$row_class
+            fi
             
             html+="<tr${row_class}>"
-            IFS=$'\t' read -ra fields <<< "$line"
+            local col=0
             for field in "${fields[@]}"; do
                 # Remove quotes and escape HTML
                 field="${field//\"/}"
@@ -541,6 +573,7 @@ tsv_to_html() {
                 field="${field//</&lt;}"
                 field="${field//>/&gt;}"
                 html+="<td>${field}</td>"
+                ((col++))
             done
             html+="</tr>"
         fi
@@ -692,10 +725,13 @@ export_vcf_to_tsv_Nanopore() {
     _log INFO "Exporting VCF to TSV (Nanopore): '$input_vcf' -> '$output_tsv'"
 
     # Add header to the TSV file
-    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP" > "$output_tsv"
+    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP\tEND\tSVLEN" > "$output_tsv"
 
     # Convert VCF to TSV using bcftools query
-    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$input_vcf" >> "$output_tsv"
+    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\t%INFO/END\t%INFO/SVLEN\n' "$input_vcf" >> "$output_tsv"
+
+    # Modify ALT for deletions
+    awk 'BEGIN{FS=OFS="\t"} NR>1 && $5 == "<DEL>" { $5 = "<DEL:END=" $(NF-1) ";SVLEN=" $NF ">" } { print }' "$output_tsv" > "${output_tsv}.tmp" && mv "${output_tsv}.tmp" "$output_tsv"
 
     _log INFO "TSV file generated: '$output_tsv'"
 }
