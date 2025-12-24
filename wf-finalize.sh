@@ -608,9 +608,17 @@ generate_sample_html_report() {
       <h2>Output files</h2>
       <div class="file-list">
         $(
+          report_file="report-${sample}.html"
           bam_file="${sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
           ann_vcf="${sample}.ann.vcf"
           ann_tsv_file="${sample}.ann.tsv"
+          
+          if [ -f "$sample_dir/$report_file" ]; then
+            report_size=$(du -h "$sample_dir/$report_file" 2>/dev/null | cut -f1 || echo "?")
+            echo "<div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $report_file ($report_size)</div>"
+          else
+            echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $report_file - NOT FOUND</div>"
+          fi
           
           if [ -f "$sample_dir/$bam_file" ]; then
             bam_size=$(du -h "$sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
