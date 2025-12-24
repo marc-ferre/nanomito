@@ -288,7 +288,7 @@ sanitize_html() {
 tsv_to_html_table() {
   local tsv_file="$1"
   local coloring="$2" # "disease" | "none"
-  local table_id="$3" # optional table id
+  local table_id="${3:-}" # optional table id
   if [ ! -f "$tsv_file" ]; then
     echo "<p>File not found: $(basename "$tsv_file")</p>"
     return 0
