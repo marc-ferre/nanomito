@@ -288,13 +288,14 @@ sanitize_html() {
 tsv_to_html_table() {
   local tsv_file="$1"
   local coloring="$2" # "disease" | "none"
+  local table_id="$3" # optional table id
   if [ ! -f "$tsv_file" ]; then
     echo "<p>File not found: $(basename "$tsv_file")</p>"
     return 0
   fi
-  awk -v coloring="$coloring" '
+  awk -v coloring="$coloring" -v table_id="$table_id" '
     function esc(x) { gsub(/&/,"&amp;",x); gsub(/</,"&lt;",x); gsub(/>/,"&gt;",x); return x }
-    BEGIN { print "<table>" }
+    BEGIN { if (table_id) print "<table id=\"" table_id "\">"; else print "<table>" }
     NR==1 {
       print "<thead><tr>";
       for (i=1; i<=NF; i++) { printf "<th>%s</th>", esc($i) }
@@ -493,7 +494,7 @@ generate_sample_html_report() {
       <button class="filter-toggle" onclick="togglePassFilter()">Show PASS only</button>
       $(
         if [ -f "$ann_tsv" ]; then
-          tsv_to_html_table "$ann_tsv" "disease"
+          tsv_to_html_table "$ann_tsv" "disease" "variants-table"
         else
           echo "<p>Variant TSV not found: $(sanitize_html "$ann_tsv")</p>"
         fi
@@ -654,7 +655,7 @@ generate_sample_html_report() {
     function togglePassFilter() {
       showPassOnly = !showPassOnly;
       const btn = document.querySelector('.filter-toggle');
-      const rows = document.querySelectorAll('tbody tr');
+      const rows = document.querySelectorAll('#variants-table tbody tr');
       btn.textContent = showPassOnly ? 'Show all variants' : 'Show PASS only';
       rows.forEach(row => {
         const filterCell = row.cells[row.cells.length - 5];
