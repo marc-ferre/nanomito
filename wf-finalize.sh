@@ -449,35 +449,20 @@ generate_sample_html_report() {
         <div class="stat-card haplo"><div class="stat-label">Haplogroup / Major</div><div class="stat-value">$(sanitize_html "$major_haplogroup")</div></div>
         <div class="stat-card variants"><div class="stat-label">Variants / Total</div><div class="stat-value">$(format_number "$total_variants")</div></div>
         <div class="stat-card variants"><div class="stat-label">Variants / PASS</div><div class="stat-value">$(format_number "$pass_variants")</div></div>
-        <div class="stat-card highlighted"><div class="stat-label">Variants / Highlighted</div><div class="stat-value highlight-red">$(format_number "$highlighted_count")</div></div>
-      </div>
-      <div class="log-status $( [ "$err_count" -gt 0 ] && echo error || ( [ "$warn_count" -gt 0 ] && echo warning || echo success ) )">
-        $( [ "$err_count" -gt 0 ] && echo "$err_count error(s), $warn_count warning(s) in logs" || ( [ "$warn_count" -gt 0 ] && echo "$warn_count warning(s) in logs" || echo "No errors or warnings" ) )
+        <div class="stat-card highlighted"><div class="stat-label">Variants / Highlighted</div><div class="stat-value">$(format_number "$highlighted_count")</div></div>
       </div>
     </div>
     <div class="section">
       <h2>Haplogroup</h2>
       $(
-        tmp_haplo=$(mktemp)
         if [ -f "$haplo_summary" ]; then
-          # Extract header and sample line, remove quotes, transpose to vertical table
-          awk -v s="$sample" -F'\t' 'NR==1 {for(i=1;i<=NF;i++) h[i]=$i} $1=="\"" s "\"" || $1==s {for(i=1;i<=NF;i++) print h[i] "\t" $i}' "$haplo_summary" \
-          | sed 's/"//g' > "$tmp_haplo"
-          if [ -s "$tmp_haplo" ]; then
-            echo '<table class="haplogroup-table">'
-            while IFS=$'\t' read -r key val; do
-              key_esc=${key//&/&amp;}; key_esc=${key_esc//</&lt;}; key_esc=${key_esc//>/&gt;}
-              val_esc=${val//&/&amp;}; val_esc=${val_esc//</&lt;}; val_esc=${val_esc//>/&gt;}
-              echo "<tr><th>$key_esc</th><td>$val_esc</td></tr>"
-            done < "$tmp_haplo"
-            echo '</table>'
-          else
-            echo "<p>No haplocheck data for sample.</p>"
-          fi
+          # Extract header and sample line, remove quotes
+          awk -v s="$sample" -F'\t' 'NR==1 {print; next} $1=="\"" s "\"" || $1==s {print}' "$haplo_summary" \
+          | sed 's/"//g' \
+          | tsv_to_html_table /dev/stdin ""
         else
           echo "<p>No haplocheck summary found.</p>"
         fi
-        rm -f "$tmp_haplo"
       )
     </div>
     <div class="section">
