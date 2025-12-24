@@ -452,8 +452,8 @@ generate_sample_html_report() {
     <header>
       <h1>Nanomito Sample Report — $sample</h1>
       <div class="meta">
-        Generated: $(date '+%Y-%m-%d %H:%M:%S') • Run: $RUN_ID
-        <div class="run-metrics">Total reads: $(format_number "$read_count") • Passed reads: $(format_number "$basecalled_pass_read_count") • Passed bases: $(format_number "$basecalled_pass_bases")</div>
+        Generated: $(date '+%Y-%m-%d %H:%M:%S')<br>
+        Run: $RUN_ID • Total reads: $(format_number "$read_count") • Passed reads: $(format_number "$basecalled_pass_read_count") • Passed bases: $(format_number "$basecalled_pass_bases")
       </div>
     </header>
     <div class="summary">
