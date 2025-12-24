@@ -75,30 +75,7 @@ EMAIL_BODY_FILE="$PROCESS_DIR/report.$RUN_ID.html"
 mkdir -p "$PROCESS_DIR"
 : > "$EMAIL_BODY_FILE"
 
-# If only reports are requested, generate per-sample HTML reports and exit
-if [ "$REPORTS_ONLY" = "true" ]; then
-  log_info "Generating per-sample HTML reports (reports-only mode)"
-  DEMULT_SUMMARY="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
-  HAPLOCHECK_SUMMARY="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
-  count=0
-  for sample_dir in "$PROCESS_DIR"/*/ ; do
-    [ -d "$sample_dir" ] || continue
-    sample_dir="${sample_dir%/}"
-    sample="$(basename "$sample_dir")"
-    if [ -f "$sample_dir/NO_DATA.marker" ]; then
-      log_info "Skipping $sample (NO_DATA.marker)"
-      continue
-    fi
-    generate_sample_html_report "$sample_dir" "$sample" "$DEMULT_SUMMARY" "$HAPLOCHECK_SUMMARY"
-    log_ok "Report generated: $sample_dir/report-$sample.html"
-    count=$((count+1))
-  done
-  if [ $count -eq 0 ]; then
-    log_err "No sample directories found in $PROCESS_DIR"
-  fi
-  exit 0
-fi
-# --- Helper functions -----------------------------------------------------
+# --- Helper functions (defined early for --reports-only mode) ------------
 append_line() {
   echo "$1" >> "$EMAIL_BODY_FILE"
 }
@@ -520,6 +497,33 @@ format_number() {
   fi
 }
 
+# --- Reports-only mode execution ------------------------------------------
+# If only reports are requested, generate per-sample HTML reports and exit
+if [ "$REPORTS_ONLY" = "true" ]; then
+  log_info "Generating per-sample HTML reports (reports-only mode)"
+  DEMULT_SUMMARY="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
+  HAPLOCHECK_SUMMARY="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
+  count=0
+  for sample_dir in "$PROCESS_DIR"/*/ ; do
+    [ -d "$sample_dir" ] || continue
+    sample_dir="${sample_dir%/}"
+    sample="$(basename "$sample_dir")"
+    if [ -f "$sample_dir/NO_DATA.marker" ]; then
+      log_info "Skipping $sample (NO_DATA.marker)"
+      continue
+    fi
+    generate_sample_html_report "$sample_dir" "$sample" "$DEMULT_SUMMARY" "$HAPLOCHECK_SUMMARY"
+    log_ok "Report generated: $sample_dir/report-$sample.html"
+    count=$((count+1))
+  done
+  if [ $count -eq 0 ]; then
+    log_err "No sample directories found in $PROCESS_DIR"
+  fi
+  log_ok "Reports-only mode completed. Generated $count report(s)."
+  exit 0
+fi
+
+# --- Normal finalize mode starts here -------------------------------------
 log_info "Preparing comprehensive email summary: $EMAIL_BODY_FILE"
 
 # --- Email Header ---------------------------------------------------------
@@ -533,10 +537,6 @@ append_html "    Completed: $(date '+%Y-%m-%d %H:%M:%S')"
 append_html "  </div>"
 append_html "</div>"
 
-  
-  # Save standalone per-sample HTML report alongside email summary
-  generate_sample_html_report "$sample_dir" "$sample" "$DEMULT_SUMMARY" "$HAPLOCHECK_SUMMARY"
-  
 # --- 0. PRE-FLIGHT CHECK (non-blocking) -----------------------------------
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CHECK_SCRIPT="$SCRIPT_DIR/tools/check_run_ready.sh"
@@ -970,6 +970,10 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   fi
   
   append_html "</div>"
+  
+  # Generate standalone per-sample HTML report
+  generate_sample_html_report "$sample_dir" "$sample" "$DEMULT_SUMMARY" "$HAPLOCHECK_SUMMARY"
+  log_info "Per-sample report generated: $sample_dir/report-$sample.html"
   
 done
 
