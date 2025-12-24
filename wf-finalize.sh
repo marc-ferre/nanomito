@@ -15,6 +15,17 @@
 #
 set -euo pipefail
 
+# --- CLI Options ---------------------------------------------------------
+# Usage: wf-finalize.sh [--reports-only]
+REPORTS_ONLY=false
+for arg in "$@"; do
+  case "$arg" in
+    --reports-only)
+      REPORTS_ONLY=true
+      ;;
+  esac
+done
+
 # --- Helpers ---------------------------------------------------------------
 log_info() { echo "[INFO] $(date '+%H:%M:%S') - $1"; }
 log_ok()   { echo "[OK]   $(date '+%H:%M:%S') - $1"; }
@@ -64,6 +75,29 @@ EMAIL_BODY_FILE="$PROCESS_DIR/report.$RUN_ID.html"
 mkdir -p "$PROCESS_DIR"
 : > "$EMAIL_BODY_FILE"
 
+# If only reports are requested, generate per-sample HTML reports and exit
+if [ "$REPORTS_ONLY" = "true" ]; then
+  log_info "Generating per-sample HTML reports (reports-only mode)"
+  DEMULT_SUMMARY="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
+  HAPLOCHECK_SUMMARY="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
+  count=0
+  for sample_dir in "$PROCESS_DIR"/*/ ; do
+    [ -d "$sample_dir" ] || continue
+    sample_dir="${sample_dir%/}"
+    sample="$(basename "$sample_dir")"
+    if [ -f "$sample_dir/NO_DATA.marker" ]; then
+      log_info "Skipping $sample (NO_DATA.marker)"
+      continue
+    fi
+    generate_sample_html_report "$sample_dir" "$sample" "$DEMULT_SUMMARY" "$HAPLOCHECK_SUMMARY"
+    log_ok "Report generated: $sample_dir/report-$sample.html"
+    count=$((count+1))
+  done
+  if [ $count -eq 0 ]; then
+    log_err "No sample directories found in $PROCESS_DIR"
+  fi
+  exit 0
+fi
 # --- Helper functions -----------------------------------------------------
 append_line() {
   echo "$1" >> "$EMAIL_BODY_FILE"
@@ -265,6 +299,181 @@ end_html() {
 EOF
 }
 
+# --- HTML helpers for per-sample reports --------------------------------
+sanitize_html() {
+  local s=${1:-}
+  s=${s//&/&amp;}
+  s=${s//</&lt;}
+  s=${s//>/&gt;}
+  echo "$s"
+}
+
+tsv_to_html_table() {
+  local tsv_file="$1"
+  local coloring="$2" # "disease" | "none"
+  if [ ! -f "$tsv_file" ]; then
+    echo "<p>File not found: $(basename "$tsv_file")</p>"
+    return 0
+  fi
+  awk -v coloring="$coloring" '
+    function esc(x) { gsub(/&/,"&amp;",x); gsub(/</,"&lt;",x); gsub(/>/,"&gt;",x); return x }
+    BEGIN { print "<table>" }
+    NR==1 {
+      print "<thead><tr>";
+      for (i=1; i<=NF; i++) { printf "<th>%s</th>", esc($i) }
+      print "</tr></thead><tbody>";
+      next
+    }
+    NR>1 {
+      rowclass="";
+      if (coloring=="disease") {
+        # Try to classify pathogenicity using common tokens
+        line=$0
+        if (line ~ /Cfrm-\[P\]/) rowclass="pathogenic";
+        else if (line ~ /Cfrm-\[LP\]/) rowclass="likely-pathogenic";
+        else if (line ~ /Cfrm-\[B\]/) rowclass="benign";
+        # Deletion markers
+        for (i=1;i<=NF;i++) { if ($i=="<DEL>" || $i ~ /^<DEL/) { rowclass="deletion" } }
+      }
+      if (rowclass!="") printf "<tr class=\"%s\">", rowclass; else printf "<tr>";
+      for (i=1; i<=NF; i++) { printf "<td>%s</td>", esc($i) }
+      print "</tr>"
+    }
+    END { print "</tbody></table>" }
+  ' "$tsv_file"
+}
+
+generate_sample_html_report() {
+  local sample_dir="$1"
+  local sample="$2"
+  local demult_summary="$3"
+  local haplo_summary="$4"
+
+  local report_file="$sample_dir/report-$sample.html"
+  local ann_vcf="$sample_dir/${sample}.ann.vcf"
+  local ann_tsv="$sample_dir/${sample}.ann.tsv"
+  local demultmt_err="$sample_dir/slurm-${sample}.demultmt.err"
+  local modmito_err="$sample_dir/slurm-${sample}.modmito.err"
+
+  # Metrics
+  local chrM_reads="" matching_both=""
+  if [ -f "$demult_summary" ]; then
+    chrM_reads=$(awk -v s="$sample" -F'\t' '$2==s {print $5}' "$demult_summary")
+    matching_both=$(awk -v s="$sample" -F'\t' '$2==s {print $6}' "$demult_summary")
+  fi
+  local total_variants pass_variants
+  total_variants=$(count_vcf_variants "$ann_vcf")
+  pass_variants=$(count_vcf_pass_variants "$ann_vcf")
+
+  # Haplogroup status/major
+  local contamination_status="N/A" major_haplogroup="N/A"
+  if [ -f "$haplo_summary" ]; then
+    haplocheck_line=$(awk -v s="$sample" -F'\t' '$1 == "\"" s "\"" || $1 == s {print; exit}' "$haplo_summary")
+    if [ -n "$haplocheck_line" ]; then
+      contamination_status=$(echo "$haplocheck_line" | awk -F'\t' '{print $2}' | tr -d '"')
+      major_haplogroup=$(echo "$haplocheck_line" | awk -F'\t' '{print $10}' | tr -d '"')
+    fi
+  fi
+
+  # Logs: errors and warnings
+  local err_count=0 warn_count=0
+  if [ -f "$demultmt_err" ]; then
+    c=$(grep -ci "error\|failed\|exception" "$demultmt_err" 2>/dev/null || echo 0); [[ "$c" =~ ^[0-9]+$ ]] || c=0; err_count=$((err_count + c))
+    w=$(grep -ci "warn" "$demultmt_err" 2>/dev/null || echo 0); [[ "$w" =~ ^[0-9]+$ ]] || w=0; warn_count=$((warn_count + w))
+  fi
+  if [ -f "$modmito_err" ]; then
+    c=$(grep -ci "error\|failed\|exception" "$modmito_err" 2>/dev/null || echo 0); [[ "$c" =~ ^[0-9]+$ ]] || c=0; err_count=$((err_count + c))
+    w=$(grep -ci "warn" "$modmito_err" 2>/dev/null || echo 0); [[ "$w" =~ ^[0-9]+$ ]] || w=0; warn_count=$((warn_count + w))
+  fi
+
+  # Build HTML
+  cat > "$report_file" << EOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample Report - $sample</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background:#f5f5f5; color:#333; padding:20px; }
+    .container { max-width: 1100px; margin:0 auto; background:white; padding:24px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
+    header { border-bottom:3px solid #2c3e50; padding-bottom:12px; margin-bottom:20px; }
+    h1 { margin:0; font-size:22px; color:#2c3e50; }
+    .meta { color:#7f8c8d; font-size:12px; }
+    .summary { background:#ecf0f1; padding:16px; border-radius:6px; margin-bottom:24px; }
+    .stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:12px; }
+    .stat-card { background:white; padding:12px; border-radius:6px; border-left:4px solid #3498db; }
+    .stat-card.align { border-left-color:#3498db; }
+    .stat-card.haplo { border-left-color:#9b59b6; }
+    .stat-card.variants { border-left-color:#2ecc71; }
+    .stat-label { font-size:11px; color:#7f8c8d; text-transform:uppercase; }
+    .stat-value { font-size:18px; font-weight:600; color:#2c3e50; }
+    .log-status { margin-top:10px; padding:10px; border-radius:5px; font-weight:600; }
+    .log-status.success { background:#d4edda; color:#155724; }
+    .log-status.warning { background:#fff3cd; color:#856404; }
+    .log-status.error { background:#f8d7da; color:#721c24; }
+    .section { margin-bottom:26px; }
+    .section h2 { color:#2c3e50; font-size:18px; border-bottom:2px solid #ecf0f1; padding-bottom:6px; }
+    table { width:100%; border-collapse:collapse; font-size:12px; background:white; }
+    thead { background:#34495e; color:white; position:sticky; top:0; }
+    th { padding:8px; text-align:left; border:1px solid #2c3e50; }
+    td { padding:6px; border:1px solid #ddd; }
+    tbody tr:nth-child(even) { background:#f8f9fa; }
+    tbody tr:hover { background:#e8f4f8; }
+    tr.pathogenic { background:#ffebee !important; }
+    tr.likely-pathogenic { background:#fff3e0 !important; }
+    tr.benign { background:#fffde7 !important; }
+    tr.deletion { background:#e6e6fa !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>VCF Comparison Report — $sample</h1>
+      <div class="meta">Generated: $(date '+%Y-%m-%d %H:%M:%S') • Run: $RUN_ID</div>
+    </header>
+    <div class="summary">
+      <div class="stats-grid">
+        <div class="stat-card align"><div class="stat-label">Alignment / chrM reads</div><div class="stat-value">$(sanitize_html "${chrM_reads:-N/A}")</div></div>
+        <div class="stat-card align"><div class="stat-label">Alignment / Matching both</div><div class="stat-value">$(sanitize_html "${matching_both:-N/A}")</div></div>
+        <div class="stat-card haplo"><div class="stat-label">Haplogroup / Status</div><div class="stat-value">$(sanitize_html "$contamination_status")</div></div>
+        <div class="stat-card haplo"><div class="stat-label">Haplogroup / Major</div><div class="stat-value">$(sanitize_html "$major_haplogroup")</div></div>
+        <div class="stat-card variants"><div class="stat-label">Variants / Total</div><div class="stat-value">$(sanitize_html "$total_variants")</div></div>
+        <div class="stat-card variants"><div class="stat-label">Variants / PASS</div><div class="stat-value">$(sanitize_html "$pass_variants")</div></div>
+      </div>
+      <div class="log-status $( [ "$err_count" -gt 0 ] && echo error || ( [ "$warn_count" -gt 0 ] && echo warning || echo success ) )">
+        $( [ "$err_count" -gt 0 ] && echo "$err_count error(s), $warn_count warning(s) in logs" || ( [ "$warn_count" -gt 0 ] && echo "$warn_count warning(s) in logs" || echo "No errors or warnings" ) )
+      </div>
+    </div>
+    <div class="section">
+      <h2>Haplogroup (Haplocheck)</h2>
+      $(
+        tmp_haplo=$(mktemp)
+        if [ -f "$haplo_summary" ]; then
+          awk -v s="$sample" -F'\t' 'NR==1 || $1=="\"" s "\"" || $1==s {print}' "$haplo_summary" > "$tmp_haplo"
+          tsv_to_html_table "$tmp_haplo" "none"
+        else
+          echo "<p>No haplocheck summary found.</p>"
+        fi
+        rm -f "$tmp_haplo"
+      )
+    </div>
+    <div class="section">
+      <h2>Variants</h2>
+      $(
+        if [ -f "$ann_tsv" ]; then
+          tsv_to_html_table "$ann_tsv" "disease"
+        else
+          echo "<p>Variant TSV not found: $(sanitize_html "$ann_tsv")</p>"
+        fi
+      )
+    </div>
+  </div>
+</body>
+</html>
+EOF
+}
+
 append_section() {
   local title="$1"
   append_html "<div class=\"section\">"
@@ -324,6 +533,10 @@ append_html "    Completed: $(date '+%Y-%m-%d %H:%M:%S')"
 append_html "  </div>"
 append_html "</div>"
 
+  
+  # Save standalone per-sample HTML report alongside email summary
+  generate_sample_html_report "$sample_dir" "$sample" "$DEMULT_SUMMARY" "$HAPLOCHECK_SUMMARY"
+  
 # --- 0. PRE-FLIGHT CHECK (non-blocking) -----------------------------------
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CHECK_SCRIPT="$SCRIPT_DIR/tools/check_run_ready.sh"
