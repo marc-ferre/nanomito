@@ -634,31 +634,27 @@ generate_sample_html_report() {
     <div class="section">
       <h2>Parameters</h2>
       $(
-        demultmt_err="$sample_dir/slurm-${sample}.demultmt.err"
-        
-        # Extract Baldur parameters from demultmt log
+        # Extract Baldur parameters from wf-demultmt.sh script
         baldur_params="N/A"
-        if [ -f "$demultmt_err" ]; then
-          # Look for the baldur command line (matches lines with $BALDUR_BIN or 'baldur' followed by options)
-          baldur_cmd=$(grep -A 10 'Starting variant calling' "$demultmt_err" 2>/dev/null | grep -E '^\s*(baldur|/.*baldur)\s+--' | head -1)
-          if [ -z "$baldur_cmd" ]; then
-            # Alternative: search directly for baldur with options
-            baldur_cmd=$(grep -oP '(baldur|/\S+/baldur)\s+\K.*' "$demultmt_err" 2>/dev/null | grep '^--' | head -1)
-          fi
-          if [ -n "$baldur_cmd" ]; then
-            # Extract only the --options (remove paths and file arguments)
-            baldur_params=$(echo "$baldur_cmd" | grep -oE '(--[a-z-]+ [0-9]+|--[a-z-]+)' | tr '\n' ' ' | sed 's/ $//')
-          fi
+        demultmt_script="$(dirname "$0")/wf-demultmt.sh"
+        if [ -f "$demultmt_script" ]; then
+          # Extract the baldur command (multi-line with backslashes)
+          baldur_params=$(awk '/^\$BALDUR_BIN --mapq/,/"\$BAM_FILE"/ {print}' "$demultmt_script" | \
+                         grep -oE '\-\-[a-z-]+\s+[0-9]+|\-\-[a-z-]+' | \
+                         tr '\n' ' ' | \
+                         sed 's/--reference.*--adjust/--adjust/' | \
+                         sed 's/--output-prefix.*//' | \
+                         sed 's/--sample.*//' | \
+                         sed 's/ $//')
         fi
         
-        # Extract Haplocheck parameters from demultmt log
+        # Extract Haplocheck parameters from wf-demultmt.sh script
         haplo_params="N/A"
-        if [ -f "$demultmt_err" ]; then
-          # Look for haplocheck command
-          haplo_cmd=$(grep -E 'haplocheck\s+--' "$demultmt_err" 2>/dev/null | head -1)
-          if [ -n "$haplo_cmd" ]; then
-            # Extract --options
-            haplo_params=$(echo "$haplo_cmd" | grep -oE '--[a-z-]+' | tr '\n' ' ' | sed 's/ $//')
+        if [ -f "$demultmt_script" ]; then
+          # Look for haplocheck command line
+          haplo_line=$(grep -E '^haplocheck\s+--' "$demultmt_script" | head -1)
+          if [ -n "$haplo_line" ]; then
+            haplo_params=$(echo "$haplo_line" | grep -oE '\-\-[a-z-]+' | tr '\n' ' ' | sed 's/ $//')
           fi
         fi
         
