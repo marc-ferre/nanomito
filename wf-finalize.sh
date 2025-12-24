@@ -433,6 +433,8 @@ generate_sample_html_report() {
     .log-status.error { background:#f8d7da; color:#721c24; }
     .section { margin-bottom:26px; }
     .section h2 { color:#2c3e50; font-size:18px; border-bottom:2px solid #ecf0f1; padding-bottom:6px; }
+    .baldur-params { background:#f8f9fa; padding:10px; border-radius:5px; margin:10px 0; font-size:11px; border-left:3px solid #27ae60; }
+    .baldur-params code { background:#e9ecef; padding:2px 5px; border-radius:3px; font-family:'Courier New',Consolas,monospace; font-size:10px; }
     table { width:100%; border-collapse:collapse; font-size:12px; background:white; overflow-x:auto; display:block; }
     table.haplogroup-table th { width:40%; }
     table.haplogroup-table td { width:60%; }
@@ -536,6 +538,10 @@ generate_sample_html_report() {
     </div>
     <div class="section">
       <h2>Deletions</h2>
+      <div class="baldur-params">
+        <strong>Baldur parameters:</strong> 
+        <code>--mapq-threshold 20 --qual-threshold 10 --max-qual 30 --max-indel-qual 20 --homopolymer-limit 4 --adjust 5</code>
+      </div>
       $(
         del_file="$sample_dir/varcall/${sample}.baldur_del.txt"
         if [ -f "$del_file" ]; then
