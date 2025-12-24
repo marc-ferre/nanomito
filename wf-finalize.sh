@@ -1199,9 +1199,17 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   append_html "    <strong>Output files</strong>"
   append_html "    <div class=\"file-list\">"
   
+  report_file="report-${sample}.html"
   bam_file="${sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
   ann_tsv="${sample}.ann.tsv"
   ann_vcf="${sample}.ann.vcf"
+  
+  if [ -f "$sample_dir/$report_file" ]; then
+    report_size=$(du -h "$sample_dir/$report_file" 2>/dev/null | cut -f1 || echo "?")
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $report_file ($report_size)</div>"
+  else
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $report_file - NOT FOUND</div>"
+  fi
   
   if [ -f "$sample_dir/$bam_file" ]; then
     bam_size=$(du -h "$sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
