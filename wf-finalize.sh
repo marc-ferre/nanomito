@@ -437,6 +437,8 @@ generate_sample_html_report() {
     .dorado-params code { background:#e9ecef; padding:2px 5px; border-radius:3px; font-family:'Courier New',Consolas,monospace; font-size:10px; }
     .baldur-params { background:#f8f9fa; padding:10px; border-radius:5px; margin:10px 0; font-size:11px; border-left:3px solid #27ae60; }
     .baldur-params code { background:#e9ecef; padding:2px 5px; border-radius:3px; font-family:'Courier New',Consolas,monospace; font-size:10px; }
+    .haplocheck-params { background:#f8f9fa; padding:10px; border-radius:5px; margin:10px 0; font-size:11px; border-left:3px solid #9b59b6; }
+    .haplocheck-params code { background:#e9ecef; padding:2px 5px; border-radius:3px; font-family:'Courier New',Consolas,monospace; font-size:10px; }
     table { width:100%; border-collapse:collapse; font-size:12px; background:white; overflow-x:auto; display:block; }
     table.haplogroup-table th { width:40%; }
     table.haplogroup-table td { width:60%; }
@@ -684,7 +686,7 @@ generate_sample_html_report() {
         echo "  <strong>Baldur:</strong> "
         echo "  <code>$baldur_params</code>"
         echo "</div>"
-        echo "<div class=\"baldur-params\">"
+        echo "<div class=\"haplocheck-params\">"
         echo "  <strong>Haplocheck:</strong> "
         echo "  <code>$haplo_params</code>"
         echo "</div>"
