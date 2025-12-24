@@ -231,6 +231,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # shellcheck source=nanomito.config
+# shellcheck disable=SC1091
 source "$CONFIG_FILE"
 
 # Export SCRIPT_DIR for use by sbatch-ed workflows

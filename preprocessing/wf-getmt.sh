@@ -24,6 +24,7 @@ CONFIG_FILE="${SCRIPT_DIR}/preprocessing.config"
 
 if [[ -f "$CONFIG_FILE" ]]; then
     # shellcheck source=preprocessing.config
+    # shellcheck disable=SC1091
     source "$CONFIG_FILE"
 else
     echo "[ERROR] Configuration file not found: $CONFIG_FILE" >&2
@@ -142,6 +143,7 @@ init_conda() {
     local conda_sh=$CONDA_SCRIPT
     if [[ -f "$conda_sh" ]]; then
         # shellcheck source=/home/mferre/anaconda3/etc/profile.d/conda.sh
+        # shellcheck disable=SC1091
         source "$conda_sh"
     else
         error_exit "Conda initialization script not found at '$conda_sh'"

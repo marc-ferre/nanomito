@@ -122,6 +122,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # shellcheck source=nanomito.config
+# shellcheck disable=SC1091
 source "$CONFIG_FILE"
 
 # Basecalling model
@@ -236,9 +237,10 @@ log_info "Dorado version:"
 $DORADO_BIN --version
 
 log_info "Starting duplex basecalling with modifications..."
+
 $DORADO_BIN duplex $MODEL_COMPLEX "$DEMULT_POD5_FILE" \
 	--verbose \
-	--reference $SELECTED_REF \
+	--reference "$SELECTED_REF" \
 	> "$BAM_FILE"
 check_file "$BAM_FILE"
 
@@ -261,7 +263,7 @@ else
 fi
 set -u  # Re-enable unset variable check
 
-conda activate $MODMITO_ENV
+conda activate "$MODMITO_ENV"
 
 log_info "Samtools version:"
 samtools --version

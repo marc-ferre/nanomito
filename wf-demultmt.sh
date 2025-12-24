@@ -122,6 +122,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # shellcheck source=nanomito.config
+# shellcheck disable=SC1091
 source "$CONFIG_FILE"
 
 # ============================================================================
@@ -449,18 +450,19 @@ STEP_START=$(date +%s)
 ensure_dir "$VARCALL_DIR"
 cd "$VARCALL_DIR" || exit
 
-conda activate $BALDUR_ENV
+conda activate "$BALDUR_ENV"
 
-log_info "Baldur version: $($BALDUR_BIN --version)"
+# shellcheck disable=SC2153  # BALDUR_BIN is defined in sourced config
+log_info "Baldur version: $("$BALDUR_BIN" --version)"
 log_info "Starting variant calling..."
 
 # Run Baldur in background and wait for completion
-$BALDUR_BIN --mapq-threshold 20 \
+"$BALDUR_BIN" --mapq-threshold 20 \
 	--qual-threshold 10 \
 	--max-qual 30 \
 	--max-indel-qual 20 \
 	--homopolymer-limit 4 \
-	--reference $REF_MT \
+	--reference "$REF_MT" \
 	--adjust 5 \
 	--view \
 	--output-deletions \
@@ -534,7 +536,7 @@ if [ -n "$MISSING_COUNT" ] && [ "$MISSING_COUNT" -gt 0 ]; then
 	echo ""
 fi
 
-conda activate $POD5_ENV
+conda activate "$POD5_ENV"
 
 check_dir "$POD5_DIR"
 log_info "POD5 version: $(pod5 --version 2>&1 | head -n1)"
@@ -602,7 +604,7 @@ check_file "$BALDUR_VCF_FILE"
 VARIANT_COUNT=$(grep -cv '^#' "$BALDUR_VCF_FILE")
 log_success "Variants called: $VARIANT_COUNT"
 
-conda activate $ANNOTMT_ENV
+conda activate "$ANNOTMT_ENV"
 
 log_info "SnpSift version: $(SnpSift 2>&1 | grep -i version | head -n1 || echo 'N/A')"
 log_info "Starting variant annotation..."
@@ -613,7 +615,7 @@ VCF_TMP2="$ANNOTMT_VCF_FILE.1.tmp"
 # MITOMAP Disease
 log_info "Annotating with MITOMAP disease database..."
 SnpSift annotate -v \
-	$ANN_MITOMAP_DISEASE \
+	"$ANN_MITOMAP_DISEASE" \
 	"$BALDUR_VCF_FILE" \
 	> "$VCF_TMP2"
 mv "$VCF_TMP2" "$VCF_TMP1"
@@ -621,7 +623,7 @@ mv "$VCF_TMP2" "$VCF_TMP1"
 # MITOMAP Polymorphisms	
 log_info "Annotating with MITOMAP polymorphisms database..."
 SnpSift annotate -v \
-	$ANN_MITOMAP_POLYMORPHISMS \
+	"$ANN_MITOMAP_POLYMORPHISMS" \
 	"$VCF_TMP1" \
 	> "$VCF_TMP2"
 mv "$VCF_TMP2" "$VCF_TMP1"
@@ -629,7 +631,7 @@ mv "$VCF_TMP2" "$VCF_TMP1"
 # GnomAD including MitoTIP
 log_info "Annotating with gnomAD database (includes MitoTIP)..."
 SnpSift annotate -v \
-	$ANN_GNOMAD \
+	"$ANN_GNOMAD" \
 	"$VCF_TMP1" \
 	> "$ANNOTMT_VCF_FILE"
 check_file "$ANNOTMT_VCF_FILE"

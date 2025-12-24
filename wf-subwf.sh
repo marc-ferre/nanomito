@@ -152,6 +152,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # shellcheck source=nanomito.config
+# shellcheck disable=SC1091
 source "$CONFIG_FILE"
 
 # Validate workflow scripts exist
@@ -276,7 +277,7 @@ do
 			--error="$SLURM_ERR" \
 			--mail-type="$MAIL_TYPE_ISSUE" \
 			--mail-user="$MAIL_USER" \
-			$WF_DEMULTMT "$SAMPLE_ID")
+			"$WF_DEMULTMT" "$SAMPLE_ID")
 		
 		if [ -z "$JOBID" ]; then
 			log_error "Failed to submit $WF_ID job for $SAMPLE_ID"
@@ -315,7 +316,7 @@ do
 				--error="$SLURM_ERR" \
 				--mail-type="$MAIL_TYPE_END" \
 				--mail-user="$MAIL_USER" \
-				$WF_MODMITO "$SAMPLE_ID")
+				"$WF_MODMITO" "$SAMPLE_ID")
 		else
 			# No dependency if demultmt was skipped
 			JOBID_MODMITO=$(sbatch --parsable \
@@ -326,7 +327,7 @@ do
 				--error="$SLURM_ERR" \
 				--mail-type="$MAIL_TYPE_END" \
 				--mail-user="$MAIL_USER" \
-				$WF_MODMITO "$SAMPLE_ID")
+				"$WF_MODMITO" "$SAMPLE_ID")
 		fi
 		
 		if [ -z "$JOBID_MODMITO" ]; then

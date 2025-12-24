@@ -127,6 +127,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # shellcheck source=nanomito.config
+# shellcheck disable=SC1091
 source "$CONFIG_FILE"
 
 # Basecalling options
@@ -339,10 +340,10 @@ for i in "${!HEADER[@]}"; do
     fi
 done
 
-if [ $BARCODE_COL -eq -1 ]; then
+if [ "$BARCODE_COL" -eq -1 ]; then
     log_warning "No 'barcode' column found - barcode aliasing will not be available"
 fi
-if [ $ALIAS_COL -eq -1 ]; then
+if [ "$ALIAS_COL" -eq -1 ]; then
     log_warning "No 'alias' column found - barcode aliasing will not be available"
 fi
 
@@ -445,7 +446,7 @@ log_info "Organizing files into sample directories"
 
 # Build barcode to alias mapping from sample sheet (if barcode and alias columns exist)
 declare -A BARCODE_ALIAS
-if [ -f "$SAMPLESHEET_FILE" ] && [ $BARCODE_COL -ge 0 ] && [ $ALIAS_COL -ge 0 ]; then
+if [ -f "$SAMPLESHEET_FILE" ] && [ "$BARCODE_COL" -ge 0 ] && [ "$ALIAS_COL" -ge 0 ]; then
 	log_info "Reading sample sheet for barcode→alias mapping"
 	
 	# Read CSV dynamically using column indices
@@ -470,7 +471,7 @@ if [ -f "$SAMPLESHEET_FILE" ] && [ $BARCODE_COL -ge 0 ] && [ $ALIAS_COL -ge 0 ];
 else
 	if [ ! -f "$SAMPLESHEET_FILE" ]; then
 		log_warning "Sample sheet not found, using default directory names"
-	elif [ $BARCODE_COL -eq -1 ] || [ $ALIAS_COL -eq -1 ]; then
+	elif [ "$BARCODE_COL" -eq -1 ] || [ "$ALIAS_COL" -eq -1 ]; then
 		log_warning "Sample sheet lacks 'barcode' or 'alias' column, using default directory names"
 	fi
 fi

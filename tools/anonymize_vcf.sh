@@ -99,7 +99,7 @@ process_file() {
     if [ -n "$OUT_DIR" ]; then
         # if the original INFILE was a directory, preserve relative paths
         if [ -d "$INFILE" ]; then
-            rel_path=${FILE#${INFILE}/}
+            rel_path=${FILE#"${INFILE}"/}
             out_parent_dir=$(dirname -- "$OUT_DIR/$rel_path")
             if [ "$DRY_RUN" -eq 0 ]; then
                 mkdir -p "$out_parent_dir"

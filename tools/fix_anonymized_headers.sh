@@ -49,8 +49,8 @@ find "$ROOT_DIR" -type d -name '*_anonymized' -print0 | while IFS= read -r -d ''
     anon_base=$(basename -- "$vfile")
 
     if [[ "$anon_base" == *"$repl"* ]]; then
-      left=${anon_base%%$repl*}
-      right=${anon_base#*$repl}
+      left=${anon_base%%"$repl"*}
+      right=${anon_base#*"$repl"}
     else
       left=${anon_base%%_*}_
       right=${anon_base#*_}
