@@ -342,6 +342,15 @@ generate_sample_html_report() {
   total_variants=$(count_vcf_variants "$ann_vcf")
   pass_variants=$(count_vcf_pass_variants "$ann_vcf")
 
+  # Run metrics from report JSON
+  local read_count="N/A" basecalled_pass_read_count="N/A" basecalled_pass_bases="N/A"
+  REPORT_JSON=$(find "$RUN_DIR" -maxdepth 1 -name "report_*.json" | head -1)
+  if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
+    read_count=$(grep -o '"read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
+    basecalled_pass_read_count=$(grep -o '"basecalled_pass_read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
+    basecalled_pass_bases=$(grep -o '"basecalled_pass_bases":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
+  fi
+
   # Haplogroup status/major
   local contamination_status="N/A" major_haplogroup="N/A"
   if [ -f "$haplo_summary" ]; then
@@ -370,13 +379,14 @@ generate_sample_html_report() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sample Report - $sample</title>
+  <title>Nanomito Sample Report - $sample</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background:#f5f5f5; color:#333; padding:20px; }
     .container { max-width: 1100px; margin:0 auto; background:white; padding:24px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
     header { border-bottom:3px solid #2c3e50; padding-bottom:12px; margin-bottom:20px; }
     h1 { margin:0; font-size:22px; color:#2c3e50; }
-    .meta { color:#7f8c8d; font-size:12px; }
+    .meta { color:#7f8c8d; font-size:11px; line-height:1.5; }
+    .meta .run-metrics { margin-top:6px; color:#555; font-size:10px; }
     .summary { background:#ecf0f1; padding:16px; border-radius:6px; margin-bottom:24px; }
     .stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:12px; }
     .stat-card { background:white; padding:12px; border-radius:6px; border-left:4px solid #3498db; }
@@ -401,13 +411,19 @@ generate_sample_html_report() {
     tr.likely-pathogenic { background:#fff3e0 !important; }
     tr.benign { background:#fffde7 !important; }
     tr.deletion { background:#e6e6fa !important; }
+    tr.hidden { display:none; }
+    .filter-toggle { margin:10px 0; padding:8px 12px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; }
+    .filter-toggle:hover { background:#5568d3; }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>VCF Comparison Report — $sample</h1>
-      <div class="meta">Generated: $(date '+%Y-%m-%d %H:%M:%S') • Run: $RUN_ID</div>
+      <h1>Nanomito Sample Report — $sample</h1>
+      <div class="meta">
+        Generated: $(date '+%Y-%m-%d %H:%M:%S') • Run: $RUN_ID
+        <div class="run-metrics">Total reads: $(format_number "$read_count") • Passed reads: $(format_number "$basecalled_pass_read_count") • Passed bases: $(format_number "$basecalled_pass_bases")</div>
+      </div>
     </header>
     <div class="summary">
       <div class="stats-grid">
@@ -423,12 +439,24 @@ generate_sample_html_report() {
       </div>
     </div>
     <div class="section">
-      <h2>Haplogroup (Haplocheck)</h2>
+      <h2>Haplogroup</h2>
       $(
         tmp_haplo=$(mktemp)
         if [ -f "$haplo_summary" ]; then
-          awk -v s="$sample" -F'\t' 'NR==1 || $1=="\"" s "\"" || $1==s {print}' "$haplo_summary" > "$tmp_haplo"
-          tsv_to_html_table "$tmp_haplo" "none"
+          # Extract header and sample line, remove quotes, transpose to vertical table
+          awk -v s="$sample" -F'\t' 'NR==1 {for(i=1;i<=NF;i++) h[i]=$i} $1=="\"" s "\"" || $1==s {for(i=1;i<=NF;i++) print h[i] "\t" $i}' "$haplo_summary" \
+          | sed 's/"//g' > "$tmp_haplo"
+          if [ -s "$tmp_haplo" ]; then
+            echo '<table>'
+            while IFS=$'\t' read -r key val; do
+              key_esc=${key//&/&amp;}; key_esc=${key_esc//</&lt;}; key_esc=${key_esc//>/&gt;}
+              val_esc=${val//&/&amp;}; val_esc=${val_esc//</&lt;}; val_esc=${val_esc//>/&gt;}
+              echo "<tr><th>$key_esc</th><td>$val_esc</td></tr>"
+            done < "$tmp_haplo"
+            echo '</table>'
+          else
+            echo "<p>No haplocheck data for sample.</p>"
+          fi
         else
           echo "<p>No haplocheck summary found.</p>"
         fi
@@ -437,6 +465,7 @@ generate_sample_html_report() {
     </div>
     <div class="section">
       <h2>Variants</h2>
+      <button class="filter-toggle" onclick="togglePassFilter()">Show PASS only</button>
       $(
         if [ -f "$ann_tsv" ]; then
           tsv_to_html_table "$ann_tsv" "disease"
@@ -446,6 +475,21 @@ generate_sample_html_report() {
       )
     </div>
   </div>
+  <script>
+    let showPassOnly = false;
+    function togglePassFilter() {
+      showPassOnly = !showPassOnly;
+      const btn = document.querySelector('.filter-toggle');
+      const rows = document.querySelectorAll('tbody tr');
+      btn.textContent = showPassOnly ? 'Show all variants' : 'Show PASS only';
+      rows.forEach(row => {
+        const filterCell = row.cells[row.cells.length - 4];
+        if (filterCell && filterCell.textContent.trim() !== 'PASS') {
+          row.classList.toggle('hidden', showPassOnly);
+        }
+      });
+    }
+  </script>
 </body>
 </html>
 EOF
