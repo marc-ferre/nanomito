@@ -54,7 +54,7 @@ Last updated: 2025-12-24
   - ✅ Parameter extraction verified for all three tools
   - ✅ Mobile responsive design verified on simulated iPhone viewport
   - ✅ File tracking and badges verified in both sample and global reports
-  - ✅ Email notifications sent successfully to marc.ferre@univ-angers.fr
+  - ✅ Email notifications sent successfully to [marc.ferre@univ-angers.fr](mailto:marc.ferre@univ-angers.fr)
 
 ## ✅ Recently Completed (v2.0.0 - 2025-11-04)
 

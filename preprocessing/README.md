@@ -506,7 +506,7 @@ samtools --version
 **Environment contents (nanomito):**
 
 | Package | Version | Purpose |
-|---------|---------|---------|
+| --------- | --------- | --------- |
 | `python` | 3.9+ | Base interpreter |
 | `pysam` | Latest | BAM file manipulation |
 | `pod5` | Latest | Pod5 file filtering |
