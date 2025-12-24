@@ -825,7 +825,7 @@ format_number() {
 }
 
 # --- Reports-only mode execution ------------------------------------------
-# If only reports are requested, generate per-sample HTML reports and exit
+# If only reports are requested, generate per-sample HTML reports AND global report
 if [ "$REPORTS_ONLY" = "true" ]; then
   log_info "Generating per-sample HTML reports (reports-only mode)"
   DEMULT_SUMMARY="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
@@ -847,11 +847,17 @@ if [ "$REPORTS_ONLY" = "true" ]; then
     log_err "No sample directories found in $PROCESS_DIR"
   fi
   log_ok "Reports-only mode completed. Generated $count report(s)."
-  exit 0
+  
+  # Now generate global run report (continue to normal mode for report generation)
+  log_info "Generating global run report..."
 fi
 
 # --- Normal finalize mode starts here -------------------------------------
-log_info "Preparing comprehensive email summary: $EMAIL_BODY_FILE"
+if [ "$REPORTS_ONLY" != "true" ]; then
+  log_info "Preparing comprehensive email summary: $EMAIL_BODY_FILE"
+else
+  log_info "Preparing global run report..."
+fi
 
 # --- Email Header ---------------------------------------------------------
 start_html
@@ -1405,4 +1411,8 @@ else
   log_info "Email body saved to: $EMAIL_BODY_FILE"
 fi
 
-log_ok "Finalize completed"
+if [ "$REPORTS_ONLY" = "true" ]; then
+  log_ok "Reports-only mode: Global report generated at $EMAIL_BODY_FILE"
+else
+  log_ok "Finalize completed"
+fi
