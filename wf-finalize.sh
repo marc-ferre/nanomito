@@ -420,7 +420,8 @@ generate_sample_html_report() {
     .badge-error { background:#f8d7da; color:#721c24; }
     thead { background:#34495e; color:white; position:sticky; top:0; }
     th { padding:8px; text-align:left; border:1px solid #2c3e50; }
-    td { padding:6px; border:1px solid #ddd; }
+    td { padding:6px; border:1px solid #ddd; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    td:hover { white-space:normal; word-wrap:break-word; }
     tbody tr:nth-child(even) { background:#f8f9fa; }
     tbody tr:hover { background:#e8f4f8; }
     tr.pathogenic { background:#ffebee !important; }
