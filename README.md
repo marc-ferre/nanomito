@@ -643,6 +643,7 @@ Institution: CNRS UMR6015 / INSERM UMR1083
 
 If you use Nanomito in your research, please cite:
 
+<!-- markdownlint-disable MD034 -->
 ```bibtex
 @software{nanomito2025,
   author = {Ferré, Marc},
@@ -651,6 +652,7 @@ If you use Nanomito in your research, please cite:
   url = {https://github.com/marc-ferre/nanomito}
 }
 ```
+<!-- markdownlint-enable MD034 -->
 
 ## Acknowledgments
 

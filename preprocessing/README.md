@@ -444,6 +444,7 @@ wsl --install
 
 **WSL/Linux:**
 
+<!-- markdownlint-disable MD034 -->
 ```bash
 # In WSL, install Conda
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -451,6 +452,7 @@ bash Miniconda3-latest-Linux-x86_64.sh
 
 # Follow the installer prompts, then restart your terminal
 ```
+<!-- markdownlint-enable MD034 -->
 
 ### 2. Configure SSH for Genouest
 
