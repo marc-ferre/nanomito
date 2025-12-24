@@ -1185,7 +1185,11 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     
     if [ "$del_count" -gt 0 ]; then
       append_html "  <div style=\"margin: 10px 0;\">"
-      append_html "    <strong>Deletions / Total:</strong> <span style=\"font-weight: 600; color: #27ae60;\">$del_count</span>"
+      append_html "    <strong>Deletions</strong>"
+      append_html "    <div class=\"metric-row\">"
+      append_html "      <span class=\"metric-label\">Total</span>"
+      append_html "      <span class=\"metric-value\">$del_count</span>"
+      append_html "    </div>"
       append_html "  </div>"
     fi
   fi
