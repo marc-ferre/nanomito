@@ -399,8 +399,10 @@ generate_sample_html_report() {
     .stat-card.align { border-left-color:#3498db; }
     .stat-card.haplo { border-left-color:#9b59b6; }
     .stat-card.variants { border-left-color:#2ecc71; }
+    .stat-card.highlighted { border-left-color:#e74c3c; }
     .stat-label { font-size:11px; color:#7f8c8d; text-transform:uppercase; }
     .stat-value { font-size:18px; font-weight:600; color:#2c3e50; }
+    .stat-value.highlight-red { color:#e74c3c; }
     .log-status { margin-top:10px; padding:10px; border-radius:5px; font-weight:600; }
     .log-status.success { background:#d4edda; color:#155724; }
     .log-status.warning { background:#fff3cd; color:#856404; }
@@ -408,6 +410,14 @@ generate_sample_html_report() {
     .section { margin-bottom:26px; }
     .section h2 { color:#2c3e50; font-size:18px; border-bottom:2px solid #ecf0f1; padding-bottom:6px; }
     table { width:100%; border-collapse:collapse; font-size:12px; background:white; }
+    table.haplogroup-table th { width:40%; }
+    table.haplogroup-table td { width:60%; }
+    table.deletions-table { margin-top:5px; font-size:11px; }
+    .file-list { margin:10px 0; }
+    .file-item { padding:5px 0; font-family:'Courier New',Consolas,monospace; font-size:13px; }
+    .badge { display:inline-block; padding:2px 6px; border-radius:3px; font-size:11px; font-weight:600; margin-right:6px; }
+    .badge-ok { background:#d4edda; color:#155724; }
+    .badge-error { background:#f8d7da; color:#721c24; }
     thead { background:#34495e; color:white; position:sticky; top:0; }
     th { padding:8px; text-align:left; border:1px solid #2c3e50; }
     td { padding:6px; border:1px solid #ddd; }
@@ -433,13 +443,13 @@ generate_sample_html_report() {
     </header>
     <div class="summary">
       <div class="stats-grid">
-        <div class="stat-card align"><div class="stat-label">Alignment / chrM reads</div><div class="stat-value">$(sanitize_html "${chrM_reads:-N/A}")</div></div>
-        <div class="stat-card align"><div class="stat-label">Alignment / Matching both</div><div class="stat-value">$(sanitize_html "${matching_both:-N/A}")</div></div>
+        <div class="stat-card align"><div class="stat-label">Alignment / chrM reads</div><div class="stat-value">$(format_number "${chrM_reads:-N/A}")</div></div>
+        <div class="stat-card align"><div class="stat-label">Alignment / Matching both</div><div class="stat-value">$(format_number "${matching_both:-N/A}")</div></div>
         <div class="stat-card haplo"><div class="stat-label">Haplogroup / Status</div><div class="stat-value">$(sanitize_html "$contamination_status")</div></div>
         <div class="stat-card haplo"><div class="stat-label">Haplogroup / Major</div><div class="stat-value">$(sanitize_html "$major_haplogroup")</div></div>
-        <div class="stat-card variants"><div class="stat-label">Variants / Total</div><div class="stat-value">$(sanitize_html "$total_variants")</div></div>
-        <div class="stat-card variants"><div class="stat-label">Variants / PASS</div><div class="stat-value">$(sanitize_html "$pass_variants")</div></div>
-        <div class="stat-card variants"><div class="stat-label">Variants / Highlighted</div><div class="stat-value">$(sanitize_html "$highlighted_count")</div></div>
+        <div class="stat-card variants"><div class="stat-label">Variants / Total</div><div class="stat-value">$(format_number "$total_variants")</div></div>
+        <div class="stat-card variants"><div class="stat-label">Variants / PASS</div><div class="stat-value">$(format_number "$pass_variants")</div></div>
+        <div class="stat-card highlighted"><div class="stat-label">Variants / Highlighted</div><div class="stat-value highlight-red">$(format_number "$highlighted_count")</div></div>
       </div>
       <div class="log-status $( [ "$err_count" -gt 0 ] && echo error || ( [ "$warn_count" -gt 0 ] && echo warning || echo success ) )">
         $( [ "$err_count" -gt 0 ] && echo "$err_count error(s), $warn_count warning(s) in logs" || ( [ "$warn_count" -gt 0 ] && echo "$warn_count warning(s) in logs" || echo "No errors or warnings" ) )
@@ -454,7 +464,7 @@ generate_sample_html_report() {
           awk -v s="$sample" -F'\t' 'NR==1 {for(i=1;i<=NF;i++) h[i]=$i} $1=="\"" s "\"" || $1==s {for(i=1;i<=NF;i++) print h[i] "\t" $i}' "$haplo_summary" \
           | sed 's/"//g' > "$tmp_haplo"
           if [ -s "$tmp_haplo" ]; then
-            echo '<table>'
+            echo '<table class="haplogroup-table">'
             while IFS=$'\t' read -r key val; do
               key_esc=${key//&/&amp;}; key_esc=${key_esc//</&lt;}; key_esc=${key_esc//>/&gt;}
               val_esc=${val//&/&amp;}; val_esc=${val_esc//</&lt;}; val_esc=${val_esc//>/&gt;}
@@ -479,6 +489,155 @@ generate_sample_html_report() {
         else
           echo "<p>Variant TSV not found: $(sanitize_html "$ann_tsv")</p>"
         fi
+      )
+    </div>
+    <div class="section">
+      <h2>Deletions</h2>
+      $(
+        del_file="$sample_dir/varcall/${sample}.baldur_del.txt"
+        if [ -f "$del_file" ]; then
+          del_count=$(grep -v "^#" "$del_file" | grep -v "^$" | wc -l | tr -d ' ' || echo "0")
+          if [ "$del_count" -gt 0 ]; then
+            echo '<table class="deletions-table">'
+            echo '<thead><tr><th>Start</th><th>Stop</th><th>Strand</th><th>Length</th><th>Type</th><th>Count</th></tr></thead>'
+            echo '<tbody>'
+            
+            tmp_rows=$(mktemp)
+            awk 'BEGIN{FS="\t"; OFS="\t"} \
+                 !/^#/ && NF>=3 { \
+                   a=$1+0; b=$2+0; s=$3; \
+                   t=(NF>=5?$5:""); c=(NF>=6?$6:0); \
+                   if (a==0 && b==0) next; \
+                   start=(a<b?a:b); stop=(a<b?b:a); len=stop-start; \
+                   if (len<0) len=-len; \
+                   if (c=="" || c!~ /^[0-9]+$/) c=0; \
+                   print start, stop, s, len, t, c \
+                 }' "$del_file" \
+              | sort -t $'\t' -k1,1n -k2,2n -k3,3 \
+              > "$tmp_rows"
+
+            tmp_dedup=$(mktemp)
+            awk 'BEGIN{FS=OFS="\t"} \
+                 { \
+                   start=$1; stop=$2; strand=$3; len=$4; t=$5; c=$6+0; \
+                   key=start OFS stop; \
+                   if (!(key in seen)) { \
+                     seen[key]=1; splus[key]=0; sminus[key]=0; sumc[key]=0; ty[key]=t; l[key]=len; order[++n]=key; \
+                   } \
+                   if (strand=="+") splus[key]=1; else if (strand=="-") sminus[key]=1; \
+                   sumc[key]+=c; if (ty[key]=="" && t!="") ty[key]=t; \
+                 } \
+                 END { \
+                   for (i=1;i<=n;i++) { key=order[i]; \
+                     strand=(splus[key]&&sminus[key]?"±":(splus[key]?"+":(sminus[key]?"-":"?"))); \
+                     print key, strand, l[key], ty[key], sumc[key]; \
+                   } \
+                 }' "$tmp_rows" > "$tmp_dedup"
+
+            while IFS=$'\t' read -r start stop strand length dtype count; do
+              [ -z "$start" ] && continue
+              start_esc=$(sanitize_html "$start")
+              stop_esc=$(sanitize_html "$stop")
+              strand_esc=$(sanitize_html "$strand")
+              length_esc=$(sanitize_html "$length")
+              dtype_esc=$(sanitize_html "${dtype:-}")
+              count_esc=$(sanitize_html "$count")
+              echo "<tr><td>$start_esc</td><td>$stop_esc</td><td>$strand_esc</td><td>$length_esc</td><td>$dtype_esc</td><td>$count_esc</td></tr>"
+            done < "$tmp_dedup"
+            rm -f "$tmp_rows" "$tmp_dedup"
+            
+            echo '</tbody></table>'
+          else
+            echo "<p>No deletions detected.</p>"
+          fi
+        else
+          echo "<p>No deletions file found.</p>"
+        fi
+      )
+    </div>
+    <div class="section">
+      <h2>Output files</h2>
+      <div class="file-list">
+        $(
+          bam_file="${sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
+          ann_vcf="${sample}.ann.vcf"
+          ann_tsv_file="${sample}.ann.tsv"
+          
+          if [ -f "$sample_dir/$bam_file" ]; then
+            bam_size=$(du -h "$sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
+            echo "<div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $bam_file ($bam_size)</div>"
+          else
+            echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $bam_file - NOT FOUND</div>"
+          fi
+          
+          if [ -f "$sample_dir/$ann_vcf" ]; then
+            vcf_size=$(du -h "$sample_dir/$ann_vcf" 2>/dev/null | cut -f1 || echo "?")
+            echo "<div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $ann_vcf ($vcf_size)</div>"
+          else
+            echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $ann_vcf - NOT FOUND</div>"
+          fi
+          
+          if [ -f "$sample_dir/$ann_tsv_file" ]; then
+            tsv_size=$(du -h "$sample_dir/$ann_tsv_file" 2>/dev/null | cut -f1 || echo "?")
+            echo "<div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $ann_tsv_file ($tsv_size)</div>"
+          else
+            echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $ann_tsv_file - NOT FOUND</div>"
+          fi
+        )
+      </div>
+    </div>
+    <div class="section">
+      <h2>Logs</h2>
+      $(
+        demultmt_err="$sample_dir/slurm-${sample}.demultmt.err"
+        modmito_err="$sample_dir/slurm-${sample}.modmito.err"
+        
+        has_errors=0
+        has_warnings=0
+        
+        echo "<div style=\"margin:10px 0;\">"
+        
+        # Check demultmt log
+        if [ -f "$demultmt_err" ]; then
+          err_lines=$(grep -i "error\|failed\|exception" "$demultmt_err" 2>/dev/null || true)
+          warn_lines=$(grep -i "warning" "$demultmt_err" 2>/dev/null || true)
+          
+          if [ -n "$err_lines" ]; then
+            has_errors=1
+            echo "<div class=\"log-status error\">Errors in demultmt log:</div>"
+            echo "<pre style=\"background:#f8d7da;padding:10px;border-radius:5px;font-size:11px;overflow-x:auto;\">$(sanitize_html "$err_lines")</pre>"
+          fi
+          
+          if [ -n "$warn_lines" ]; then
+            has_warnings=1
+            echo "<div class=\"log-status warning\">Warnings in demultmt log:</div>"
+            echo "<pre style=\"background:#fff3cd;padding:10px;border-radius:5px;font-size:11px;overflow-x:auto;\">$(sanitize_html "$warn_lines")</pre>"
+          fi
+        fi
+        
+        # Check modmito log
+        if [ -f "$modmito_err" ]; then
+          err_lines=$(grep -i "error\|failed\|exception" "$modmito_err" 2>/dev/null || true)
+          warn_lines=$(grep -i "warning" "$modmito_err" 2>/dev/null || true)
+          
+          if [ -n "$err_lines" ]; then
+            has_errors=1
+            echo "<div class=\"log-status error\">Errors in modmito log:</div>"
+            echo "<pre style=\"background:#f8d7da;padding:10px;border-radius:5px;font-size:11px;overflow-x:auto;\">$(sanitize_html "$err_lines")</pre>"
+          fi
+          
+          if [ -n "$warn_lines" ]; then
+            has_warnings=1
+            echo "<div class=\"log-status warning\">Warnings in modmito log:</div>"
+            echo "<pre style=\"background:#fff3cd;padding:10px;border-radius:5px;font-size:11px;overflow-x:auto;\">$(sanitize_html "$warn_lines")</pre>"
+          fi
+        fi
+        
+        if [ "$has_errors" -eq 0 ] && [ "$has_warnings" -eq 0 ]; then
+          echo "<div class=\"log-status success\">No errors or warnings in logs</div>"
+        fi
+        
+        echo "</div>"
       )
     </div>
   </div>
