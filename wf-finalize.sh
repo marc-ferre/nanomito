@@ -367,6 +367,19 @@ generate_sample_html_report() {
     highlighted_count=$(awk -F'\t' 'NR>1 && ($10 ~ /Cfrm-\[P\]/ || $10 ~ /Cfrm-\[LP\]/ || $10 ~ /Cfrm-\[B\]/ || $5 ~ /^<DEL/) {count++} END {print count+0}' "$ann_tsv")
   fi
 
+  # Count deletions
+  local deletions_total=0
+  local del_file="$sample_dir/varcall/${sample}.baldur_del.txt"
+  if [ -f "$del_file" ]; then
+    deletions_total=$(grep -v "^#" "$del_file" | grep -v "^$" | wc -l | tr -d ' ' || echo "0")
+  fi
+
+  # Count deletions in variants (highlighted deletions with <DEL>)
+  local deletions_highlighted=0
+  if [ -f "$ann_tsv" ]; then
+    deletions_highlighted=$(awk -F'\t' 'NR>1 && $5 ~ /^<DEL/ {count++} END {print count+0}' "$ann_tsv")
+  fi
+
   # Logs: errors and warnings
   local err_count=0 warn_count=0
   if [ -f "$demultmt_err" ]; then
@@ -400,6 +413,7 @@ generate_sample_html_report() {
     .stat-card.haplo { border-left-color:#9b59b6; }
     .stat-card.variants { border-left-color:#2ecc71; }
     .stat-card.highlighted { border-left-color:#e74c3c; }
+    .stat-card.deletions { border-left-color:#27ae60; }
     .stat-label { font-size:11px; color:#7f8c8d; text-transform:uppercase; }
     .stat-value { font-size:18px; font-weight:600; color:#2c3e50; }
     .stat-value.highlight-red { color:#e74c3c; }
@@ -451,6 +465,8 @@ generate_sample_html_report() {
         <div class="stat-card variants"><div class="stat-label">Variants / Total</div><div class="stat-value">$(format_number "$total_variants")</div></div>
         <div class="stat-card variants"><div class="stat-label">Variants / PASS</div><div class="stat-value">$(format_number "$pass_variants")</div></div>
         <div class="stat-card highlighted"><div class="stat-label">Variants / Highlighted</div><div class="stat-value">$(format_number "$highlighted_count")</div></div>
+        <div class="stat-card deletions"><div class="stat-label">Deletions / Total</div><div class="stat-value">$(format_number "$deletions_total")</div></div>
+        <div class="stat-card highlighted"><div class="stat-label">Deletions / Highlighted</div><div class="stat-value">$(format_number "$deletions_highlighted")</div></div>
       </div>
     </div>
     <div class="section">
