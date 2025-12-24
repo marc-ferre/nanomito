@@ -660,14 +660,14 @@ If you use Nanomito in your research, please cite:
 
 ## Version History
 
-- **v1.1.0** (2024-12-24) - Interactive per-sample HTML reports
+- **v2.1.0** (2024-12-24) - Interactive per-sample HTML reports
   - **Per-sample HTML reports** - Individual interactive reports for each sample
   - **Interactive variants table** - PASS filter toggle button
   - **Disease coloring** - Pathogenic, likely-pathogenic, benign variants highlighted
   - **Comprehensive metrics** - Alignment, haplogroup, variants, and deletions counts
   - **Responsive design** - Mobile-optimized layout with adaptive tables
   - **Column width limiting** - Max 200px with ellipsis and hover expansion
-  - **Footer** - Creator name, email, and version information
+  - **Footer** - Creator name and email information
   - **--reports-only option** - Regenerate reports without sending email
   
   **Report Features:**
