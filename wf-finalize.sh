@@ -13,15 +13,33 @@
 #          --output="$PROCESS_DIR/slurm-$RUN_ID.final.out" \
 #          $SCRIPT_DIR/wf-finalize.sh
 #
+# Manual usage:
+#   wf-finalize.sh [--reports-only] [/path/to/run/dir]
+#
 set -euo pipefail
 
 # --- CLI Options ---------------------------------------------------------
-# Usage: wf-finalize.sh [--reports-only]
 REPORTS_ONLY=false
-for arg in "$@"; do
-  case "$arg" in
+RUN_DIR_ARG=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --reports-only)
       REPORTS_ONLY=true
+      shift
+      ;;
+    -*)
+      echo "Unknown option: $1" >&2
+      exit 1
+      ;;
+    *)
+      if [[ -z "$RUN_DIR_ARG" ]]; then
+        RUN_DIR_ARG="$1"
+        shift
+      else
+        echo "Too many arguments. Usage: wf-finalize.sh [--reports-only] [/path/to/run/dir]" >&2
+        exit 1
+      fi
       ;;
   esac
 done
@@ -65,9 +83,27 @@ fi
 source "$CONFIG_FILE"
 
 # --- Context --------------------------------------------------------------
-RUN_DIR=$(pwd)
+# Use provided run directory argument or default to current directory
+if [[ -n "$RUN_DIR_ARG" ]]; then
+  RUN_DIR="$(cd "$RUN_DIR_ARG" && pwd)" || {
+    log_err "Invalid run directory: $RUN_DIR_ARG"
+    exit 1
+  }
+else
+  RUN_DIR=$(pwd)
+fi
+
 RUN_ID=$(basename "$RUN_DIR")
 PROCESS_DIR="$RUN_DIR/processing"
+
+# Validate that processing directory exists or can be created
+if [[ ! -d "$PROCESS_DIR" ]]; then
+  log_info "Creating processing directory: $PROCESS_DIR"
+  mkdir -p "$PROCESS_DIR" || {
+    log_err "Failed to create processing directory: $PROCESS_DIR"
+    exit 1
+  }
+fi
 
 MAIL_TO="$MAIL_USER"
 EMAIL_SUBJECT="[Nanomito] Run $RUN_ID completed"
