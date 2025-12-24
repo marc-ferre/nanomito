@@ -368,11 +368,20 @@ generate_sample_html_report() {
     highlighted_count=$(awk -F'\t' 'NR>1 && ($10 ~ /Cfrm-\[P\]/ || $10 ~ /Cfrm-\[LP\]/ || $10 ~ /Cfrm-\[B\]/ || $5 ~ /^<DEL/) {count++} END {print count+0}' "$ann_tsv")
   fi
 
-  # Count deletions
+  # Count deletions (with deduplication like in the table display)
   local deletions_total=0
   local del_file="$sample_dir/varcall/${sample}.baldur_del.txt"
   if [ -f "$del_file" ]; then
-    deletions_total=$(grep -v "^#" "$del_file" | grep -v "^$" | wc -l | tr -d ' ' || echo "0")
+    # Apply same deduplication logic as in the table: count unique start-stop pairs
+    deletions_total=$(awk 'BEGIN{FS="\t"} \
+         !/^#/ && NF>=3 { \
+           a=$1+0; b=$2+0; \
+           if (a==0 && b==0) next; \
+           start=(a<b?a:b); stop=(a<b?b:a); \
+           key=start "\t" stop; \
+           if (!(key in seen)) { seen[key]=1; count++ } \
+         } \
+         END {print count+0}' "$del_file")
   fi
 
   # Count deletions in variants (highlighted deletions with <DEL>)
