@@ -361,6 +361,12 @@ generate_sample_html_report() {
     fi
   fi
 
+  # Count highlighted variants (pathogenic, likely-pathogenic, benign, deletion)
+  local highlighted_count=0
+  if [ -f "$ann_tsv" ]; then
+    highlighted_count=$(awk -F'\t' 'NR>1 && ($10 ~ /Cfrm-\[P\]/ || $10 ~ /Cfrm-\[LP\]/ || $10 ~ /Cfrm-\[B\]/ || $5 ~ /^<DEL/) {count++} END {print count+0}' "$ann_tsv")
+  fi
+
   # Logs: errors and warnings
   local err_count=0 warn_count=0
   if [ -f "$demultmt_err" ]; then
@@ -433,6 +439,7 @@ generate_sample_html_report() {
         <div class="stat-card haplo"><div class="stat-label">Haplogroup / Major</div><div class="stat-value">$(sanitize_html "$major_haplogroup")</div></div>
         <div class="stat-card variants"><div class="stat-label">Variants / Total</div><div class="stat-value">$(sanitize_html "$total_variants")</div></div>
         <div class="stat-card variants"><div class="stat-label">Variants / PASS</div><div class="stat-value">$(sanitize_html "$pass_variants")</div></div>
+        <div class="stat-card variants"><div class="stat-label">Variants / Highlighted</div><div class="stat-value">$(sanitize_html "$highlighted_count")</div></div>
       </div>
       <div class="log-status $( [ "$err_count" -gt 0 ] && echo error || ( [ "$warn_count" -gt 0 ] && echo warning || echo success ) )">
         $( [ "$err_count" -gt 0 ] && echo "$err_count error(s), $warn_count warning(s) in logs" || ( [ "$warn_count" -gt 0 ] && echo "$warn_count warning(s) in logs" || echo "No errors or warnings" ) )
@@ -483,7 +490,7 @@ generate_sample_html_report() {
       const rows = document.querySelectorAll('tbody tr');
       btn.textContent = showPassOnly ? 'Show all variants' : 'Show PASS only';
       rows.forEach(row => {
-        const filterCell = row.cells[row.cells.length - 4];
+        const filterCell = row.cells[row.cells.length - 5];
         if (filterCell && filterCell.textContent.trim() !== 'PASS') {
           row.classList.toggle('hidden', showPassOnly);
         }
