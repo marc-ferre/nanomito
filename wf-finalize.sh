@@ -637,6 +637,10 @@ generate_sample_html_report() {
         <strong>Baldur:</strong> 
         <code>--mapq-threshold 20 --qual-threshold 10 --max-qual 30 --max-indel-qual 20 --homopolymer-limit 4 --adjust 5</code>
       </div>
+      <div class="baldur-params">
+        <strong>Haplocheck:</strong> 
+        <code>--raw</code>
+      </div>
     </div>
     <div class="section">
       <h2>Logs</h2>
