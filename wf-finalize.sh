@@ -433,6 +433,8 @@ generate_sample_html_report() {
     .log-status.error { background:#f8d7da; color:#721c24; }
     .section { margin-bottom:26px; }
     .section h2 { color:#2c3e50; font-size:18px; border-bottom:2px solid #ecf0f1; padding-bottom:6px; }
+    .dorado-params { background:#f8f9fa; padding:10px; border-radius:5px; margin:10px 0; font-size:11px; border-left:3px solid #3498db; }
+    .dorado-params code { background:#e9ecef; padding:2px 5px; border-radius:3px; font-family:'Courier New',Consolas,monospace; font-size:10px; }
     .baldur-params { background:#f8f9fa; padding:10px; border-radius:5px; margin:10px 0; font-size:11px; border-left:3px solid #27ae60; }
     .baldur-params code { background:#e9ecef; padding:2px 5px; border-radius:3px; font-family:'Courier New',Consolas,monospace; font-size:10px; }
     table { width:100%; border-collapse:collapse; font-size:12px; background:white; overflow-x:auto; display:block; }
@@ -674,7 +676,7 @@ generate_sample_html_report() {
           fi
         fi
         
-        echo "<div class=\"baldur-params\">"
+        echo "<div class=\"dorado-params\">"
         echo "  <strong>Dorado:</strong> "
         echo "  <code>$dorado_params</code>"
         echo "</div>"
