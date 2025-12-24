@@ -455,14 +455,20 @@ generate_sample_html_report() {
     <div class="section">
       <h2>Haplogroup</h2>
       $(
+        tmp_haplo=$(mktemp)
         if [ -f "$haplo_summary" ]; then
           # Extract header and sample line, remove quotes
           awk -v s="$sample" -F'\t' 'NR==1 {print; next} $1=="\"" s "\"" || $1==s {print}' "$haplo_summary" \
-          | sed 's/"//g' \
-          | tsv_to_html_table /dev/stdin ""
+          | sed 's/"//g' > "$tmp_haplo"
+          if [ -s "$tmp_haplo" ]; then
+            tsv_to_html_table "$tmp_haplo" ""
+          else
+            echo "<p>No haplocheck data for sample.</p>"
+          fi
         else
           echo "<p>No haplocheck summary found.</p>"
         fi
+        rm -f "$tmp_haplo"
       )
     </div>
     <div class="section">
