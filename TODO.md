@@ -1,6 +1,60 @@
 # TODO List - Nanomito
 
-Last updated: 2025-11-04
+Last updated: 2025-12-24
+
+## ✅ Recently Completed (v2.1.1 - 2025-12-24)
+
+### HTML Report Enhancements - Responsive Design & Parameter Tracking
+
+- [x] **Mobile-responsive HTML reports with adaptive CSS** ✅ COMPLETED
+  - ✅ Added @media queries for tablets (max-width: 768px) and mobile (max-width: 480px)
+  - ✅ Responsive grid layout with auto-fit columns (140px minimum on tablet, single column on mobile)
+  - ✅ Adaptive font sizes: h1 reduced to 18px on tablet, 16px on mobile
+  - ✅ Stat values reduced to 16px on tablet, 9px on mobile
+  - ✅ Table horizontal scrolling with overflow-x: auto for mobile viewing
+  - ✅ Verified on iPhone and tablet devices in test environment
+
+- [x] **Dynamic parameter extraction from workflow scripts** ✅ COMPLETED
+  - ✅ Dorado basecaller parameters extracted from wf-bchg.sh using AWK pattern matching
+  - ✅ Baldur demultiplexing parameters extracted from wf-demultmt.sh
+  - ✅ Haplocheck quality metrics parameters extracted from wf-demultmt.sh
+  - ✅ No more hardcoded parameters - all extracted dynamically from source scripts
+  - ✅ Improved maintainability: updating workflow parameters automatically reflects in reports
+
+- [x] **Color-coded parameter display boxes** ✅ COMPLETED
+  - ✅ Dorado parameters with blue left border (#3498db)
+  - ✅ Baldur parameters with green left border (#27ae60)
+  - ✅ Haplocheck parameters with purple left border (#9b59b6)
+  - ✅ Consistent styling: background #f8f9fa, padding 10px, margin 10px 0, monospace font 11px
+  - ✅ Visual differentiation for quick tool identification
+
+- [x] **Simplified metrics display for run report** ✅ COMPLETED
+  - ✅ Deletions section now shows only total count instead of full data table
+  - ✅ Uses metric-row div structure with label-left/value-right layout (flexbox justify-content: space-between)
+  - ✅ Consistent formatting with Variants and other metrics sections
+  - ✅ Reduced visual clutter in run report while maintaining essential information
+
+- [x] **Complete output file tracking in reports** ✅ COMPLETED
+  - ✅ Sample HTML report filenames added to Output files section in per-sample reports
+  - ✅ Sample HTML report filenames added to Output files section in global run report
+  - ✅ File size display for each report file
+  - ✅ Validation badges (✓ for existing files, ✗ for missing)
+  - ✅ Report files appear first in Output files list (before BAM/VCF/TSV files)
+
+- [x] **Reports-only mode global report generation** ✅ COMPLETED
+  - ✅ Fixed: Global run report was empty when using `--reports-only` flag
+  - ✅ Removed early `exit 0` after sample report loop
+  - ✅ Workflow now continues to generate full global run report in reports-only mode
+  - ✅ Email notification still sent correctly with complete report
+
+- [x] **Comprehensive testing on production HPC** ✅ COMPLETED
+  - ✅ Tested with real 250916_MK1B_RUN15 run (3 samples: DURM, BARF, BREA)
+  - ✅ Sample reports: 24K each, generated in 3-5 seconds per sample
+  - ✅ Global run report: 15K, 465+ lines, generated in ~9 seconds
+  - ✅ Parameter extraction verified for all three tools
+  - ✅ Mobile responsive design verified on simulated iPhone viewport
+  - ✅ File tracking and badges verified in both sample and global reports
+  - ✅ Email notifications sent successfully to marc.ferre@univ-angers.fr
 
 ## ✅ Recently Completed (v2.0.0 - 2025-11-04)
 
