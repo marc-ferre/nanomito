@@ -13,8 +13,9 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 - 🔀 **Sample demultiplexing** - Automated barcode demultiplexing and patient-level separation
 - 🔬 **Modification detection** - 5mC, 5hmC, and 6mA base modification calling
 - 📊 **SLURM integration** - Optimized for HPC environments with automatic job dependency management
-- � **Automated archiving** - Integrated archiving to project storage with dependency management
+- 📦 **Automated archiving** - Integrated archiving to project storage with dependency management
 - 📧 **HTML email reports** - Beautiful responsive HTML email notifications with comprehensive summaries
+- 📄 **Per-sample HTML reports** - Interactive individual reports with variants filtering and disease coloring
 - ✅ **Robust error handling** - Comprehensive logging and error recovery mechanisms
 
 ## Workflow Architecture
@@ -197,10 +198,29 @@ Intermediate orchestrator that dynamically discovers samples and submits analysi
   - **Per-Sample Results** - Alignment stats, haplogroups, variant counts, output files
   - **Summary Files** - Location and sizes of all summary TSV files
   - **Archiving Summary** - Destination, size, duration, and status of archiving
+- **Per-sample HTML reports** - Individual interactive HTML reports for each sample:
+  - **Run & Sample Metrics** - Alignment, haplogroup, variants, deletions counts
+  - **Haplogroup Table** - Full haplocheck results
+  - **Variants Table** - Interactive PASS filter, disease coloring (pathogenic/benign)
+  - **Deletions Table** - Baldur deletions with strand information
+  - **Output Files** - File sizes and validation status
+  - **Logs** - Errors and warnings from processing
+  - Saved as `processing/<SAMPLE>/report-<SAMPLE>.html`
+  - Can be regenerated independently with `--reports-only` option
 - **Responsive design** - Optimized for mobile viewing (iPhone, Android)
 - **Color-coded status** - Success (green), warnings (yellow), errors (red)
 - Sends email to `MAIL_USER` configured in `nanomito.config`
 - If no mailer available, saves HTML to `processing/report.<RUN_ID>.html`
+
+**Usage:**
+
+```bash
+# Generate email report and per-sample HTML reports (default behavior)
+./submit_nanomito.sh --finalize-only /path/to/run/directory
+
+# Regenerate only per-sample HTML reports (without email)
+./wf-finalize.sh --reports-only
+```
 
 ### 8. **archiving.sh** (Manual archiving)
 
@@ -639,6 +659,31 @@ If you use Nanomito in your research, please cite:
 - **Dorado** team for basecalling software
 
 ## Version History
+
+- **v1.1.0** (2024-12-24) - Interactive per-sample HTML reports
+  - **Per-sample HTML reports** - Individual interactive reports for each sample
+  - **Interactive variants table** - PASS filter toggle button
+  - **Disease coloring** - Pathogenic, likely-pathogenic, benign variants highlighted
+  - **Comprehensive metrics** - Alignment, haplogroup, variants, and deletions counts
+  - **Responsive design** - Mobile-optimized layout with adaptive tables
+  - **Column width limiting** - Max 200px with ellipsis and hover expansion
+  - **Footer** - Creator name, email, and version information
+  - **--reports-only option** - Regenerate reports without sending email
+  
+  **Report Features:**
+  - Run metrics header (total/passed reads and bases with thousand separators)
+  - Stat cards grid: Alignment (chrM reads, Matching both), Haplogroup (Status, Major), Variants (Total, PASS, Highlighted), Deletions (Total, Highlighted)
+  - Horizontal haplogroup table with all haplocheck columns
+  - Variants table with interactive PASS filter and disease coloring
+  - Deletions table with deduplicated mirrored +/- pairs
+  - Output files section with file sizes and validation badges
+  - Logs section displaying errors and warnings from processing
+  - Saved as `processing/<SAMPLE>/report-<SAMPLE>.html`
+  
+  **Bug Fixes:**
+  - Fixed deletions count to match table display (deduplicates mirrored pairs)
+  - Fixed PASS filter applying to all tables (now only affects variants table)
+  - Fixed optional parameter handling in tsv_to_html_table function
 
 - **v2.0.0** (2025-11-04) - Major workflow improvements and HTML email reports
   - **Integrated archiving workflow** with automatic dependency management
