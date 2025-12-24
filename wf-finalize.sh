@@ -634,9 +634,25 @@ generate_sample_html_report() {
     <div class="section">
       <h2>Parameters</h2>
       $(
+        demultmt_script="$(dirname "$0")/wf-demultmt.sh"
+        bchg_script="$(dirname "$0")/wf-bchg.sh"
+        
+        # Extract Dorado parameters from wf-bchg.sh script
+        dorado_params="N/A"
+        if [ -f "$bchg_script" ]; then
+          # Extract the dorado basecaller command (single line with continuation)
+          dorado_params=$(awk '/^\$DORADO_BIN basecaller/,/> "\$BASECALL_BAM"/ {print}' "$bchg_script" | \
+                         grep -oE '\-\-[a-z-]+' | \
+                         tr '\n' ' ' | \
+                         sed 's/ $//')
+          # If empty, it means no extra parameters (just model and path)
+          if [ -z "$dorado_params" ]; then
+            dorado_params="--recursive"
+          fi
+        fi
+        
         # Extract Baldur parameters from wf-demultmt.sh script
         baldur_params="N/A"
-        demultmt_script="$(dirname "$0")/wf-demultmt.sh"
         if [ -f "$demultmt_script" ]; then
           # Extract the baldur command (multi-line with backslashes)
           baldur_params=$(awk '/^\$BALDUR_BIN --mapq/,/"\$BAM_FILE"/ {print}' "$demultmt_script" | \
@@ -658,6 +674,10 @@ generate_sample_html_report() {
           fi
         fi
         
+        echo "<div class=\"baldur-params\">"
+        echo "  <strong>Dorado:</strong> "
+        echo "  <code>$dorado_params</code>"
+        echo "</div>"
         echo "<div class=\"baldur-params\">"
         echo "  <strong>Baldur:</strong> "
         echo "  <code>$baldur_params</code>"
