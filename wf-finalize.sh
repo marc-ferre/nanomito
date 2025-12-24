@@ -433,17 +433,17 @@ generate_sample_html_report() {
     .log-status.error { background:#f8d7da; color:#721c24; }
     .section { margin-bottom:26px; }
     .section h2 { color:#2c3e50; font-size:18px; border-bottom:2px solid #ecf0f1; padding-bottom:6px; }
-    table { width:100%; border-collapse:collapse; font-size:12px; background:white; }
+    table { width:100%; border-collapse:collapse; font-size:12px; background:white; overflow-x:auto; display:block; }
     table.haplogroup-table th { width:40%; }
     table.haplogroup-table td { width:60%; }
     table.deletions-table { margin-top:5px; font-size:11px; }
     .file-list { margin:10px 0; }
-    .file-item { padding:5px 0; font-family:'Courier New',Consolas,monospace; font-size:13px; }
+    .file-item { padding:5px 0; font-family:'Courier New',Consolas,monospace; font-size:13px; word-break:break-all; }
     .badge { display:inline-block; padding:2px 6px; border-radius:3px; font-size:11px; font-weight:600; margin-right:6px; }
     .badge-ok { background:#d4edda; color:#155724; }
     .badge-error { background:#f8d7da; color:#721c24; }
     thead { background:#34495e; color:white; position:sticky; top:0; }
-    th { padding:8px; text-align:left; border:1px solid #2c3e50; }
+    th { padding:8px; text-align:left; border:1px solid #2c3e50; white-space:nowrap; }
     td { padding:6px; border:1px solid #ddd; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     td:hover { white-space:normal; word-wrap:break-word; }
     tbody tr:nth-child(even) { background:#f8f9fa; }
@@ -455,6 +455,31 @@ generate_sample_html_report() {
     tr.hidden { display:none; }
     .filter-toggle { margin:10px 0; padding:8px 12px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; }
     .filter-toggle:hover { background:#5568d3; }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      body { padding:10px; }
+      .container { padding:12px; }
+      h1 { font-size:18px; }
+      .meta { font-size:10px; }
+      .stats-grid { grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap:8px; }
+      .stat-card { padding:8px; }
+      .stat-label { font-size:10px; }
+      .stat-value { font-size:16px; }
+      .section h2 { font-size:16px; }
+      table { font-size:10px; }
+      th, td { padding:4px; font-size:10px; }
+      td { max-width:120px; }
+      .filter-toggle { font-size:12px; padding:6px 10px; }
+      .file-item { font-size:11px; }
+    }
+    
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      table { font-size:9px; }
+      th, td { padding:3px; font-size:9px; }
+      td { max-width:80px; }
+    }
   </style>
 </head>
 <body>
