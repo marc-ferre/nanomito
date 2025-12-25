@@ -803,14 +803,14 @@ generate_sample_html_report() {
       var table = document.getElementById('variants-table');
       if (!table) { return; }
 
-      // Determine FILTER column index from header (fallback to previous heuristic)
+      // Determine FILTER column index from header (fallback to heuristic)
       var filterIdx = -1;
       var thead = table.tHead;
       if (thead && thead.rows && thead.rows.length > 0) {
         var ths = thead.rows[0].cells;
         for (var i = 0; i < ths.length; i++) {
           var txt = (ths[i].textContent || ths[i].innerText || '').trim().toUpperCase();
-          if (txt === 'FILTER') { filterIdx = i; break; }
+          if (txt === 'FILTER' || txt === 'FILTERS' || txt.indexOf('FILTER') !== -1) { filterIdx = i; break; }
         }
       }
       if (filterIdx === -1 && table.tBodies && table.tBodies.length > 0 && table.tBodies[0].rows.length > 0) {
@@ -829,8 +829,10 @@ generate_sample_html_report() {
         var row = rows[r];
         var cell = row.cells[filterIdx];
         var val = cell ? (cell.textContent || cell.innerText || '').trim().toUpperCase() : '';
+        // Treat '.', empty as PASS-equivalent (common VCF conventions)
+        var isPass = (val === 'PASS' || val === '.' || val === '');
         if (showPassOnly) {
-          if (val !== 'PASS') {
+          if (!isPass) {
             row.classList.add('hidden');
           } else {
             row.classList.remove('hidden');
