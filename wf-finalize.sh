@@ -330,32 +330,42 @@ tsv_to_html_table() {
     echo "<p>File not found: $(basename "$tsv_file")</p>"
     return 0
   fi
-  awk -v coloring="$coloring" -v table_id="$table_id" '
+  awk -v coloring="${coloring}" -v table_id="${table_id}" '
     function esc(x) { gsub(/&/,"&amp;",x); gsub(/</,"&lt;",x); gsub(/>/,"&gt;",x); return x }
+    function toup(x,  i,c,r){ r=""; for(i=1;i<=length(x);i++){c=substr(x,i,1); r=r ((c>="a" && c<="z")? sprintf("%c", ord(c)-32): c)}; return r }
+    function ord(c){ return index("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F !\"#$%&\047()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", c)-1 }
     BEGIN { if (table_id) print "<table id=\"" table_id "\">"; else print "<table>" }
     NR==1 {
+      filter_idx=0;
       print "<thead><tr>";
-      for (i=1; i<=NF; i++) { printf "<th>%s</th>", esc($i) }
+      for (i=1; i<=NF; i++) {
+        hdr=$i; uhdr=toupper(hdr);
+        if (uhdr=="FILTER" || uhdr=="FILTERS" || index(uhdr,"FILTER")>0) { filter_idx=i }
+        printf "<th>%s</th>", esc($i)
+      }
       print "</tr></thead><tbody>";
       next
     }
     NR>1 {
       rowclass="";
       if (coloring=="disease") {
-        # Try to classify pathogenicity using common tokens
         line=$0
         if (line ~ /Cfrm-\[P\]/) rowclass="pathogenic";
         else if (line ~ /Cfrm-\[LP\]/) rowclass="likely-pathogenic";
         else if (line ~ /Cfrm-\[B\]/) rowclass="benign";
-        # Deletion markers
         for (i=1;i<=NF;i++) { if ($i=="<DEL>" || $i ~ /^<DEL/) { rowclass="deletion" } }
       }
-      if (rowclass!="") printf "<tr class=\"%s\">", rowclass; else printf "<tr>";
+      passclass="";
+      if (filter_idx>0) {
+        fv=$filter_idx; gsub(/^\s+|\s+$/, "", fv); u=toupper(fv);
+        if (u=="PASS" || u=="." || u=="") passclass=" is-pass";
+      }
+      printf "<tr class=\"%s%s\">", (rowclass!=""?rowclass:""), passclass;
       for (i=1; i<=NF; i++) { printf "<td>%s</td>", esc($i) }
       print "</tr>"
     }
     END { print "</tbody></table>" }
-  ' "$tsv_file"
+  ' "${tsv_file}"
 }
 
 generate_sample_html_report() {
@@ -496,6 +506,7 @@ generate_sample_html_report() {
     tr.benign { background:#fffde7 !important; }
     tr.deletion { background:#e6e6fa !important; }
     tr.hidden { display:none; }
+    table.show-pass-only tbody tr:not(.is-pass) { display:none; }
     .filter-toggle { margin:10px 0; padding:8px 12px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; }
     .filter-toggle:hover { background:#5568d3; }
     
@@ -802,45 +813,9 @@ generate_sample_html_report() {
       var btn = document.querySelector('.filter-toggle');
       var table = document.getElementById('variants-table');
       if (!table) { return; }
-
-      // Determine FILTER column index from header (fallback to heuristic)
-      var filterIdx = -1;
-      var thead = table.tHead;
-      if (thead && thead.rows && thead.rows.length > 0) {
-        var ths = thead.rows[0].cells;
-        for (var i = 0; i < ths.length; i++) {
-          var txt = (ths[i].textContent || ths[i].innerText || '').trim().toUpperCase();
-          if (txt === 'FILTER' || txt === 'FILTERS' || txt.indexOf('FILTER') !== -1) { filterIdx = i; break; }
-        }
-      }
-      if (filterIdx === -1 && table.tBodies && table.tBodies.length > 0 && table.tBodies[0].rows.length > 0) {
-        var firstRow = table.tBodies[0].rows[0];
-        filterIdx = Math.max(0, firstRow.cells.length - 5);
-      }
-
-      if (btn) {
-        btn.textContent = showPassOnly ? 'Show all variants' : 'Show PASS only';
-      }
-
-      var tbody = (table.tBodies && table.tBodies.length > 0) ? table.tBodies[0] : null;
-      if (!tbody) { return; }
-      var rows = tbody.rows;
-      for (var r = 0; r < rows.length; r++) {
-        var row = rows[r];
-        var cell = row.cells[filterIdx];
-        var val = cell ? (cell.textContent || cell.innerText || '').trim().toUpperCase() : '';
-        // Treat '.', empty as PASS-equivalent (common VCF conventions)
-        var isPass = (val === 'PASS' || val === '.' || val === '');
-        if (showPassOnly) {
-          if (!isPass) {
-            row.classList.add('hidden');
-          } else {
-            row.classList.remove('hidden');
-          }
-        } else {
-          row.classList.remove('hidden');
-        }
-      }
+      if (btn) { btn.textContent = showPassOnly ? 'Show all variants' : 'Show PASS only'; }
+      if (showPassOnly) { table.classList.add('show-pass-only'); }
+      else { table.classList.remove('show-pass-only'); }
     }
   </script>
 </body>
