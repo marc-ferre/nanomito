@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
 #
 # Archiving a run
 #
@@ -18,6 +19,22 @@ trap cleanup EXIT
 
 VERSION='2.0.0'
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
+
+# Resolve script directory and load optional global config
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+if [ -L "$SCRIPT_PATH" ]; then
+	SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+fi
+case "$SCRIPT_PATH" in
+	/*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
+	*)  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)" ;;
+esac
+CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
+if [ -f "$CONFIG_FILE" ]; then
+	# shellcheck source=nanomito.config
+	# shellcheck disable=SC1091
+	source "$CONFIG_FILE"
+fi
 
 # Colors for terminal output
 RED='\033[0;31m'
@@ -45,9 +62,9 @@ log_warning() {
 	echo -e "${YELLOW}[WARN]${NC} $(date '+%H:%M:%S') - $1"
 }
 
-WF_ARCHIVING='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/nanomito/wf-archiving.sh'
-
-PROJECTS_DIR='/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/projects'
+WF_ARCHIVING="${WF_ARCHIVING:-$SCRIPT_DIR/wf-archiving.sh}"
+PROJECTS_DIR="${PROJECTS_DIR:-$HOME/projects}"
+MAIL_USER="${MAIL_USER:-}"
 
 # Validate workflow file exists
 if [ ! -f "$WF_ARCHIVING" ]; then
@@ -112,7 +129,12 @@ echo -e "${BOLD}${CYAN}==========================================${NC}"
 
 SLURM_FILE="$PROJECTS_DIR/slurm-$RUN_ID.out"
 
-JOBID=$(sbatch --parsable --job-name="a${RUN_ID: -7}" --output="$SLURM_FILE" $WF_ARCHIVING "$RUN_DIR" "$ARCHIVING_DIR")
+SBATCH_MAIL_ARGS=()
+if [ -n "$MAIL_USER" ]; then
+	SBATCH_MAIL_ARGS+=(--mail-user="$MAIL_USER")
+fi
+
+JOBID=$(sbatch --parsable --job-name="a${RUN_ID: -7}" --output="$SLURM_FILE" "${SBATCH_MAIL_ARGS[@]}" "$WF_ARCHIVING" "$RUN_DIR" "$ARCHIVING_DIR")
 
 if [ -n "$JOBID" ]; then
 	log_success "Submitted batch job $JOBID"

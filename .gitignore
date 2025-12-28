@@ -6,3 +6,5 @@ __pycache__/
 .tmp_pod5_v3_v4_migration_*/
 dorado_run.log
 *.log
+nanomito.config
+preprocessing/preprocessing.config

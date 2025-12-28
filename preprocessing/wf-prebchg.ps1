@@ -42,7 +42,7 @@
     Runs the script with automatic detection of the latest run directory in C:\data\
 
 .EXAMPLE
-    .\cmd.ps1 -RunDirectory "C:\data\250822_MK1B_RUN13"
+    .\cmd.ps1 -RunDirectory "C:\data\run_dir"
     Runs the script with a specific run directory
 
 .EXAMPLE

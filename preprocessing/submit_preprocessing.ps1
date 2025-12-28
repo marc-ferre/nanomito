@@ -39,7 +39,7 @@
     # Display detailed help information
     
 .EXAMPLE
-    .\pipeline_run.ps1 -RunDirectory "C:\data\250822_MK1B_RUN13"
+    .\pipeline_run.ps1 -RunDirectory "C:\data\run_dir"
     # Run complete pipeline on specific directory
     
 .EXAMPLE

@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
 #SBATCH --job-name=modmito
 #SBATCH --gpus=1
 #SBATCH --partition=gpu

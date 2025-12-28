@@ -1,0 +1,34 @@
+#!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
+# Preprocessing Global Configuration (template)
+# Copy to preprocessing.config and customize for your environment.
+
+# =============================================================================
+# CONDA CONFIGURATION
+# =============================================================================
+CONDA_SCRIPT='/path/to/anaconda3/etc/profile.d/conda.sh'
+GETMT_ENV='nanomito'
+
+# =============================================================================
+# PYTHON SCRIPTS (for wf-getmt.sh on WSL/Linux)
+# =============================================================================
+CHRMPIDS_SCRIPT='/path/to/nanomito/preprocessing/get_chrMpid.py'
+CREATE_PID_DICT_SCRIPT='/path/to/nanomito/preprocessing/create_pid_dict.py'
+
+# =============================================================================
+# DATA DIRECTORIES (WSL paths)
+# =============================================================================
+DATA_ROOT='/mnt/c/data'
+
+# =============================================================================
+# REMOTE UPLOAD CONFIGURATION (for upload_go.sh)
+# =============================================================================
+GO_USER='your_username'
+GO_HOST='your.ssh.host'
+GO_REMOTE_BASE='/home/your_cluster_user/workbench'
+
+# =============================================================================
+# SCRIPT METADATA
+# =============================================================================
+PREPROCESSING_AUTHOR='Your Name <your.email@domain.com>'
+PREPROCESSING_VERSION='25.11.04.1'

@@ -1,0 +1,75 @@
+#!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
+# Nanomito Global Configuration (template)
+# Copy this file to nanomito.config and customize paths, environments, and mail settings.
+
+# =============================================================================
+# BINARIES
+# =============================================================================
+DORADO_BIN='/path/to/dorado'
+BALDUR_BIN='/path/to/baldur'
+ONT_DEMULT_BIN='/path/to/ont_demult'
+
+# =============================================================================
+# CONDA ENVIRONMENTS
+# =============================================================================
+ANNOTMT_ENV='/path/to/env_annotmt'
+BALDUR_ENV='/path/to/env_baldur'
+BCHG_ENV='/path/to/env_bchg'
+GETMT_ENV='/path/to/env_getmt'
+MODMITO_ENV='/path/to/env_modmito'
+ONT_DEMULT_ENV='/path/to/env_ont_demult'
+POD5_ENV='/path/to/env_pod5'
+
+# =============================================================================
+# PYTHON SCRIPTS
+# =============================================================================
+# Script to extract mitochondrial read IDs from BAM files
+CHRMPIDS_SCRIPT='/path/to/nanomito/preprocessing/get_chrMpid.py'
+# Script to create read_id→parent_id dictionary from Dorado BAM files
+CREATE_PID_DICT_SCRIPT='/path/to/nanomito/preprocessing/create_pid_dict.py'
+
+# =============================================================================
+# WORKFLOW SCRIPTS
+# =============================================================================
+NANOMITO_DIR="${NANOMITO_DIR:-/path/to/nanomito}"
+WF_BCHG="$NANOMITO_DIR/wf-bchg.sh"
+WF_SUBWF="$NANOMITO_DIR/wf-subwf.sh"
+WF_DEMULTMT="$NANOMITO_DIR/wf-demultmt.sh"
+WF_MODMITO="$NANOMITO_DIR/wf-modmito.sh"
+WF_ARCHIVING="$NANOMITO_DIR/wf-archiving.sh"
+
+# =============================================================================
+# REFERENCES
+# =============================================================================
+REF_MT='/path/to/reference/chrM.fa'
+REF_MT_DIR='/path/to/reference'
+REF_WHOLE='/path/to/reference/Homo_sapiens-hg38-GRCh38.p14.mmi'
+SELECTED_REF='/path/to/reference/chrM-mt_3kb-a0.fa'
+CUT_FILE='/path/to/reference/cut.txt'
+REF_MT_PREFIX='chrM-'
+REF_MT_SUFIX='.fa'
+
+# =============================================================================
+# ANNOTATION DATABASES
+# =============================================================================
+ANN_GNOMAD='/path/to/reference/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
+ANN_MITOMAP_DISEASE='/path/to/reference/MITOMAP/disease-nosp.vcf'
+ANN_MITOMAP_POLYMORPHISMS='/path/to/reference/MITOMAP/polymorphisms.vcf'
+
+# =============================================================================
+# SLURM MAIL CONFIGURATION
+# =============================================================================
+MAIL_USER='your.email@domain.com'
+MAIL_TYPE_END='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_80'
+MAIL_TYPE_ISSUE='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_80'
+MAIL_TYPE_90='FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90'
+
+# =============================================================================
+# VALIDATION
+# =============================================================================
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: nanomito.config must be sourced in a bash shell" >&2
+    exit 1
+fi
+NANOMITO_CONFIG_LOADED=true

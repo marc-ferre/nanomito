@@ -4,7 +4,7 @@
 #
 # Description:
 #   Copies analysis results (TSV, VCF, BAM, BAI files) from run directories
-#   in /scratch/mferre/workbench to /scratch/mferre/export/<run_id>
+#   to ~/export/<run_id>
 #
 ################################################################################
 # USAGE
@@ -17,17 +17,17 @@ Export analysis results from a run directory to export directory, organized by r
 
 Arguments:
     RUN_PATH    Required. Path to the run directory to export
-                (e.g., /scratch/mferre/workbench/250416_run001_recherche_Val)
+                (e.g., /path/to/workbench/run_dir)
     
     RUN_NAME    Optional. Name to use for the export directory and ZIP file.
                 If not provided, uses the basename of RUN_PATH.
 
 Examples:
     # Export with automatic name (uses basename)
-    $0 /scratch/mferre/workbench/250416_run001_recherche_Val
+    $0 /path/to/workbench/run_dir
     
     # Export with custom name
-    $0 /scratch/mferre/workbench/250416_run001_recherche_Val my_custom_name
+    $0 /path/to/workbench/run_dir my_custom_name
 
 Output:
     Files are exported to: $EXPORT_BASE/<run_name>/<sample_id>/
@@ -38,12 +38,13 @@ Exported files:
     - *.ann.vcf
     - *.chrM.sup,5mC_5hmC,6mA.sorted.bam
     - *.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai
+    - report-*.html
 EOF
 }
 #
 # Directory structure:
-#   Source: /scratch/mferre/workbench/<run>/processing/<sample>/
-#   Target: /scratch/mferre/export/<run>/<sample>/
+#   Source: <run_directory>/processing/<sample>/
+#   Target: ~/export/<run>/<sample>/
 #
 
 set -euo pipefail
@@ -52,7 +53,7 @@ set -euo pipefail
 shopt -s nullglob
 
 # Configuration
-EXPORT_DIR="/scratch/mferre/export"
+EXPORT_DIR="$HOME/export"
 
 # Colors for output
 RED='\033[0;31m'
@@ -95,17 +96,17 @@ Export analysis results from a run directory to export directory.
 
 Arguments:
   RUN_PATH    Required. Path to the run directory to export
-              (e.g., /scratch/mferre/workbench/250416_run001_recherche_Val)
+              (e.g., /path/to/workbench/run_dir)
 
   RUN_NAME    Optional. Custom name to use for the export directory and ZIP file.
               If not provided, uses the basename of RUN_PATH.
 
 Examples:
   # Export with automatic name (uses basename of path)
-  $0 /scratch/mferre/workbench/250416_run001_recherche_Val
+  $0 /path/to/workbench/run_dir
 
   # Export with custom name
-  $0 /scratch/mferre/workbench/250416_run001_recherche_Val my_custom_export
+  $0 /path/to/workbench/run_dir my_custom_export
 
 Output:
   Files are exported to: $EXPORT_DIR/<run_name>/<sample_id>/
@@ -116,6 +117,7 @@ Exported files per sample:
   - *.ann.vcf
   - *.chrM.sup,5mC_5hmC,6mA.sorted.bam
   - *.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai
+  - report-*.html
 EOF
     exit 0
 }
@@ -126,6 +128,7 @@ FILE_PATTERNS=(
     "*.ann.vcf"
     "*.chrM.sup,5mC_5hmC,6mA.sorted.bam"
     "*.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai"
+    "report-*.html"
 )
 
 # Export files for a single sample

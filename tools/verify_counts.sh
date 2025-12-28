@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE="/Users/marcferre/Documents/Recherche/Projets/Nanomito/Analyses/Comparaisons/2025-01 Article/Anonymized"
+BASE="${1:-.}"
 printf "Sample,Errors,Warnings\n"
 for d in "$BASE"/*; do
   [ -d "$d" ] || continue

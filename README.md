@@ -6,6 +6,10 @@ Comprehensive SLURM workflows for full-length single-molecule sequencing of mito
 
 Nanomito is a collection of production-ready bash scripts designed for high-throughput processing of Oxford Nanopore sequencing data, specifically optimized for mitochondrial DNA analysis. The workflows are designed to run on HPC clusters using SLURM workload manager.
 
+**License & configuration**
+- Licensed under CeCILL-2.1 (see LICENSE).
+- Copy nanomito.config.template to nanomito.config and preprocessing/preprocessing.config.template to preprocessing/preprocessing.config, then set your paths, conda envs, and mail recipient.
+
 ### Key Features
 
 - 🧬 **Full mitochondrial genome sequencing** - Complete workflow from basecalling to modification analysis
@@ -307,7 +311,7 @@ run_directory/
 - **GNU Parallel** (optional, for faster compression)
 - **Python 3** with pysam library (for pid_dict creation)
 
-### Installation on Genouest HPC
+### Installation
 
 1. **Clone the repository:**
 
@@ -317,12 +321,12 @@ run_directory/
    cat ~/.ssh/id_ed25519.pub  # Add this to GitHub Settings > SSH keys
 
    # Clone the repository
-   cd /home/genouest/.../your_username/
+   cd /home/your_username/
    git clone git@github.com:marc-ferre/nanomito.git
    cd nanomito
    ```
 
-1. **Configure the environment:**
+2. **Configure the environment:**
 
    Edit `nanomito.config` to match your HPC environment:
 

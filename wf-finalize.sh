@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
 # wf-finalize.sh - Send a comprehensive email summary when all Nanomito jobs are completed
 #
 # This script is intended to be submitted by wf-subwf.sh as a final step,

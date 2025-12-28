@@ -15,11 +15,11 @@ AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
 # If no argument is provided, the current directory will be used by default.
 
 # Constants and reference paths
-readonly HAPLOCHECK_BIN='/Users/marcferre/Documents/Recherche/Projets/Nanomito/Apps/haplocheck/haplocheck.jar'   
-readonly SNPSIFT_BIN='/Users/marcferre/Documents/Recherche/Projets/Nanomito/Apps/snpEff/SnpSift.jar'
-readonly ANN_GNOMAD='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf'
-readonly ANN_MITOMAP_DISEASE='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/MITOMAP/disease-nosp.vcf'
-readonly ANN_MITOMAP_POLYMORPHISMS='/Users/marcferre/Documents/Recherche/Projets/Nanomito/References/MITOMAP/polymorphisms.vcf'
+readonly HAPLOCHECK_BIN="${HAPLOCHECK_BIN:-/path/to/haplocheck/haplocheck.jar}"
+readonly SNPSIFT_BIN="${SNPSIFT_BIN:-/path/to/snpEff/SnpSift.jar}"
+readonly ANN_GNOMAD="${ANN_GNOMAD:-/path/to/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf}"
+readonly ANN_MITOMAP_DISEASE="${ANN_MITOMAP_DISEASE:-/path/to/MITOMAP/disease-nosp.vcf}"
+readonly ANN_MITOMAP_POLYMORPHISMS="${ANN_MITOMAP_POLYMORPHISMS:-/path/to/MITOMAP/polymorphisms.vcf}"
 
 # ANSI color codes (no change needed)
 readonly COLOR_RESET='\033[0m'

@@ -82,7 +82,7 @@ cd C:\Users\YourName\nanomito\preprocessing
 .\submit_preprocessing.ps1
 
 # Or specify a run directory
-.\submit_preprocessing.ps1 -RunDirectory "C:\data\250822_MK1B_RUN13"
+.\submit_preprocessing.ps1 -RunDirectory "C:\data\run_dir"
 
 # Dry run (preview without execution)
 .\submit_preprocessing.ps1 -DryRun
@@ -173,7 +173,7 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 ./wf-getmt.sh
 
 # Specific run directory
-./wf-getmt.sh /mnt/c/data/250822_MK1B_RUN13
+./wf-getmt.sh /mnt/c/data/run_dir
 
 # Custom log file
 ./wf-getmt.sh -l /tmp/custom.log /mnt/c/data/my_run
@@ -219,21 +219,21 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 ./wf-uplgo.sh
 
 # Specific run directory
-./wf-uplgo.sh /mnt/c/data/250822_MK1B_RUN13
+./wf-uplgo.sh /mnt/c/data/run_dir
 
 # Dry run (preview what will be uploaded)
 ./wf-uplgo.sh --dry-run
 
 # Custom destination
-./wf-uplgo.sh -u myuser -h genossh.genouest.org -d /scratch/myuser/workbench/
+./wf-uplgo.sh -u myuser -h your.ssh.host -d /scratch/myuser/workbench/
 ```
 
 **Parameters:**
 
 - `[RUN_DIRECTORY]` - Path to run directory (auto-detects latest if omitted)
-- `-u|--user USER` - Genouest username (default: from config)
-- `-h|--host HOST` - Genouest hostname (default: genossh.genouest.org)
-- `-d|--dest PATH` - Destination path on cluster
+- `-u|--user USER` - SSH username (default: from config)
+- `-h|--host HOST` - SSH hostname (default: from config)
+- `-d|--dest PATH` - Destination path on remote host
 - `-n|--dry-run` - Show what would be transferred without actually doing it
 - `--help` - Display help message
 
@@ -454,17 +454,17 @@ bash Miniconda3-latest-Linux-x86_64.sh
 ```
 <!-- markdownlint-enable MD034 -->
 
-### 2. Configure SSH for Genouest
+### 2. Configure SSH for your remote host
 
 ```bash
 # In WSL, generate SSH key if you don't have one
 ssh-keygen -t ed25519 -C "your.email@domain.com"
 
-# Copy public key to Genouest
-ssh-copy-id your_username@genossh.genouest.org
+# Copy public key to your SSH host
+ssh-copy-id your_username@your.ssh.host
 
 # Test connection (should not ask for password)
-ssh your_username@genossh.genouest.org
+ssh your_username@your.ssh.host
 ```
 
 **Note on SSH authentication:**
@@ -621,10 +621,10 @@ python -c "import pysam, pod5; print('OK')"
 
 ```bash
 # In WSL, test SSH connection
-ssh your_username@genossh.genouest.org
+ssh your_username@your.ssh.host
 
 # If prompted for password, re-run ssh-copy-id
-ssh-copy-id your_username@genossh.genouest.org
+ssh-copy-id your_username@your.ssh.host
 ```
 
 #### 6. "pid_dict.tsv is empty or missing"

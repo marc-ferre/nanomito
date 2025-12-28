@@ -142,7 +142,7 @@ init_conda() {
     # Initialize conda environment for running pod5 commands
     local conda_sh=$CONDA_SCRIPT
     if [[ -f "$conda_sh" ]]; then
-        # shellcheck source=/home/mferre/anaconda3/etc/profile.d/conda.sh
+        # shellcheck source=/path/to/anaconda3/etc/profile.d/conda.sh
         # shellcheck disable=SC1091
         source "$conda_sh"
     else

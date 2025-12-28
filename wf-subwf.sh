@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
 #SBATCH --job-name=subwf
 #SBATCH --time=00:30:00
 #SBATCH --output=processing/slurm-%x.%j.out

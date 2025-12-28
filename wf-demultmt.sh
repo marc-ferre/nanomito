@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
 #SBATCH --job-name=demultmt
 #SBATCH --cpus-per-task=4
 #SBATCH --constraint=avx2
@@ -90,7 +91,7 @@ BAM_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
 POD5_DIR="$RUN_DIR/pod5_chrM"
 PROCESS_DIR="$RUN_DIR/processing"
 OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
-REF_MT_DIR='/scratch/mferre/reference'
+REF_MT_DIR="$REF_MT_DIR"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 VARCALL_DIR="$OUT_DIR/varcall"
 

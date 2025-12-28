@@ -1,9 +1,25 @@
 #!/bin/bash
 
-# Upload run data to Genouest cluster using rsync
+# Upload run data to a remote SSH host using rsync
 # Excludes large data files (pod5, bam, fastq) and only syncs metadata/configuration files
 
 set -euo pipefail
+
+# Load optional preprocessing configuration
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+if [ -L "$SCRIPT_PATH" ]; then
+    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+fi
+case "$SCRIPT_PATH" in
+    /*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
+    *)  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)" ;;
+esac
+CONFIG_FILE="$SCRIPT_DIR/preprocessing.config"
+if [ -f "$CONFIG_FILE" ]; then
+    # shellcheck source=preprocessing.config
+    # shellcheck disable=SC1091
+    source "$CONFIG_FILE"
+fi
 
 # Track if we started the ssh-agent ourselves
 SSH_AGENT_STARTED=0
@@ -65,23 +81,23 @@ usage() {
     cat << EOF
 Usage: $0 [RUN_DIRECTORY] [OPTIONS]
 
-Upload nanopore run data to Genouest cluster, excluding large data files.
+Upload nanopore run data to a remote SSH host, excluding large data files.
 
 Arguments:
   RUN_DIRECTORY     Path to the run directory to upload
                     If not specified, uses the latest directory in /mnt/c/data/
 
 Options:
-  -u, --user USER   Genouest username (default: mferre)
-  -h, --host HOST   Genouest hostname (default: genossh.genouest.org)
-  -d, --dest PATH   Destination path on Genouest (default: /scratch/mferre/workbench/)
+    -u, --user USER   SSH username (default: from config or local user)
+    -h, --host HOST   SSH hostname (default: from config)
+    -d, --dest PATH   Destination path on remote host (default: from config)
   -n, --dry-run     Show what would be transferred without actually doing it
   --help            Show this help message
 
 Examples:
   $0                                                    # Upload latest run with defaults
-  $0 /mnt/c/data/250822_MK1B_RUN13                     # Upload specific run
-  $0 -u myuser -h myserver.org                         # Upload with custom credentials
+  $0 /mnt/c/data/run_dir                               # Upload specific run
+    $0 -u myuser -h myserver.org                         # Upload with custom credentials
   $0 --dry-run                                         # Preview what would be uploaded
 
 Excluded directories: pod5, bam, bam_fail, bam_pass, fastq_fail, fastq_pass
@@ -118,9 +134,10 @@ get_latest_run_directory() {
 
 parse_args() {
     # Default values
-    GO_USER="mferre"
-    GO_HOST="genossh.genouest.org"
-    GO_DEST="/scratch/mferre/workbench/"
+    # Defaults pulled from preprocessing.config if available
+    GO_USER="${GO_USER:-$USER}"
+    GO_HOST="${GO_HOST:-your.ssh.host}"
+    GO_DEST="${GO_REMOTE_BASE:-/path/on/remote/workbench}" 
     RUN_DIR=""
     DRY_RUN=false
     

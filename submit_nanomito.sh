@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
 #
 # Submit Nanomito workflows to Slurm
 #
@@ -147,16 +148,16 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "  --help, -h              Display this help message"
 	echo ""
 	echo "Examples:"
-	echo "  $0 /scratch/mferre/workbench/250916_MK1B_RUN15/"
-	echo "  $0 --bchg-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
-	echo "  $0 --skip-bchg /scratch/mferre/workbench/250916_MK1B_RUN15/"
-	echo "  $0 --skip-bchg --demultmt-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
-	echo "  $0 --skip-bchg --modmito-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
-	echo "  $0 --skip-bchg --include-unclassified /scratch/mferre/workbench/250916_MK1B_RUN15/"
-	echo "  $0 --only-samples 250331_230183003_TRIC,250331_220028830_TRES /scratch/mferre/workbench/250331_P2_run002/"
-	echo "  $0 --skip-bchg --only-samples 250331_230183003_TRIC,250331_220028830_TRES /scratch/mferre/workbench/250331_P2_run002/"
-	echo "  $0 --archiving-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
-	echo "  $0 --finalize-only /scratch/mferre/workbench/250916_MK1B_RUN15/"
+	echo "  $0 /path/to/run_directory/"
+	echo "  $0 --bchg-only /path/to/run_directory/"
+	echo "  $0 --skip-bchg /path/to/run_directory/"
+	echo "  $0 --skip-bchg --demultmt-only /path/to/run_directory/"
+	echo "  $0 --skip-bchg --modmito-only /path/to/run_directory/"
+	echo "  $0 --skip-bchg --include-unclassified /path/to/run_directory/"
+	echo "  $0 --only-samples SAMPLE1,SAMPLE2 /path/to/run_directory/"
+	echo "  $0 --skip-bchg --only-samples SAMPLE1,SAMPLE2 /path/to/run_directory/"
+	echo "  $0 --archiving-only /path/to/run_directory/"
+	echo "  $0 --finalize-only /path/to/run_directory/"
 	exit 0
 fi
 
