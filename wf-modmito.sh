@@ -253,11 +253,11 @@ log_info "Basecalling duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600))
 log_step "4/4: BAM SORTING & BEDMETHYL GENERATION"
 STEP_START=$(date +%s)
 
-# Source Conda, to use it on a Genouest cluster compute node
+# Source Conda for HPC cluster compute node
 log_info "Loading Conda environment"
 set +u  # Temporarily disable unset variable check for conda
 if [ -f /local/env/envconda.sh ]; then
-    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
+    # shellcheck disable=SC1091  # File only exists on HPC cluster
     . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
 else
     log_warning "Conda init script not found at /local/env/envconda.sh"

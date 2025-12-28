@@ -408,7 +408,7 @@ if [ -n "$JOBID_LIST" ]; then
 
 	# Submit archiving job (unless --skip-archiving is set)
 	if [ "$SKIP_ARCHIVING" = false ]; then
-		ARCHIVING_DIR="${ARCHIVING_DIR:-/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/projects/$RUN_ID}"
+		ARCHIVING_DIR="${ARCHIVING_DIR:-/project/storage/path/$RUN_ID}"  # Define in nanomito.config
 		ARCHIVE_OUT="$PROCESS_DIR/slurm-$RUN_ID.archive.out"
 		
 		ARCHIVE_JOBID=$(sbatch --parsable \

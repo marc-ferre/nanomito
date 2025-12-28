@@ -51,7 +51,7 @@ $Script:DoradoScript = "C:\Users\mferre\nanomito\preprocessing\wf-prebchg.ps1"
 # Path to mitochondrial extraction script (WSL)
 $Script:MitochondrialScript = "C:\Users\mferre\nanomito\preprocessing\wf-getmt.sh"
 
-# Path to Genouest upload script (WSL)
+# Path to HPC upload script (WSL)
 $Script:UploadScript = "C:\Users\mferre\nanomito\preprocessing\wf-uplgo.sh"
 
 # ============================================================================

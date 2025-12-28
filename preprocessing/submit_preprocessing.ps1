@@ -7,7 +7,7 @@
     This script executes the full nanopore sequencing pipeline in the correct order:
     1. Dorado basecaller (dorado_run.ps1)
     2. Mitochondrial read extraction (wf-getmt.sh)
-    3. Upload to Genouest cluster (upload_go.sh)
+    3. Upload to HPC cluster (upload_go.sh)
     
     By default, it automatically detects and uses the latest run directory in C:\data\
     
@@ -22,7 +22,7 @@
     Skip the mitochondrial extraction step
     
 .PARAMETER SkipUpload
-    Skip the upload to Genouest step
+    Skip the upload to HPC cluster
     
 .PARAMETER DryRun
     Show what would be executed without actually running the commands
@@ -207,15 +207,15 @@ function Invoke-MitochondrialExtraction {
     }
 }
 
-function Invoke-GenouestionUpload {
+function Invoke-HpcUpload {
     param([string]$RunDir)
     
     if ($SkipUpload) {
-        Write-ColorMessage "[SKIPPED] Genouest upload step" "Yellow"
+        Write-ColorMessage "[SKIPPED] HPC upload step" "Yellow"
         return $true
     }
     
-    Write-ColorMessage "[INFO] Starting upload to Genouest cluster..." "Cyan"
+    Write-ColorMessage "[INFO] Starting upload to HPC cluster..." "Cyan"
     
     # Convert Windows paths to WSL paths
     $WslRunDir = $RunDir -replace "C:\\", "/mnt/c/" -replace "\\", "/"
@@ -233,16 +233,16 @@ function Invoke-GenouestionUpload {
         $exitCode = $LASTEXITCODE
         
         if ($exitCode -eq 0) {
-            Write-ColorMessage "[SUCCESS] Genouest upload completed" "Green"
+            Write-ColorMessage "[SUCCESS] HPC upload completed" "Green"
             return $true
         }
         else {
-            Write-ColorMessage "[ERROR] Genouest upload failed with exit code $exitCode" "Red"
+            Write-ColorMessage "[ERROR] HPC upload failed with exit code $exitCode" "Red"
             return $false
         }
     }
     catch {
-        Write-ColorMessage "[ERROR] Genouest upload failed: $($_.Exception.Message)" "Red"
+        Write-ColorMessage "[ERROR] HPC upload failed: $($_.Exception.Message)" "Red"
         return $false
     }
 }
@@ -260,7 +260,7 @@ function Show-PipelineSummary {
     Write-ColorMessage "Pipeline Steps:" "White"
     Write-ColorMessage "  1. Dorado Basecalling: $(if ($SkipDorado) { 'SKIPPED' } else { 'ENABLED' })" "White"
     Write-ColorMessage "  2. Mitochondrial Extraction: $(if ($SkipMitochondrial) { 'SKIPPED' } else { 'ENABLED' })" "White"
-    Write-ColorMessage "  3. Genouest Upload: $(if ($SkipUpload) { 'SKIPPED' } else { 'ENABLED' })" "White"
+    Write-ColorMessage "  3. HPC Upload: $(if ($SkipUpload) { 'SKIPPED' } else { 'ENABLED' })" "White"
     if (-not $SkipUpload) {
         Write-ColorMessage "SSH Authentication: WILL BE HANDLED DURING UPLOAD" "White"
     }
@@ -345,12 +345,12 @@ try {
     
     if (-not $SkipUpload) {
         $CurrentStep++
-        Write-StepHeader "Upload to Genouest Cluster" $CurrentStep $TotalSteps
-        if (Invoke-GenouestionUpload -RunDir $RunDirectory) {
+        Write-StepHeader "Upload to HPC Cluster" $CurrentStep $TotalSteps
+        if (Invoke-HpcUpload -RunDir $RunDirectory) {
             $SuccessfulSteps++
         }
         else {
-            throw "Genouest upload failed - stopping pipeline"
+            throw "HPC upload failed - stopping pipeline"
         }
     }
     

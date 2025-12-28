@@ -70,11 +70,11 @@ SAMPLE_ID=$1
 SELECT='both' 
 
 # ----------------------------------------------------------------------------
-# GENOUEST: Source Conda environment as early as possible
+# Source Conda environment as early as possible (HPC cluster specific)
 # ----------------------------------------------------------------------------
 set +u  # Temporarily disable unset variable check for conda
 if [ -f /local/env/envconda.sh ]; then
-    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
+    # shellcheck disable=SC1091  # File only exists on HPC cluster
     . /local/env/envconda.sh 2>/dev/null || echo "[WARN] Could not source /local/env/envconda.sh"
 else
     echo "[WARN] Conda init script not found at /local/env/envconda.sh"
@@ -169,7 +169,7 @@ ANNOTMT_VCF_FILE="$OUT_DIR/$SAMPLE_ID.ann.vcf"
 BALDUR_VCF_FILE="$VARCALL_DIR/$BALDUR_PREFIX.vcf.gz"
 BAM_FILE="$SELECT_DIR/$SAMPLE_ID.bam"
 CHRM_ONLY_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.match_chrM_only.txt"
-CUT_FILE='/scratch/mferre/reference/cut.txt'
+CUT_FILE="${CUT_FILE:-/path/to/cut.txt}"  # Define in nanomito.config
 DEMULT_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.txt.gz"
 DEMULT_POD5_FILE="$SELECT_DIR/$SAMPLE_ID.demultmt.pod5"
 DEMULT_SUMMARY_FILE="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
@@ -283,11 +283,11 @@ STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
 log_info "Preprocessing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 
-# Source Conda for Genouest cluster compute node
+# Source Conda for HPC cluster compute node
 log_info "Loading Conda environment"
 set +u  # Temporarily disable unset variable check for conda
 if [ -f /local/env/envconda.sh ]; then
-    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
+    # shellcheck disable=SC1091  # File only exists on HPC cluster
     . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
 else
     log_warning "Conda init script not found at /local/env/envconda.sh"

@@ -248,7 +248,7 @@ The `preprocessing/` directory contains **Windows-based preprocessing scripts** 
 
 1. `wf-prebchg.ps1` - Dorado basecalling on Windows (GPU-accelerated)
 2. `wf-getmt.sh` - Extract chrM reads (WSL)
-3. `wf-uplgo.sh` - Upload to Genouest HPC cluster (WSL)
+3. `wf-uplgo.sh` - Upload to HPC cluster (WSL)
 
 See [preprocessing/README.md](preprocessing/README.md) for complete documentation.
 
@@ -661,7 +661,7 @@ If you use Nanomito in your research, please cite:
 
 ## Acknowledgments
 
-- **Genouest** bioinformatics platform for HPC resources
+- **HPC cluster** resources for high-performance computing
 - **Oxford Nanopore Technologies** for sequencing technology
 - **Dorado** team for basecalling software
 

@@ -293,7 +293,7 @@ JOBS_COUNT=0
 BCHG_JOBID=''
 
 # Get archiving configuration
-ARCHIVING_DIR="${ARCHIVING_DIR:-/home/genouest/cnrs_umr6015_inserm_umr1083/mferre/projects/$RUN_ID}"
+ARCHIVING_DIR="${ARCHIVING_DIR:-/project/storage/path/$RUN_ID}"  # Define in nanomito.config
 
 # SPECIAL CASE: --archiving-only to archive existing data
 if [ "$ARCHIVING_ONLY" = true ]; then

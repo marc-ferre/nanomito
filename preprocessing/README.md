@@ -92,13 +92,13 @@ cd C:\Users\YourName\nanomito\preprocessing
 
 ```powershell
 # Step 1: Basecalling only
-.\wf-prebchg.ps1 -RunDirectory "C:\data\250822_MK1B_RUN13"
+.\wf-prebchg.ps1 -RunDirectory "C:\data\run_dir"
 
 # Step 2: Extract chrM reads (in WSL)
-wsl ./preprocessing/wf-getmt.sh /mnt/c/data/250822_MK1B_RUN13
+wsl ./preprocessing/wf-getmt.sh /mnt/c/data/run_dir
 
 # Step 3: Upload to HPC (in WSL)
-wsl ./preprocessing/wf-uplgo.sh /mnt/c/data/250822_MK1B_RUN13
+wsl ./preprocessing/wf-uplgo.sh /mnt/c/data/run_dir
 ```
 
 ## Detailed Documentation
@@ -269,7 +269,7 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 .\submit_preprocessing.ps1
 
 # Specific run directory
-.\submit_preprocessing.ps1 -RunDirectory "C:\data\250822_MK1B_RUN13"
+.\submit_preprocessing.ps1 -RunDirectory "C:\data\run_dir"
 
 # Skip basecalling (already done)
 .\submit_preprocessing.ps1 -SkipDorado
@@ -681,7 +681,7 @@ After preprocessing completes and data is uploaded to HPC cluster:
 
 ```bash
 # On HPC cluster
-cd /scratch/your_username/workbench/250822_MK1B_RUN13
+cd /scratch/your_username/workbench/run_dir
 
 # Verify required files are present
 ls -lh pod5_chrM/*.pid_dict.tsv

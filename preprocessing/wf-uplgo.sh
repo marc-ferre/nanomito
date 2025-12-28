@@ -197,7 +197,7 @@ parse_args() {
 
 show_summary() {
     echo "========================================="
-    echo "Genouest Upload Summary"
+    echo "HPC Upload Summary"
     echo "========================================="
     echo "Source directory: $RUN_DIR"
     echo "Destination: ${GO_USER}@${GO_HOST}:${GO_DEST}"
