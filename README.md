@@ -344,7 +344,7 @@ run_directory/
    # - MAIL_USER with your email address
    ```
 
-2. **Make scripts executable:**
+3. **Make scripts executable:**
 
    ```bash
    chmod +x *.sh
