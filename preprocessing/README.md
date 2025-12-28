@@ -8,7 +8,7 @@ The preprocessing directory contains workflows for preparing Nanopore sequencing
 
 1. **Basecalling** (Windows) - Convert raw POD5 files to BAM using Dorado
 2. **chrM extraction** (WSL) - Filter reads aligned to mitochondrial chromosome
-3. **Upload** (WSL) - Transfer data to Genouest HPC cluster
+3. **Upload** (WSL) - Transfer data to HPC cluster
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -18,7 +18,7 @@ The preprocessing directory contains workflows for preparing Nanopore sequencing
 │  │wf-prebchg.ps1│────▶│ wf-getmt.sh  │────▶│wf-uplgo.sh  │  │
 │  │              │     │              │     │             │  │
 │  │  Dorado      │     │ Extract chrM │     │ Upload to   │  │
-│  │  Basecalling │     │ reads        │     │ Genouest    │  │
+│  │  Basecalling │     │ reads        │     │ HPC         │  │
 │  └──────────────┘     └──────────────┘     └─────────────┘  │
 │        │                     │                    │         │
 │        ▼                     ▼                    ▼         │
@@ -27,7 +27,7 @@ The preprocessing directory contains workflows for preparing Nanopore sequencing
                                 │
                                 ▼
                         ┌───────────────┐
-                        │  Genouest HPC │
+                        │  HPC Cluster  │
                         │  /scratch/... │
                         └───────────────┘
 ```
@@ -54,7 +54,7 @@ The preprocessing directory contains workflows for preparing Nanopore sequencing
 - **pod5** - Python package for Pod5 file filtering
 - **samtools** - BAM file processing tools
 - **rsync** - File synchronization
-- **SSH key** - For passwordless authentication to Genouest
+- **SSH key** - For passwordless authentication to HPC cluster
 
 **Conda environment:** All Python tools should be installed in a dedicated conda environment named `nanomito` (see Installation section).
 
@@ -97,7 +97,7 @@ cd C:\Users\YourName\nanomito\preprocessing
 # Step 2: Extract chrM reads (in WSL)
 wsl ./preprocessing/wf-getmt.sh /mnt/c/data/250822_MK1B_RUN13
 
-# Step 3: Upload to Genouest (in WSL)
+# Step 3: Upload to HPC (in WSL)
 wsl ./preprocessing/wf-uplgo.sh /mnt/c/data/250822_MK1B_RUN13
 ```
 
@@ -199,7 +199,7 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 
 #### 3. **wf-uplgo.sh** (Linux/WSL/Bash)
 
-**Purpose:** Upload run data to Genouest HPC cluster using rsync.
+**Purpose:** Upload run data to HPC cluster using rsync.
 
 **Features:**
 
@@ -292,7 +292,7 @@ cd /mnt/c/Users/YourName/nanomito/preprocessing
 - `-RunDirectory` - Run directory path
 - `-SkipDorado` - Skip basecalling step
 - `-SkipMitochondrial` - Skip chrM extraction step
-- `-SkipUpload` - Skip upload to Genouest
+- `-SkipUpload` - Skip upload to HPC
 - `-DryRun` - Preview without execution
 - `-Help` - Show help information
 
@@ -309,7 +309,7 @@ Configuration file for Bash scripts running on Linux, WSL, or HPC environments.
 **Used by:**
 
 - `wf-getmt.sh` - Mitochondrial read extraction
-- `wf-uplgo.sh` - Upload to Genouest cluster
+- `wf-uplgo.sh` - Upload to HPC cluster
 
 **Usage in scripts:**
 
@@ -330,7 +330,7 @@ conda activate "$GETMT_ENV"
 - `CHRMPIDS_SCRIPT` - Python script for chrM read ID extraction
 - `CREATE_PID_DICT_SCRIPT` - Python script for PID dictionary creation
 - `DATA_ROOT` - Root directory for run data
-- `GO_USER`, `GO_HOST` - Genouest connection settings
+- `GO_USER`, `GO_HOST` - HPC connection settings
 
 #### 2. `preprocessing.ps1` (PowerShell/Windows)
 
@@ -374,7 +374,7 @@ $doradoPath = Join-Path $DoradoBasePath $DoradoExecutable
    - `CONDA_SCRIPT` - Your conda installation path
    - `CHRMPIDS_SCRIPT`, `CREATE_PID_DICT_SCRIPT` - Python script locations
    - `DATA_ROOT` - Your data directory
-   - `GO_USER`, `GO_HOST` - Your Genouest credentials
+   - `GO_USER`, `GO_HOST` - Your HPC credentials
 
 1. **For Windows:**
 
@@ -677,10 +677,10 @@ type C:\data\your_run\bam\dorado_run.log
 
 ## Integration with Main Nanomito Workflow
 
-After preprocessing completes and data is uploaded to Genouest:
+After preprocessing completes and data is uploaded to HPC cluster:
 
 ```bash
-# On Genouest HPC
+# On HPC cluster
 cd /scratch/your_username/workbench/250822_MK1B_RUN13
 
 # Verify required files are present

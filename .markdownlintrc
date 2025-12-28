@@ -1,0 +1,7 @@
+{
+  "default": true,
+  "MD041": false,
+  "ignores": [
+    "LICENSE"
+  ]
+}
