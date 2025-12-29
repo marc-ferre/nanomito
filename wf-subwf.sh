@@ -44,9 +44,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
-VERSION='2.0.0'
+# Version from git tags (fallback to 'unknown' if not in git repo)
+VERSION="$(git -C "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" describe --tags 2>/dev/null || echo 'unknown')"
 
 AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
+
+# Load global configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
+if [ -f "$CONFIG_FILE" ]; then
+	# shellcheck source=nanomito.config
+	# shellcheck disable=SC1091
+	source "$CONFIG_FILE"
+fi
 
 # Logging helper functions
 log_step() {
@@ -461,7 +471,7 @@ if [ -n "$JOBID_LIST" ]; then
 
 	# Submit archiving job (unless --skip-archiving is set)
 	if [ "$SKIP_ARCHIVING" = false ]; then
-		ARCHIVING_DIR="${ARCHIVING_DIR:-/project/storage/path/$RUN_ID}"  # Define in nanomito.config
+		ARCHIVING_DIR="${PROJECTS_DIR}/$RUN_ID"
 		ARCHIVE_OUT="$PROCESS_DIR/slurm-$RUN_ID.archive.out"
 		
 		ARCHIVE_JOBID=$(sbatch --parsable \
