@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034
 # SPDX-License-Identifier: CECILL-2.1
 # wf-finalize.sh - Send a comprehensive email summary when all Nanomito jobs are completed
 #

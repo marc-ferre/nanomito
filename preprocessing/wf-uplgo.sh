@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034
 
 # Upload run data to a remote SSH host using rsync
 # Excludes large data files (pod5, bam, fastq) and only syncs metadata/configuration files

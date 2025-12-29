@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # Version from git tags (fallback to 'unknown' if not in git repo)
+# shellcheck disable=SC2034
 VERSION="$(git -C "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" describe --tags 2>/dev/null || echo 'unknown')"
 
 # Quick pre-flight check for a Nanomito run directory
