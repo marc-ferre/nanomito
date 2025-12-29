@@ -375,8 +375,8 @@ tsv_to_html_table() {
       printf "<tr class=\"%s%s\">", (rowclass!=""?rowclass:""), passclass;
       for (i=1; i<=NF; i++) {
         val=$i
-        # Don't escape HTML in ALT column if it contains enriched <DEL: tags
-        if (alt_idx>0 && i==alt_idx && val ~ /^<DEL:/) {
+        # Do not escape HTML in ALT column if it contains enriched deletion tags
+        if (alt_idx>0 && i==alt_idx && index(val, "<DEL:END=")==1) {
           printf "<td>%s</td>", val
         } else {
           printf "<td>%s</td>", esc(val)
@@ -609,7 +609,7 @@ generate_sample_html_report() {
           tmp_ann_for_html="$ann_tsv"
           if [ -f "$ann_vcf" ]; then
             tmp_ann_for_html=$(mktemp)
-            python3 - "$ann_vcf" "$ann_tsv" "$tmp_ann_for_html" <<'PY'
+            python3 - "$ann_vcf" "$ann_tsv" "$tmp_ann_for_html" <<'PYEOF'
 import csv
 import sys
 from pathlib import Path
@@ -653,7 +653,7 @@ with tsv_path.open() as inp, out_path.open('w', newline='') as out:
       if row[4] == '<DEL>' and pos in del_map:
         row[4] = del_map[pos]
     writer.writerow(row)
-PY
+PYEOF
           fi
           tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
           [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
