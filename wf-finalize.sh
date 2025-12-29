@@ -767,8 +767,8 @@ generate_sample_html_report() {
         # Extract Dorado parameters from wf-bchg.sh script
         dorado_params="N/A"
         if [ -f "$bchg_script" ]; then
-          # Extract the dorado basecaller command (single line with continuation)
-          dorado_params=$(awk '/^\$DORADO_BIN basecaller/,/> "\$BASECALL_BAM"/ {print}' "$bchg_script" | \
+          # Extract the dorado basecaller command
+          dorado_params=$(awk '/DORADO_BIN basecaller/,/> "\$BASECALL_BAM"/ {print}' "$bchg_script" | \
                          grep -oE '\-\-[a-z-]+' | \
                          tr '\n' ' ' | \
                          sed 's/ $//')
@@ -782,13 +782,10 @@ generate_sample_html_report() {
         baldur_params="N/A"
         if [ -f "$demultmt_script" ]; then
           # Extract the baldur command (multi-line with backslashes)
-          baldur_params=$(awk '/^\$BALDUR_BIN --mapq/,/"\$BAM_FILE"/ {print}' "$demultmt_script" | \
+          baldur_params=$(awk '/BALDUR_BIN.*--mapq/,/"\$BAM_FILE"/ {print}' "$demultmt_script" | \
                          grep -oE '\-\-[a-z-]+\s+[0-9]+|\-\-[a-z-]+' | \
                          tr '\n' ' ' | \
-                         sed 's/--reference.*--adjust/--adjust/' | \
-                         sed 's/--output-prefix.*//' | \
-                         sed 's/--sample.*//' | \
-                         sed 's/ $//')
+                         sed 's/--reference.*//; s/--output-prefix.*//; s/--sample.*//; s/ $//')
         fi
         
         # Extract Haplocheck parameters from wf-demultmt.sh script
