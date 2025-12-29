@@ -96,6 +96,3 @@ $Script:DefaultLogPattern = ".\{0}_run.log"  # {0} will be replaced with script 
 
 # Default author information
 $Script:PreprocessingAuthor = "Marc FERRE <marc.ferre@univ-angers.fr>"
-
-# Current version
-$Script:PreprocessingVersion = "25.11.04.1"
