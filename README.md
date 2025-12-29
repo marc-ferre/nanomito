@@ -110,6 +110,9 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 # Re-run analysis for specific samples only (skip basecalling)
 ./submit_nanomito.sh --skip-bchg --only-samples SAMPLE1,SAMPLE2 /path/to/run/directory
 
+# Process all samples including those not in sample sheet (bypass automatic filtering)
+./submit_nanomito.sh --all /path/to/run/directory
+
 # Archive data only (without processing)
 ./submit_nanomito.sh --archiving-only /path/to/run/directory
 
@@ -136,12 +139,14 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 - `--finalize-only` - Only submit finalization job (email report from existing data)
 - `--include-unclassified` - Include 'unclassified' folder in sample processing (skipped by default)
 - `--only-samples SAMPLES` - Process only specified samples (comma-separated list). Final report includes all samples.
+- `--all` - Process all discovered samples, including those not declared in sample sheet (bypasses automatic filtering)
 - `--help, -h` - Display help message
 
 **Features:**
 
 - Two-step submission architecture for dynamic sample discovery
 - Submits `wf-subwf.sh` which discovers samples after basecalling
+- **Automatic sample filtering** from sample sheet (only declared barcodes/aliases processed by default)
 - Automatically skips 'unclassified' folder (use `--include-unclassified` to process it)
 - Integrated archiving workflow (enabled by default, use `--skip-archiving` to disable)
 - Manages job dependencies automatically (analysis → archiving → finalize)
@@ -154,6 +159,9 @@ Intermediate orchestrator that dynamically discovers samples and submits analysi
 
 - Waits for basecalling completion via SLURM dependencies
 - Discovers all samples in `fastq_pass/` directory
+- **Automatic sample sheet filtering:** Only processes barcodes/aliases declared in `sample_sheet_*.csv` (column 4: alias, column 5: barcode)
+- Logs warnings for skipped samples not in sample sheet (helps identify contamination or sequencing errors)
+- Bypass filtering with `--all` option to process all discovered samples
 - Submits demultmt and modmito jobs for each discovered sample
 - Respects filtering options (--demultmt-only, --modmito-only, etc.)
 - Creates proper job dependencies between demultmt and modmito
