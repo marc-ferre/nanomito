@@ -105,7 +105,7 @@ Last updated: 2025-12-24
   - ✅ Created `preprocessing/preprocessing.config` for Bash scripts (Linux/WSL/HPC)
   - ✅ Created `preprocessing/preprocessing.ps1` for PowerShell scripts (Windows)
   - ✅ Extracted all hardcoded paths and settings
-  - ✅ Variables: conda, Python scripts, Dorado, references, Genouest settings
+  - ✅ Variables: conda, Python scripts, Dorado, references, HPC cluster settings
   - ✅ Added `preprocessing/README.md` with usage documentation
   - ✅ Updated all scripts to source config files (wf-getmt.sh, wf-uplgo.sh, wf-prebchg.ps1, submit_preprocessing.ps1)
   - ✅ Renamed scripts to wf-* convention for consistency
@@ -357,7 +357,7 @@ Last updated: 2025-12-24
 - [x] Fixed path resolution for sbatch execution using `NANOMITO_DIR` env var
 - [x] Updated all 5 workflows: submit_nanomito.sh, wf-bchg.sh, wf-demultmt.sh, wf-modmito.sh, wf-subwf.sh
 - [x] Added comprehensive documentation in README.md
-- [x] Tested on Genouest cluster with production data
+- [x] Tested on HPC cluster with production data
 
 ### v25.10.27 - Workflow Improvements
 

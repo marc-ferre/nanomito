@@ -355,10 +355,10 @@ log_info "Validation duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) 
 log_step "6/7: CONVERTING BAM TO FASTQ"
 CONVERT_START=$(date +%s)
 
-# Source Conda for Genouest cluster compute node
+# Source Conda for HPC cluster compute node
 if [ -f /local/env/envconda.sh ]; then
     log_info "Sourcing conda environment"
-    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
+    # shellcheck disable=SC1091  # File only exists on HPC cluster
     . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
 fi
 
@@ -409,10 +409,10 @@ PARALLEL_AVAILABLE=false
 if [ -f /local/env/envparallel-20190122.sh ]; then
     log_info "Loading GNU parallel"
     # Use a subshell to safely source the file without affecting main script
-    # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
+    # shellcheck disable=SC1091  # File only exists on HPC cluster
     if (set +e; . /local/env/envparallel-20190122.sh >/dev/null 2>&1; exit $?); then
         # Source again in main shell if successful
-        # shellcheck disable=SC1091  # File only exists on Genouest HPC cluster
+        # shellcheck disable=SC1091  # File only exists on HPC cluster
         . /local/env/envparallel-20190122.sh >/dev/null 2>&1 || true
         PARALLEL_AVAILABLE=true
         log_success "GNU parallel loaded successfully"

@@ -123,7 +123,7 @@ wsl ./preprocessing/wf-uplgo.sh /mnt/c/data/run_dir
 .\wf-prebchg.ps1
 
 # Specific run directory
-.\wf-prebchg.ps1 -RunDirectory "C:\data\250822_MK1B_RUN13"
+.\wf-prebchg.ps1 -RunDirectory "C:\data\run_dir"
 
 # Custom model and kit
 .\wf-prebchg.ps1 -RunDirectory "C:\data\my_run" -Model "sup" -Kit "SQK-NBD114-24"
