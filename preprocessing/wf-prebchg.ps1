@@ -377,7 +377,10 @@ function Invoke-DoradoBasecaller {
             catch {
                 Write-Log "Error moving log file: $($_.Exception.Message)" -Level "WARNING"
             }
-        
+        }
+        else {
+            throw "Dorado basecalling produced no output in $OutputPath"
+        }
     }
     catch {
         Write-Log "Critical error: $($_.Exception.Message)" -Level "ERROR"
