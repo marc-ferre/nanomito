@@ -336,9 +336,16 @@ function Invoke-DoradoBasecaller {
         $doradoLogPath = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_$([System.Guid]::NewGuid().ToString()).log"
         Write-Log "Dorado log: $doradoLogPath" -Level "INFO"
         
-        # Run Dorado and capture all output to file
-        # Note: Using direct redirection & $exe ... 2>&1 | Out-File to ensure full capture
-        & $doradoExe @arguments 2>&1 | Out-File -FilePath $doradoLogPath -Encoding UTF8 -Append
+        # Run Dorado and capture all output using PowerShell stream redirection operator
+        # This avoids the NativeCommandError issue with pipes and Tee-Object
+        Write-Log "Executing Dorado basecaller..." -Level "INFO"
+        try {
+            & $doradoExe @arguments *> $doradoLogPath
+        }
+        catch {
+            # Ignore errors - Dorado may exit with non-zero but still produce output
+            Write-Log "Dorado exited with error code (may still have output)" -Level "INFO"
+        }
         
         # Check if Dorado succeeded by verifying output exists
         $endTime = Get-Date
