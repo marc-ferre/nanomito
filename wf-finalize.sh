@@ -608,7 +608,7 @@ generate_sample_html_report() {
           # If VCF present, enrich deletions in ALT with END/SVLEN from VCF
           tmp_ann_for_html="$ann_tsv"
           if [ -f "$ann_vcf" ]; then
-            echo "<!-- DEL enrichment: VCF found: $ann_vcf -->" >&2
+            echo "<!-- DEL enrichment: VCF found: $ann_vcf -->"
             tmp_ann_for_html=$(mktemp)
             python3 - "$ann_vcf" "$ann_tsv" "$tmp_ann_for_html" <<'PYEOF'
 import csv
@@ -655,9 +655,9 @@ with tsv_path.open() as inp, out_path.open('w', newline='') as out:
         row[4] = del_map[pos]
     writer.writerow(row)
 PYEOF
-            echo "<!-- DEL enrichment completed. Temp TSV: $tmp_ann_for_html -->" >&2
+            echo "<!-- DEL enrichment completed. Temp TSV: $tmp_ann_for_html -->"
           else
-            echo "<!-- DEL enrichment skipped: VCF not found: $ann_vcf -->" >&2
+            echo "<!-- DEL enrichment skipped: VCF not found: $ann_vcf -->"
           fi
           tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
           [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
