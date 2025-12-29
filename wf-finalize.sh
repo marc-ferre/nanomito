@@ -1243,6 +1243,10 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     fi
   fi
   
+  # Generate standalone per-sample HTML report before listing files
+  generate_sample_html_report "$sample_dir" "$sample" "$DEMULT_SUMMARY" "$HAPLOCHECK_SUMMARY"
+  log_info "Per-sample report generated: $sample_dir/report-$sample.html"
+
   # Check for important output files
   append_html "  <div style=\"margin: 10px 0;\">"
   append_html "    <strong>Output files</strong>"
@@ -1313,11 +1317,7 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   fi
   
   append_html "</div>"
-  
-  # Generate standalone per-sample HTML report
-  generate_sample_html_report "$sample_dir" "$sample" "$DEMULT_SUMMARY" "$HAPLOCHECK_SUMMARY"
-  log_info "Per-sample report generated: $sample_dir/report-$sample.html"
-  
+
 done
 
 if [ $sample_count -eq 0 ]; then
