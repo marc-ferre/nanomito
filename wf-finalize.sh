@@ -1557,27 +1557,32 @@ if [ -n "${PROJECTS_DIR:-}" ] && [ -d "$PROJECTS_DIR" ]; then
     }
   fi
   
-  # Archive global and per-sample reports
-  REPORTS_TO_ARCHIVE=(
-    "$PROCESS_DIR/report.$RUN_ID.html"
-    "$PROCESS_DIR"/report-*.html
-  )
-  
+  # Archive global and per-sample reports (including nested reports in sample directories)
   ARCHIVE_OK=true
   CHECKSUM_FILE="$ARCHIVE_REPORTS_DIR/reports_checksum.$RUN_ID.txt"
   
-  for report in "${REPORTS_TO_ARCHIVE[@]}"; do
+  # Use find to locate all report*.html files in processing tree
+  while IFS= read -r report; do
     if [ -f "$report" ]; then
-      if cp "$report" "$ARCHIVE_REPORTS_DIR/" 2>/dev/null; then
+      # Preserve directory structure for sample reports
+      rel_path="${report#"$PROCESS_DIR"/}"
+      target_dir="$ARCHIVE_REPORTS_DIR/$(dirname "$rel_path")"
+      
+      # Create subdirectory if needed (for sample reports)
+      if [ "$(dirname "$rel_path")" != "." ]; then
+        mkdir -p "$target_dir" 2>/dev/null || true
+      fi
+      
+      if cp "$report" "$target_dir/" 2>/dev/null; then
         # Calculate and append checksum
         sha256sum "$report" >> "$CHECKSUM_FILE" 2>/dev/null || true
-        log_ok "Archived: $(basename "$report")"
+        log_ok "Archived: $rel_path"
       else
         log_err "Failed to archive: $report"
         ARCHIVE_OK=false
       fi
     fi
-  done
+  done < <(find "$PROCESS_DIR" -name "report*.html" -type f)
   
   # Verify archive
   if [ "$ARCHIVE_OK" = true ] && [ -f "$CHECKSUM_FILE" ]; then
