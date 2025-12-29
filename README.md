@@ -795,7 +795,12 @@ git checkout <commit-hash> -- path/to/file.sh
 
 **Notable commits:**
 
-- **v1.0.0** (current): Two-step architecture with `wf-subwf.sh` for dynamic sample discovery
+- **v2.1.1** (c2f3d67, 2025-12-29): Anonymization for public release
+  - Removed institution-specific references and hardcoded paths
+  - Parameterized configuration for generic HPC clusters
+  - Updated documentation with generic terminology
+- **v2.1.0** (2024-12-24): Interactive per-sample HTML reports
+- **v1.0.0**: Two-step architecture with `wf-subwf.sh` for dynamic sample discovery
 - **8f50c84**: Refactored to restore `wf-subwf.sh` workflow
 - **6fe53ae**: Single-step architecture (samples discovered in `submit_nanomito.sh`)
 - **3983d5a**: Original two-step architecture before temporary simplification
