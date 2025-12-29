@@ -336,20 +336,13 @@ function Invoke-DoradoBasecaller {
         $doradoLogPath = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_$([System.Guid]::NewGuid().ToString()).log"
         Write-Log "Dorado log: $doradoLogPath" -Level "INFO"
         
-        # Use cmd.exe to invoke Dorado with output redirection (bypasses PowerShell pipes)
-        $cmdArgs = @(
-            "/c",
-            "`"$doradoExe`"",
-            "basecaller", "hac",
-            "`"$inputDirectory`"",
-            "--recursive",
-            "--sample-sheet", "`"$sampleSheet`"",
-            "--reference", "`"$referenceFile`"",
-            "--output-dir", "`"$OutputPath`"",
-            ">`"$doradoLogPath`" 2>&1"
-        )
+        # Use cmd.exe to invoke Dorado with output redirection (bypasses PowerShell pipes issue)
+        # Build command as a single string for cmd.exe /c
+        $cmdString = @"
+`"$doradoExe`" basecaller hac `"$inputDirectory`" --recursive --sample-sheet `"$sampleSheet`" --reference `"$referenceFile`" --output-dir `"$OutputPath`" > `"$doradoLogPath`" 2>&1
+"@
         Write-Log "Executing Dorado basecaller via cmd.exe..." -Level "INFO"
-        & cmd.exe $cmdArgs | Out-Null
+        & cmd.exe /c $cmdString | Out-Null
         
         # Check if Dorado succeeded by verifying output exists
         $endTime = Get-Date
