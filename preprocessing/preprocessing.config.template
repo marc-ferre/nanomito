@@ -47,4 +47,3 @@ GO_REMOTE_BASE='/home/your_cluster_user/workbench'
 # SCRIPT METADATA
 # =============================================================================
 PREPROCESSING_AUTHOR='Your Name <your.email@domain.com>'
-PREPROCESSING_VERSION='25.11.04.1'

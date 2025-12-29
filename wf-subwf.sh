@@ -161,6 +161,9 @@ fi
 # shellcheck disable=SC1091
 source "$CONFIG_FILE"
 
+# Version from git tags (fallback to 'unknown' if not in git repo)
+VERSION="$(git -C "$SCRIPT_DIR" describe --tags 2>/dev/null || echo 'unknown')"
+
 # Validate workflow scripts exist
 # Note: Only checks file existence, not executability
 # sbatch will perform its own validation when submitting jobs

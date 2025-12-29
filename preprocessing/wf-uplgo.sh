@@ -21,6 +21,9 @@ if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
 fi
 
+# Version from git tags (fallback to 'unknown' if not in git repo)
+VERSION="$(git -C "$SCRIPT_DIR" describe --tags 2>/dev/null || echo 'unknown')"
+
 # Track if we started the ssh-agent ourselves
 SSH_AGENT_STARTED=0
 
