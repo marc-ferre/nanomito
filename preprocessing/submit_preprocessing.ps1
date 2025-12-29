@@ -240,9 +240,9 @@ function Invoke-HpcUpload {
     }
     
     try {
-        # Build environment variable for WSL to skip upload confirmation
-        $wslCommand = "export PIPELINE_MODE=true && bash `"$WslUploadScript`" `"$WslRunDir`""
-        & wsl bash -c "`"$wslCommand`""
+        # Build and execute WSL command with proper escaping
+        $wslCommand = "export PIPELINE_MODE=true; bash '$WslUploadScript' '$WslRunDir'"
+        & wsl bash -c $wslCommand
         $exitCode = $LASTEXITCODE
         
         if ($exitCode -eq 0) {

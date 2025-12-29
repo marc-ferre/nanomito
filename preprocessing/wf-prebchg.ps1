@@ -121,14 +121,13 @@ $Version = & {
     } catch { }
     return 'unknown'
 }
-    
-    # Fallback defaults if no config file
-    if ([string]::IsNullOrEmpty($DoradoBasePath)) { $DoradoBasePath = "C:\Users\mferre\bioapps" }
-    if ([string]::IsNullOrEmpty($DoradoExecutable)) { $DoradoExecutable = "dorado-1.2.0-win64\bin\dorado.exe" }
-    if ([string]::IsNullOrEmpty($ReferencePath)) { $ReferencePath = "C:\data\reference\Homo_sapiens-hg38-GRCh38.p14.mmi" }
-    if ([string]::IsNullOrEmpty($Model)) { $Model = "hac" }
-    if ([string]::IsNullOrEmpty($Kit)) { $Kit = "SQK-NBD114-24" }
-}
+
+# Fallback defaults if no config file
+if ([string]::IsNullOrEmpty($DoradoBasePath)) { $DoradoBasePath = "C:\Users\mferre\bioapps" }
+if ([string]::IsNullOrEmpty($DoradoExecutable)) { $DoradoExecutable = "dorado-1.2.0-win64\bin\dorado.exe" }
+if ([string]::IsNullOrEmpty($ReferencePath)) { $ReferencePath = "C:\data\reference\Homo_sapiens-hg38-GRCh38.p14.mmi" }
+if ([string]::IsNullOrEmpty($Model)) { $Model = "hac" }
+if ([string]::IsNullOrEmpty($Kit)) { $Kit = "SQK-NBD114-24" }
 
 # Show help if requested
 if ($Help) {
