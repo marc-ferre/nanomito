@@ -1544,6 +1544,61 @@ send_email() {
   fi
 }
 
+# --- 7. ARCHIVE REPORTS --------------------------------------------------
+# Archive generated reports to PROJECTS_DIR if configured
+if [ -n "${PROJECTS_DIR:-}" ] && [ -d "$PROJECTS_DIR" ]; then
+  log_info "Archiving generated reports to $PROJECTS_DIR/$RUN_ID"
+  
+  ARCHIVE_REPORTS_DIR="$PROJECTS_DIR/$RUN_ID/processing"
+  if [ ! -d "$ARCHIVE_REPORTS_DIR" ]; then
+    mkdir -p "$ARCHIVE_REPORTS_DIR" || {
+      log_err "Cannot create archive directory: $ARCHIVE_REPORTS_DIR"
+      exit 1
+    }
+  fi
+  
+  # Archive global and per-sample reports
+  REPORTS_TO_ARCHIVE=(
+    "$PROCESS_DIR/report.$RUN_ID.html"
+    "$PROCESS_DIR"/report-*.html
+  )
+  
+  ARCHIVE_OK=true
+  CHECKSUM_FILE="$ARCHIVE_REPORTS_DIR/reports_checksum.$RUN_ID.txt"
+  
+  for report in "${REPORTS_TO_ARCHIVE[@]}"; do
+    if [ -f "$report" ]; then
+      if cp "$report" "$ARCHIVE_REPORTS_DIR/" 2>/dev/null; then
+        # Calculate and append checksum
+        sha256sum "$report" >> "$CHECKSUM_FILE" 2>/dev/null || true
+        log_ok "Archived: $(basename "$report")"
+      else
+        log_err "Failed to archive: $report"
+        ARCHIVE_OK=false
+      fi
+    fi
+  done
+  
+  # Verify archive
+  if [ "$ARCHIVE_OK" = true ] && [ -f "$CHECKSUM_FILE" ]; then
+    log_info "Verifying archived reports..."
+    if (cd "$ARCHIVE_REPORTS_DIR" && sha256sum -c "$CHECKSUM_FILE" >/dev/null 2>&1); then
+      log_ok "Reports archive verified with checksums"
+    else
+      log_err "Archive verification failed (checksum mismatch)"
+      ARCHIVE_OK=false
+    fi
+  fi
+  
+  if [ "$ARCHIVE_OK" = true ]; then
+    log_ok "Reports successfully archived and verified"
+  else
+    log_err "Reports archiving encountered errors"
+  fi
+else
+  log_info "PROJECTS_DIR not configured; skipping report archiving"
+fi
+
 log_info "Sending email to $MAIL_TO"
 if send_email "$EMAIL_SUBJECT" "$EMAIL_BODY_FILE"; then
   log_ok "Notification email sent"
