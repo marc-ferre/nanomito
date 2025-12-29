@@ -41,6 +41,12 @@ WF_MODMITO="$NANOMITO_DIR/wf-modmito.sh"
 WF_ARCHIVING="$NANOMITO_DIR/wf-archiving.sh"
 
 # =============================================================================
+# ARCHIVING CONFIGURATION
+# =============================================================================
+# Projects directory for archiving completed runs
+PROJECTS_DIR='/path/to/projects/nanomito'
+
+# =============================================================================
 # REFERENCES
 # =============================================================================
 REF_MT='/path/to/reference/chrM.fa'
