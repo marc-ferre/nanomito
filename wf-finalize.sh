@@ -667,34 +667,38 @@ generate_sample_html_report() {
       <h2>Output files</h2>
       <div class="file-list">
         $(
-          report_file="report-${sample}.html"
-          bam_file="${sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
-          ann_vcf="${sample}.ann.vcf"
-          ann_tsv_file="${sample}.ann.tsv"
+          # Store variables before they go out of scope in subshell
+          _sample_dir="$sample_dir"
+          _sample="$sample"
           
-          if [ -f "$sample_dir/$report_file" ]; then
-            report_size=$(du -h "$sample_dir/$report_file" 2>/dev/null | cut -f1 || echo "?")
+          report_file="report-${_sample}.html"
+          bam_file="${_sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
+          ann_vcf="${_sample}.ann.vcf"
+          ann_tsv_file="${_sample}.ann.tsv"
+          
+          if [ -f "$_sample_dir/$report_file" ]; then
+            report_size=$(du -h "$_sample_dir/$report_file" 2>/dev/null | cut -f1 || echo "?")
             echo "<div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $report_file ($report_size)</div>"
           else
             echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $report_file - NOT FOUND</div>"
           fi
           
-          if [ -f "$sample_dir/$bam_file" ]; then
-            bam_size=$(du -h "$sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
+          if [ -f "$_sample_dir/$bam_file" ]; then
+            bam_size=$(du -h "$_sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
             echo "<div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $bam_file ($bam_size)</div>"
           else
             echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $bam_file - NOT FOUND</div>"
           fi
           
-          if [ -f "$sample_dir/$ann_vcf" ]; then
-            vcf_size=$(du -h "$sample_dir/$ann_vcf" 2>/dev/null | cut -f1 || echo "?")
+          if [ -f "$_sample_dir/$ann_vcf" ]; then
+            vcf_size=$(du -h "$_sample_dir/$ann_vcf" 2>/dev/null | cut -f1 || echo "?")
             echo "<div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $ann_vcf ($vcf_size)</div>"
           else
             echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $ann_vcf - NOT FOUND</div>"
           fi
           
-          if [ -f "$sample_dir/$ann_tsv_file" ]; then
-            tsv_size=$(du -h "$sample_dir/$ann_tsv_file" 2>/dev/null | cut -f1 || echo "?")
+          if [ -f "$_sample_dir/$ann_tsv_file" ]; then
+            tsv_size=$(du -h "$_sample_dir/$ann_tsv_file" 2>/dev/null | cut -f1 || echo "?")
             echo "<div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $ann_tsv_file ($tsv_size)</div>"
           else
             echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $ann_tsv_file - NOT FOUND</div>"
