@@ -336,6 +336,7 @@ tsv_to_html_table() {
     function toup(x,  i,c,r){ r=""; for(i=1;i<=length(x);i++){c=substr(x,i,1); r=r ((c>="a" && c<="z")? sprintf("%c", ord(c)-32): c)}; return r }
     function ord(c){ return index("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F !\"#$%&\047()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", c)-1 }
     BEGIN {
+      filter_idx=0; alt_idx=0; end_idx=0; svlen_idx=0;
       if (table_id) {
         # Add both id and class so CSS toggles can target the table
         print "<table id=\"" table_id "\" class=\"" table_id "\">"
@@ -349,6 +350,9 @@ tsv_to_html_table() {
       for (i=1; i<=NF; i++) {
         hdr=$i; uhdr=toupper(hdr);
         if (uhdr=="FILTER" || uhdr=="FILTERS" || index(uhdr,"FILTER")>0) { filter_idx=i }
+        if (uhdr=="ALT") alt_idx=i;
+        if (uhdr=="END") end_idx=i;
+        if (uhdr=="SVLEN") svlen_idx=i;
         printf "<th>%s</th>", esc($i)
       }
       print "</tr></thead><tbody>";
@@ -369,7 +373,16 @@ tsv_to_html_table() {
         if (u=="PASS" || u=="." || u=="") passclass=" is-pass";
       }
       printf "<tr class=\"%s%s\">", (rowclass!=""?rowclass:""), passclass;
-      for (i=1; i<=NF; i++) { printf "<td>%s</td>", esc($i) }
+      for (i=1; i<=NF; i++) {
+        val=$i
+        if (alt_idx>0 && i==alt_idx && ($alt_idx=="<DEL>" || $alt_idx ~ /^<DEL/)) {
+          # Reformat ALT for deletions using END and SVLEN when available
+          endv=(end_idx>0 ? $(end_idx) : "")
+          svlenv=(svlen_idx>0 ? $(svlen_idx) : "")
+          val="<DEL:END=" endv ";SVLEN=" svlenv ">"
+        }
+        printf "<td>%s</td>", esc(val)
+      }
       print "</tr>"
     }
     END { print "</tbody></table>" }
