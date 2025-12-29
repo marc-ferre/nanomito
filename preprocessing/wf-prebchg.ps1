@@ -337,10 +337,10 @@ function Invoke-DoradoBasecaller {
         Write-Log "Dorado log: $doradoLogPath" -Level "INFO"
         
         # Use cmd.exe to invoke Dorado with output redirection (bypasses PowerShell pipes issue)
-        # Build command as a single string for cmd.exe /c
-        $cmdString = @"
-`"$doradoExe`" basecaller hac `"$inputDirectory`" --recursive --sample-sheet `"$sampleSheet`" --reference `"$referenceFile`" --output-dir `"$OutputPath`" > `"$doradoLogPath`" 2>&1
-"@
+        # Build single-line command string for cmd.exe /c  
+        $cmdString = "`"$doradoExe`" basecaller hac `"$inputDirectory`" --recursive --sample-sheet `"$sampleSheet`" --reference `"$referenceFile`" --output-dir `"$OutputPath`" > `"$doradoLogPath`" 2>&1"
+        
+        Write-Log "Executing: $cmdString" -Level "INFO"
         Write-Log "Executing Dorado basecaller via cmd.exe..." -Level "INFO"
         & cmd.exe /c $cmdString | Out-Null
         
