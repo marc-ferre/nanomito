@@ -610,25 +610,50 @@ generate_sample_html_report() {
           tmp_ann_for_html="$ann_tsv"
           if [ -f "$ann_vcf" ]; then
             tmp_ann_for_html=$(mktemp)
-            awk 'BEGIN { FS="\t"; OFS="\t" }
-                 FNR==NR {
-                   if ($1 ~ /^#/) next;
-                   if ($5 ~ /^<DEL/) {
-                     pos=$2; end=""; svlen="";
-                     info=$8; n=split(info, arr, ";");
-                     for (i=1; i<=n; i++) {
-                       if (index(arr[i], "END=")==1)   end=substr(arr[i],5);
-                       if (index(arr[i], "SVLEN=")==1) svlen=substr(arr[i],7);
-                     }
-                     del[pos]=sprintf("<DEL:END=%s;SVLEN=%s>", end, svlen);
-                   }
-                   next;
-                 }
-                 FNR==1 { print; next }
-                 {
-                   if ($5=="<DEL>" && ($2 in del)) { $5 = del[$2] }
-                   print
-                 }' "$ann_vcf" "$ann_tsv" > "$tmp_ann_for_html"
+            python - <<PY
+      import csv
+      from pathlib import Path
+
+vcf_path = Path("$ann_vcf")
+tsv_path = Path("$ann_tsv")
+out_path = Path("$tmp_ann_for_html")
+
+      del_map = {}
+      with vcf_path.open() as vcf:
+        for line in vcf:
+          if line.startswith('#'):
+            continue
+          parts = line.rstrip().split('\t')
+          if len(parts) < 8:
+            continue
+          chrom, pos, _id, ref, alt, qual, flt, info = parts[:8]
+          if not alt.startswith('<DEL'):
+            continue
+          end = ''
+          svlen = ''
+          for entry in info.split(';'):
+            if entry.startswith('END='):
+              end = entry[4:]
+            elif entry.startswith('SVLEN='):
+              svlen = entry[6:]
+          del_map[pos] = f"<DEL:END={end};SVLEN={svlen}>"
+
+      with tsv_path.open() as inp, out_path.open('w', newline='') as out:
+        reader = csv.reader(inp, delimiter='\t')
+        writer = csv.writer(out, delimiter='\t', lineterminator='\n')
+        for row in reader:
+          if not row:
+            writer.writerow(row)
+            continue
+          if row[0] == 'CHROM':
+            writer.writerow(row)
+            continue
+          if len(row) > 4 and len(row) > 1:
+            pos = row[1]
+            if row[4] == '<DEL>' and pos in del_map:
+              row[4] = del_map[pos]
+          writer.writerow(row)
+      PY
           fi
           tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
           [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
