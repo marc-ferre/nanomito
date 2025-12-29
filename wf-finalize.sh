@@ -375,12 +375,7 @@ tsv_to_html_table() {
       printf "<tr class=\"%s%s\">", (rowclass!=""?rowclass:""), passclass;
       for (i=1; i<=NF; i++) {
         val=$i
-        # Do not escape HTML in ALT column if it contains enriched deletion tags
-        if (alt_idx>0 && i==alt_idx && index(val, "<DEL:END=")==1) {
-          printf "<td>%s</td>", val
-        } else {
-          printf "<td>%s</td>", esc(val)
-        }
+        printf "<td>%s</td>", esc(val)
       }
       print "</tr>"
     }
