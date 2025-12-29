@@ -604,7 +604,9 @@ generate_sample_html_report() {
       <input type="checkbox" id="passOnly" class="pass-toggle">
       <label for="passOnly" class="filter-toggle">Show PASS only</label>
       $(
+        echo "<!-- DEBUG: Starting variant TSV processing -->"
         if [ -f "$ann_tsv" ]; then
+          echo "<!-- DEBUG: ann_tsv exists: $ann_tsv -->"
           # If VCF present, regenerate TSV with END/SVLEN columns, then enrich DEL ALT
           echo "[PRE-DEBUG] ann_tsv exists: $ann_tsv" >&2
           echo "[PRE-DEBUG] ann_vcf would be: $ann_vcf" >&2
@@ -612,6 +614,7 @@ generate_sample_html_report() {
           
           tmp_ann_for_html="$ann_tsv"
           if [ -f "$ann_vcf" ]; then
+            echo "<!-- DEBUG: ann_vcf exists, will regenerate TSV -->"
             tmp_ann_for_html=$(mktemp)
             # Regenerate TSV with END and SVLEN as last columns (like compare_vcf.sh)
             # Must activate conda in subshell to get bcftools
@@ -641,10 +644,13 @@ generate_sample_html_report() {
               awk 'BEGIN{FS=OFS="\t"} NR>1 && $5 == "<DEL>" { $5 = "<DEL:END=" $(NF-1) ";SVLEN=" $NF ">" } { print }' "$tmp_ann_for_html" > "${tmp_ann_for_html}.tmp" && mv "${tmp_ann_for_html}.tmp" "$tmp_ann_for_html" 2>&1 || echo "[DEBUG] awk enrichment failed" >&2
               echo "[DEBUG] ALT enrichment completed" >&2
             } 2>&1 | grep -E "\[DEBUG\]|\[PRE-DEBUG\]" || true
+          else
+            echo "<!-- DEBUG: ann_vcf does NOT exist, using original TSV -->"
           fi
           tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
           [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
         else
+          echo "<!-- DEBUG: ann_tsv does NOT exist -->"
           echo "<p>Variant TSV not found: $(sanitize_html "$ann_tsv")</p>"
         fi
       )
