@@ -761,8 +761,8 @@ generate_sample_html_report() {
     <div class="section">
       <h2>Parameters</h2>
       $(
-        demultmt_script="$(dirname "$0")/wf-demultmt.sh"
-        bchg_script="$(dirname "$0")/wf-bchg.sh"
+        demultmt_script="$SCRIPT_DIR/wf-demultmt.sh"
+        bchg_script="$SCRIPT_DIR/wf-bchg.sh"
         
         # Extract Dorado parameters from wf-bchg.sh script
         dorado_params="N/A"
