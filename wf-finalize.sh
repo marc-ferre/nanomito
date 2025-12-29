@@ -900,6 +900,19 @@ format_number() {
 # If only reports are requested, generate per-sample HTML reports AND global report
 if [ "$REPORTS_ONLY" = "true" ]; then
   log_info "Generating per-sample HTML reports (reports-only mode)"
+  
+  # Load Conda environment for bcftools if needed for report generation
+  log_info "Loading Conda environment for annotation tools (bcftools)"
+  set +u  # Temporarily disable unset variable check for conda
+  if [ -f /local/env/envconda.sh ]; then
+    # shellcheck disable=SC1091  # File only exists on HPC cluster
+    . /local/env/envconda.sh 2>/dev/null || log_warning "Failed to source envconda.sh, conda may already be available"
+  else
+    log_warning "Conda init script not found at /local/env/envconda.sh"
+  fi
+  set -u  # Re-enable unset variable check
+  conda activate "$ANNOTMT_ENV" || log_warning "Failed to activate ANNOTMT_ENV"
+  
   DEMULT_SUMMARY="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
   HAPLOCHECK_SUMMARY="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
   count=0
