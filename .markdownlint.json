@@ -4,8 +4,5 @@
   "MD034": true,
   "MD060": true,
   "MD041": false,
-  "MD007": { "indent": 2 },
-  "ignores": [
-    "LICENSE"
-  ]
+  "MD007": { "indent": 2 }
 }
