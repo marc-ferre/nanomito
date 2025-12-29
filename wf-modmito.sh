@@ -73,32 +73,6 @@ log_warning() {
 	echo "[WARN] $(date '+%H:%M:%S') - $1"
 }
 
-# Run id = Working directory basename
-RUN_ID=${PWD##*/} # Assign directory name to run id
-RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
-
-# Sample id = Argument
-if [ $# -eq 0 ]
-	then
-		log_error "No arguments supplied"
-		echo "Usage: sbatch --chdir=/path/to/run wf-modmito.sh SAMPLE_ID"
-		exit 128 # die with error code
-fi
-SAMPLE_ID=$1
-
-# Read selection strategy (start, both, either ,xor)
-SELECT='both' 
-
-# Basecalling model
-MODEL_COMPLEX='sup,5mC_5hmC,6mA'
-
-# Directories
-RUN_DIR=$(pwd)
-PROCESS_DIR="$RUN_DIR/processing"
-OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
-SELECT_DIR="$OUT_DIR/select-$SELECT"
-# MODBASE_DIR="$OUT_DIR/modbase"
-
 # Load global configuration
 # Get absolute path to script directory (works even with relative paths and symlinks)
 # Use NANOMITO_DIR if set (from submit_nanomito.sh), otherwise auto-detect
@@ -125,6 +99,34 @@ fi
 # shellcheck source=nanomito.config
 # shellcheck disable=SC1091
 source "$CONFIG_FILE"
+
+# Run id = Working directory basename
+RUN_ID=${PWD##*/} # Assign directory name to run id
+RUN_ID=${RUN_ID:-/} # Correct for the case where PWD=/
+
+# Sample id = Argument
+if [ $# -eq 0 ]
+	then
+		log_error "No arguments supplied"
+		echo "Usage: sbatch --chdir=/path/to/run wf-modmito.sh SAMPLE_ID"
+		exit 128 # die with error code
+fi
+SAMPLE_ID=$1
+
+# Read selection strategy (start, both, either ,xor)
+SELECT='both' 
+
+# Basecalling model
+MODEL_COMPLEX='sup,5mC_5hmC,6mA'
+
+# Directories
+RUN_DIR=$(pwd)
+PROCESS_DIR="$RUN_DIR/processing"
+OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
+SELECT_DIR="$OUT_DIR/select-$SELECT"
+# MODBASE_DIR="$OUT_DIR/modbase"
+
+# ============================================================================
 
 # Basecalling model
 MODEL_COMPLEX='sup,5mC_5hmC,6mA'

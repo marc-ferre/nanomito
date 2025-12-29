@@ -82,20 +82,6 @@ fi
 set -u  # Re-enable unset variable check
 
 # ============================================================================
-# DIRECTORY STRUCTURE
-# ============================================================================
-
-# Directories
-RUN_DIR=$(pwd)
-BAM_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
-POD5_DIR="$RUN_DIR/pod5_chrM"
-PROCESS_DIR="$RUN_DIR/processing"
-OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
-REF_MT_DIR="$REF_MT_DIR"
-SELECT_DIR="$OUT_DIR/select-$SELECT"
-VARCALL_DIR="$OUT_DIR/varcall"
-
-# ============================================================================
 # EXTERNAL TOOLS & DEPENDENCIES
 # ============================================================================
 
@@ -118,13 +104,27 @@ fi
 CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
 
 if [ ! -f "$CONFIG_FILE" ]; then
-    log_error "Configuration file not found: $CONFIG_FILE"
+    # Note: log_error not yet defined, use simple echo
+    echo "[ERROR] Configuration file not found: $CONFIG_FILE" >&2
     exit 1
 fi
 
 # shellcheck source=nanomito.config
 # shellcheck disable=SC1091
 source "$CONFIG_FILE"
+
+# ============================================================================
+# DIRECTORY STRUCTURE
+# ============================================================================
+
+# Directories (after sourcing config)
+RUN_DIR=$(pwd)
+BAM_DIR="$RUN_DIR/fastq_pass/$SAMPLE_ID"
+POD5_DIR="$RUN_DIR/pod5_chrM"
+PROCESS_DIR="$RUN_DIR/processing"
+OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
+SELECT_DIR="$OUT_DIR/select-$SELECT"
+VARCALL_DIR="$OUT_DIR/varcall"
 
 # ============================================================================
 # LOGGING FUNCTIONS
