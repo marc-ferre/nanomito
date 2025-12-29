@@ -612,14 +612,31 @@ generate_sample_html_report() {
             # Regenerate TSV with END and SVLEN as last columns (like compare_vcf.sh)
             # Must activate conda in subshell to get bcftools
             {
-              . /local/env/envconda.sh 2>/dev/null || true
-              conda activate "$ANNOTMT_ENV" 2>/dev/null || true
+              . /local/env/envconda.sh 2>/dev/null || echo "[DEBUG] Failed to source envconda.sh" >&2
+              conda activate "$ANNOTMT_ENV" 2>/dev/null || echo "[DEBUG] Failed to activate conda" >&2
               
               echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP\tEND\tSVLEN" > "$tmp_ann_for_html"
-              bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\t%INFO/END\t%INFO/SVLEN\n' "$ann_vcf" >> "$tmp_ann_for_html"
+              echo "[DEBUG] Header written, temp file: $tmp_ann_for_html" >&2
+              
+              # Verify bcftools is available
+              if command -v bcftools >/dev/null 2>&1; then
+                echo "[DEBUG] bcftools is available" >&2
+              else
+                echo "[DEBUG] bcftools NOT available in PATH" >&2
+                which bcftools >&2 || echo "[DEBUG] which bcftools failed" >&2
+              fi
+              
+              bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\t%INFO/END\t%INFO/SVLEN\n' "$ann_vcf" >> "$tmp_ann_for_html" 2>&1 || echo "[DEBUG] bcftools query failed with exit code $?" >&2
+              echo "[DEBUG] bcftools query completed" >&2
+              
+              # Count lines to verify data was added
+              line_count=$(wc -l < "$tmp_ann_for_html")
+              echo "[DEBUG] TSV now has $line_count lines" >&2
+              
               # Enrich ALT for deletions using END/SVLEN columns (same as compare_vcf.sh)
-              awk 'BEGIN{FS=OFS="\t"} NR>1 && $5 == "<DEL>" { $5 = "<DEL:END=" $(NF-1) ";SVLEN=" $NF ">" } { print }' "$tmp_ann_for_html" > "${tmp_ann_for_html}.tmp" && mv "${tmp_ann_for_html}.tmp" "$tmp_ann_for_html"
-            } 2>/dev/null || true
+              awk 'BEGIN{FS=OFS="\t"} NR>1 && $5 == "<DEL>" { $5 = "<DEL:END=" $(NF-1) ";SVLEN=" $NF ">" } { print }' "$tmp_ann_for_html" > "${tmp_ann_for_html}.tmp" && mv "${tmp_ann_for_html}.tmp" "$tmp_ann_for_html" 2>&1 || echo "[DEBUG] awk enrichment failed" >&2
+              echo "[DEBUG] ALT enrichment completed" >&2
+            } 2>&1 | grep "\[DEBUG\]" || true
           fi
           tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
           [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
