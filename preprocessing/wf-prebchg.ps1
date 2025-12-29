@@ -338,23 +338,23 @@ function Invoke-DoradoBasecaller {
         $doradoStderrPath = $doradoLogPath + ".stderr"
         Write-Log "Dorado log: $doradoLogPath" -Level "INFO"
         
-        # Run Dorado with redirected output streams (avoids PowerShell stderr issues)
+        # Run Dorado with redirected output streams
+        # Important: Do NOT use -NoNewWindow as it may cause early termination
         $process = Start-Process -FilePath $doradoExe -ArgumentList $arguments `
-            -NoNewWindow -PassThru -Wait `
+            -PassThru -Wait -WindowStyle Hidden `
             -RedirectStandardOutput $doradoStdoutPath `
             -RedirectStandardError $doradoStderrPath
         
-        # Merge stdout and stderr into single log file
+        # Merge stdout and stderr into single log file (order: stdout first, then stderr)
         if (Test-Path $doradoStdoutPath) {
-            Get-Content $doradoStdoutPath | Out-File -FilePath $doradoLogPath -Append
+            Get-Content $doradoStdoutPath | Out-File -FilePath $doradoLogPath -Encoding UTF8
         }
         if (Test-Path $doradoStderrPath) {
-            Get-Content $doradoStderrPath | Out-File -FilePath $doradoLogPath -Append
+            Get-Content $doradoStderrPath | Out-File -FilePath $doradoLogPath -Append -Encoding UTF8
         }
         # Clean up temp files
         Remove-Item -Path $doradoStdoutPath, $doradoStderrPath -Force -ErrorAction SilentlyContinue
         
-        # Append stdout to log to ensure completeness
         Write-Log "Dorado basecalling process completed" -Level "INFO"
         
         # Check if Dorado succeeded by verifying output exists
