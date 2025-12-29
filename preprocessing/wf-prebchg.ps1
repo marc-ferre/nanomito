@@ -332,30 +332,13 @@ function Invoke-DoradoBasecaller {
         
         Write-Log "Command: $doradoExe $($arguments -join ' ')" -Level "INFO"
         
-        # Capture Dorado output to temp log files (stdout and stderr)
+        # Capture Dorado output to a temp log file (stdout + stderr)
         $doradoLogPath = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_$([System.Guid]::NewGuid().ToString()).log"
-        $doradoStdoutPath = $doradoLogPath + ".stdout"
-        $doradoStderrPath = $doradoLogPath + ".stderr"
         Write-Log "Dorado log: $doradoLogPath" -Level "INFO"
         
-        # Run Dorado with redirected output streams
-        # Important: Do NOT use -NoNewWindow as it may cause early termination
-        $process = Start-Process -FilePath $doradoExe -ArgumentList $arguments `
-            -PassThru -Wait -WindowStyle Hidden `
-            -RedirectStandardOutput $doradoStdoutPath `
-            -RedirectStandardError $doradoStderrPath
-        
-        # Merge stdout and stderr into single log file (order: stdout first, then stderr)
-        if (Test-Path $doradoStdoutPath) {
-            Get-Content $doradoStdoutPath | Out-File -FilePath $doradoLogPath -Encoding UTF8
-        }
-        if (Test-Path $doradoStderrPath) {
-            Get-Content $doradoStderrPath | Out-File -FilePath $doradoLogPath -Append -Encoding UTF8
-        }
-        # Clean up temp files
-        Remove-Item -Path $doradoStdoutPath, $doradoStderrPath -Force -ErrorAction SilentlyContinue
-        
-        Write-Log "Dorado basecalling process completed" -Level "INFO"
+        # Run Dorado and capture all output to file
+        # Note: Using direct redirection & $exe ... 2>&1 | Out-File to ensure full capture
+        & $doradoExe @arguments 2>&1 | Out-File -FilePath $doradoLogPath -Encoding UTF8 -Append
         
         # Check if Dorado succeeded by verifying output exists
         $endTime = Get-Date
