@@ -610,13 +610,14 @@ generate_sample_html_report() {
           tmp_ann_for_html="$ann_tsv"
           if [ -f "$ann_vcf" ]; then
             tmp_ann_for_html=$(mktemp)
-            python3 - <<PY
+            python3 - "$ann_vcf" "$ann_tsv" "$tmp_ann_for_html" <<'PY'
 import csv
+import sys
 from pathlib import Path
 
-vcf_path = Path("$ann_vcf")
-tsv_path = Path("$ann_tsv")
-out_path = Path("$tmp_ann_for_html")
+vcf_path = Path(sys.argv[1])
+tsv_path = Path(sys.argv[2])
+out_path = Path(sys.argv[3])
 
 del_map = {}
 with vcf_path.open() as vcf:
