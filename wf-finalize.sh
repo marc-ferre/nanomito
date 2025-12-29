@@ -614,10 +614,12 @@ generate_sample_html_report() {
                  FNR==NR {
                    if ($1 ~ /^#/) next;
                    if ($5 ~ /^<DEL/) {
-                     pos=$2;
-                     end=""; svlen="";
-                     if (match($0, /;END=([^;]+)/, m)) end=m[1];
-                     if (match($0, /;SVLEN=([^;]+)/, m2)) svlen=m2[1];
+                     pos=$2; end=""; svlen="";
+                     info=$8; n=split(info, arr, ";");
+                     for (i=1; i<=n; i++) {
+                       if (index(arr[i], "END=")==1)   end=substr(arr[i],5);
+                       if (index(arr[i], "SVLEN=")==1) svlen=substr(arr[i],7);
+                     }
                      del[pos]=sprintf("<DEL:END=%s;SVLEN=%s>", end, svlen);
                    }
                    next;
