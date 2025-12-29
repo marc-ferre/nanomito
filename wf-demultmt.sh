@@ -1,5 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: CECILL-2.1
+# wf-demultmt.sh - Demultiplex basecalled Nanopore reads
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 #SBATCH --job-name=demultmt
 #SBATCH --cpus-per-task=4
 #SBATCH --constraint=avx2

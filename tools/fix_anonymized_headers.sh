@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: CECILL-2.1
+# fix_anonymized_headers.sh - Fix headers in anonymized VCF files
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
+
 set -euo pipefail
 
 # Version from git tags (fallback to 'unknown' if not in git repo)

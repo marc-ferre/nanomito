@@ -1,5 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: CECILL-2.1
+# wf-modmito.sh - Mitochondrial modifications analysis workflow
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 #SBATCH --job-name=modmito
 #SBATCH --gpus=1
 #SBATCH --partition=gpu

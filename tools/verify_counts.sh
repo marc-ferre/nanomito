@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: CECILL-2.1
+# verify_counts.sh - Verify error and warning counts from compare_vcf logs
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
+
 # shellcheck disable=SC2034
 set -euo pipefail
 

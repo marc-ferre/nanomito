@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: CECILL-2.1
+# test_anonymize_vcf.sh - Test suite for anonymize_vcf.sh
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
+
 set -euo pipefail
 
 # Version from git tags (fallback to 'unknown' if not in git repo)

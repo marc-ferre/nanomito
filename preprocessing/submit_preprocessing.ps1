@@ -1,4 +1,7 @@
 #!/usr/bin/env pwsh
+# SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
+
 <#
 .SYNOPSIS
     Execute complete nanopore sequencing analysis pipeline

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 #
 # Preprocessing Global Configuration File (Windows/PowerShell)
 #

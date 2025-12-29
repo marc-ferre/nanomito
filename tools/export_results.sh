@@ -1,10 +1,11 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
+# export_results.sh - Export key result files from nanomito runs
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 #
 # Version from git tags (fallback to 'unknown' if not in git repo)
 # shellcheck disable=SC2034
 VERSION="$(git -C "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" describe --tags 2>/dev/null || echo 'unknown')"
-#
-# export_results.sh - Export key result files from nanomito runs
 #
 # Description:
 #   Copies analysis results (TSV, VCF, BAM, BAI files) from run directories

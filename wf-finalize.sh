@@ -1,7 +1,8 @@
 #!/bin/bash
 # shellcheck disable=SC2034
 # SPDX-License-Identifier: CECILL-2.1
-# wf-finalize.sh - Send a comprehensive email summary when all Nanomito jobs are completed
+# wf-finalize.sh - Generate final email summary for completed Nanomito runs
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 #
 # This script is intended to be submitted by wf-subwf.sh as a final step,
 # with a dependency on all jobs launched for the run. It compiles metrics,

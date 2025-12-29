@@ -1,6 +1,10 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
 # shellcheck disable=SC2034
-
+#
+# wf-uplgo.sh - Upload run data to remote SSH host using rsync
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
+#
 # Upload run data to a remote SSH host using rsync
 # Excludes large data files (pod5, bam, fastq) and only syncs metadata/configuration files
 

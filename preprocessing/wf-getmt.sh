@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: CECILL-2.1
 ###############################################################################
 # Script: wf-getmt.sh
 # Description: Filter raw Pod5 data from nanopore sequencing reads aligned (BAM) to chrM
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 # Usage: wf-getmt.sh [-l|--log LOGFILE] /Path/to/run/di
 # 
 # This script extracts reads from Nanopore sequencing data that align to the 
