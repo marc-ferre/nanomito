@@ -603,9 +603,8 @@ generate_sample_html_report() {
       <h2>Variants</h2>
       <input type="checkbox" id="passOnly" class="pass-toggle">
       <label for="passOnly" class="filter-toggle">Show PASS only</label>
-      $(
-        set +e  # Disable exit on error to see what's happening
-        echo "<!-- DEBUG: Starting variant TSV processing -->"
+      <p>TEST: ann_tsv=$ann_tsv, ann_vcf=$ann_vcf</p>
+      $([[ -f "$ann_tsv" ]] && echo "TSV exists" || echo "TSV NOT found")
         ann_tsv_exists="false"
         ann_vcf_exists="false"
         if [ -f "$ann_tsv" ]; then
