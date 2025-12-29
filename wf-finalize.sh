@@ -605,59 +605,15 @@ generate_sample_html_report() {
       <label for="passOnly" class="filter-toggle">Show PASS only</label>
       $(
         if [ -f "$ann_tsv" ]; then
-          # If VCF present, enrich deletions in ALT with END/SVLEN from VCF
+          # If VCF present, regenerate TSV with END/SVLEN columns, then enrich DEL ALT
           tmp_ann_for_html="$ann_tsv"
           if [ -f "$ann_vcf" ]; then
-            echo "<!-- DEL enrichment: VCF found: $ann_vcf -->"
             tmp_ann_for_html=$(mktemp)
-            python3 - "$ann_vcf" "$ann_tsv" "$tmp_ann_for_html" <<'PYEOF'
-import csv
-import sys
-from pathlib import Path
-
-vcf_path = Path(sys.argv[1])
-tsv_path = Path(sys.argv[2])
-out_path = Path(sys.argv[3])
-
-del_map = {}
-with vcf_path.open() as vcf:
-  for line in vcf:
-    if line.startswith('#'):
-      continue
-    parts = line.rstrip().split('\t')
-    if len(parts) < 8:
-      continue
-    chrom, pos, _id, ref, alt, qual, flt, info = parts[:8]
-    if not alt.startswith('<DEL'):
-      continue
-    end = ''
-    svlen = ''
-    for entry in info.split(';'):
-      if entry.startswith('END='):
-        end = entry[4:]
-      elif entry.startswith('SVLEN='):
-        svlen = entry[6:]
-    del_map[pos] = f"<DEL:END={end};SVLEN={svlen}>"
-
-with tsv_path.open() as inp, out_path.open('w', newline='') as out:
-  reader = csv.reader(inp, delimiter='\t')
-  writer = csv.writer(out, delimiter='\t', lineterminator='\n')
-  for row in reader:
-    if not row:
-      writer.writerow(row)
-      continue
-    if row[0] == 'CHROM':
-      writer.writerow(row)
-      continue
-    if len(row) > 4 and len(row) > 1:
-      pos = row[1]
-      if row[4] == '<DEL>' and pos in del_map:
-        row[4] = del_map[pos]
-    writer.writerow(row)
-PYEOF
-            echo "<!-- DEL enrichment completed. Temp TSV: $tmp_ann_for_html -->"
-          else
-            echo "<!-- DEL enrichment skipped: VCF not found: $ann_vcf -->"
+            # Regenerate TSV with END and SVLEN as last columns (like compare_vcf.sh)
+            echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP\tEND\tSVLEN" > "$tmp_ann_for_html"
+            bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\t%INFO/END\t%INFO/SVLEN\n' "$ann_vcf" >> "$tmp_ann_for_html"
+            # Enrich ALT for deletions using END/SVLEN columns (same as compare_vcf.sh)
+            awk 'BEGIN{FS=OFS="\t"} NR>1 && $5 == "<DEL>" { $5 = "<DEL:END=" $(NF-1) ";SVLEN=" $NF ">" } { print }' "$tmp_ann_for_html" > "${tmp_ann_for_html}.tmp" && mv "${tmp_ann_for_html}.tmp" "$tmp_ann_for_html"
           fi
           tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
           [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
