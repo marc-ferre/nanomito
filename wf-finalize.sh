@@ -622,6 +622,8 @@ generate_sample_html_report() {
               bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\t%INFO/END\t%INFO/SVLEN\n' "$ann_vcf" >> "$tmp_ann_for_html" 2>/dev/null
               # Enrich ALT for deletions using END/SVLEN columns (same as compare_vcf.sh)
               awk 'BEGIN{FS=OFS="\t"} NR>1 && $5 == "<DEL>" { $5 = "<DEL:END=" $(NF-1) ";SVLEN=" $NF ">" } { print }' "$tmp_ann_for_html" > "${tmp_ann_for_html}.tmp" && mv "${tmp_ann_for_html}.tmp" "$tmp_ann_for_html"
+              # Remove END/SVLEN columns before displaying (they're now in the ALT tag)
+              awk 'BEGIN{FS=OFS="\t"} {NF=NF-2; print}' "$tmp_ann_for_html" > "${tmp_ann_for_html}.clean" && mv "${tmp_ann_for_html}.clean" "$tmp_ann_for_html"
             } 2>/dev/null || true
           fi
           tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
