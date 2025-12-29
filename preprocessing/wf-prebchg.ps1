@@ -332,16 +332,40 @@ function Invoke-DoradoBasecaller {
         
         Write-Log "Command: $doradoExe $($arguments -join ' ')" -Level "INFO"
         
-        $process = Start-Process -FilePath $doradoExe -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+        # Capture Dorado output to a temp log file (stdout + stderr)
+        $doradoLogPath = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_$([System.Guid]::NewGuid().ToString()).log"
+        Write-Log "Dorado log: $doradoLogPath" -Level "INFO"
         
+        # Run Dorado and capture all output
+        try {
+            & $doradoExe @arguments 2>&1 | Tee-Object -FilePath $doradoLogPath
+        }
+        catch {
+            throw "Dorado execution failed: $($_.Exception.Message)"
+        }
+        
+        # Check if Dorado succeeded by verifying output exists
         $endTime = Get-Date
         $duration = $endTime - $startTime
         
-        if ($process.ExitCode -eq 0) {
+        if (Test-Path $OutputPath) {
             Write-Log "Basecalling completed successfully in $($duration.ToString('hh\:mm\:ss'))" -Level "SUCCESS"
             Write-Log "Output files in: $OutputPath" -Level "SUCCESS"
             
-            # Move log file to output directory
+            # Move Dorado log file to output directory
+            try {
+                $doradoLogDestination = Join-Path $OutputPath "dorado_full.log"
+                if (Test-Path $doradoLogPath) {
+                    Write-Log "Moving Dorado log to: $doradoLogDestination" -Level "INFO"
+                    Move-Item -Path $doradoLogPath -Destination $doradoLogDestination -Force
+                    Write-Log "Dorado log file saved successfully" -Level "SUCCESS"
+                }
+            }
+            catch {
+                Write-Log "Error moving Dorado log: $($_.Exception.Message)" -Level "WARNING"
+            }
+            
+            # Move main log file to output directory
             try {
                 $logDestination = Join-Path $OutputPath (Split-Path $LogPath -Leaf)
                 if (Test-Path $LogPath) {
@@ -353,10 +377,6 @@ function Invoke-DoradoBasecaller {
             catch {
                 Write-Log "Error moving log file: $($_.Exception.Message)" -Level "WARNING"
             }
-        }
-        else {
-            throw "Dorado terminated with error code: $($process.ExitCode)"
-        }
         
     }
     catch {
