@@ -395,6 +395,24 @@ CONVERT_RUNTIME=$((CONVERT_END - CONVERT_START))
 log_success "Converted $BAM_COUNT BAM files to FASTQ"
 log_info "Conversion duration: $(printf '%02d:%02d:%02d' $((CONVERT_RUNTIME/3600)) $((CONVERT_RUNTIME%3600/60)) $((CONVERT_RUNTIME%60)))"
 
+# Create parent ID dictionary before cleaning BAM files
+PID_DICT_FILE="$POD5_DIR/$RUN_ID.pid_dict.tsv"
+if [ -n "${CREATE_PID_DICT_SCRIPT:-}" ] && [ -f "$CREATE_PID_DICT_SCRIPT" ]; then
+    log_info "Creating parent ID dictionary from BAM files..."
+    conda run -p "$BCHG_ENV" python "$CREATE_PID_DICT_SCRIPT" -b "$DEMUX_DIR" -o "$PID_DICT_FILE" || {
+        log_warning "Failed to create parent ID dictionary, continuing..."
+        touch "$PID_DICT_FILE"  # Create empty file to avoid errors in demultmt
+    }
+    if [ -s "$PID_DICT_FILE" ]; then
+        log_success "Parent ID dictionary created: $PID_DICT_FILE"
+    else
+        log_warning "Parent ID dictionary is empty (no parent reads found)"
+    fi
+else
+    log_warning "CREATE_PID_DICT_SCRIPT not configured, skipping parent ID dictionary creation"
+    touch "$PID_DICT_FILE"  # Create empty file to avoid errors in demultmt
+fi
+
 # Clean up BAM files
 log_info "Cleaning up BAM files..."
 rm -rf "$BAM_DIR"
