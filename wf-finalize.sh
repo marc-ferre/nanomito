@@ -332,7 +332,15 @@ tsv_to_html_table() {
     return 0
   fi
   awk -v coloring="${coloring}" -v table_id="${table_id}" '
-    function esc(x) { gsub(/&/,"&amp;",x); gsub(/</,"&lt;",x); gsub(/>/,"&gt;",x); return x }
+    function esc(x) { 
+      gsub(/&/, "AMPERSAND_PLACEHOLDER", x)
+      gsub(/</, "LESSTHAN_PLACEHOLDER", x)
+      gsub(/>/, "GREATERTHAN_PLACEHOLDER", x)
+      gsub(/AMPERSAND_PLACEHOLDER/, "\\&amp;", x)
+      gsub(/LESSTHAN_PLACEHOLDER/, "\\&lt;", x)
+      gsub(/GREATERTHAN_PLACEHOLDER/, "\\&gt;", x)
+      return x 
+    }
     function toup(x,  i,c,r){ r=""; for(i=1;i<=length(x);i++){c=substr(x,i,1); r=r ((c>="a" && c<="z")? sprintf("%c", ord(c)-32): c)}; return r }
     function ord(c){ return index("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F !\"#$%&\047()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", c)-1 }
     BEGIN {
