@@ -608,8 +608,9 @@ generate_sample_html_report() {
           # If VCF present, enrich deletions in ALT with END/SVLEN from VCF
           tmp_ann_for_html="$ann_tsv"
           if [ -f "$ann_vcf" ]; then
+            echo "<!-- DEL enrichment: VCF found: $ann_vcf -->" >&2
             tmp_ann_for_html=$(mktemp)
-            python3 - "$ann_vcf" "$ann_tsv" "$tmp_ann_for_html" <<'PYEOF' 2>&1 | logger -t nanomito-finalize
+            python3 - "$ann_vcf" "$ann_tsv" "$tmp_ann_for_html" <<'PYEOF'
 import csv
 import sys
 from pathlib import Path
@@ -636,9 +637,7 @@ with vcf_path.open() as vcf:
         end = entry[4:]
       elif entry.startswith('SVLEN='):
         svlen = entry[6:]
-    enriched = f"<DEL:END={end};SVLEN={svlen}>"
-    del_map[pos] = enriched
-    print(f"DEBUG: pos={pos} end={end} svlen={svlen} -> {enriched}", file=sys.stderr)
+    del_map[pos] = f"<DEL:END={end};SVLEN={svlen}>"
 
 with tsv_path.open() as inp, out_path.open('w', newline='') as out:
   reader = csv.reader(inp, delimiter='\t')
@@ -654,9 +653,11 @@ with tsv_path.open() as inp, out_path.open('w', newline='') as out:
       pos = row[1]
       if row[4] == '<DEL>' and pos in del_map:
         row[4] = del_map[pos]
-        print(f"DEBUG: Enriched row pos={pos} alt={del_map[pos]}", file=sys.stderr)
     writer.writerow(row)
 PYEOF
+            echo "<!-- DEL enrichment completed. Temp TSV: $tmp_ann_for_html -->" >&2
+          else
+            echo "<!-- DEL enrichment skipped: VCF not found: $ann_vcf -->" >&2
           fi
           tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
           [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
