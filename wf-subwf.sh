@@ -263,6 +263,8 @@ JOBS_COUNT=0
 JOBID_LIST=''
 DEMULTMT_JOBS=0
 MODMITO_JOBS=0
+SKIPPED_SAMPLES=""
+SKIPPED_COUNT=0
 
 # Process each sample directory in fastq_pass/
 cd "$FASTQ_DIR"
@@ -277,7 +279,13 @@ do
 		# Check if SAMPLE_ID is in the comma-separated list
 		# Add commas around the list and the sample to avoid partial matches
 		if [[ ",$ONLY_SAMPLES," != *",$SAMPLE_ID,"* ]]; then
-			log_info "Skipping $SAMPLE_ID (not in --only-samples list)"
+			if [ -n "$EXPECTED_SAMPLES" ] && [ "$PROCESS_ALL" = false ]; then
+				log_warning "Skipping $SAMPLE_ID (not declared in sample sheet)"
+			else
+				log_info "Skipping $SAMPLE_ID (not in --only-samples list)"
+			fi
+			SKIPPED_SAMPLES="$SKIPPED_SAMPLES $SAMPLE_ID"
+			SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
 			continue
 		fi
 	fi
@@ -398,6 +406,11 @@ log_success "$SAMPLES_COUNT sample(s) processed"
 log_success "$JOBS_COUNT job(s) submitted:"
 log_info "  - demultmt: $DEMULTMT_JOBS jobs"
 log_info "  - modmito: $MODMITO_JOBS jobs"
+
+if [ $SKIPPED_COUNT -gt 0 ]; then
+	echo ""
+	log_warning "$SKIPPED_COUNT sample(s) skipped (not in sample sheet):$SKIPPED_SAMPLES"
+fi
 
 echo ""
 echo "========== Job Management =========="
