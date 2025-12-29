@@ -80,6 +80,7 @@ SKIP_MODMITO=false
 SKIP_ARCHIVING=false
 INCLUDE_UNCLASSIFIED=false
 ONLY_SAMPLES=""
+PROCESS_ALL=false
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -110,6 +111,10 @@ while [[ $# -gt 0 ]]; do
 		--only-samples)
 			ONLY_SAMPLES="$2"
 			shift 2
+			;;
+		--all)
+			PROCESS_ALL=true
+			shift
 			;;
 		*)
 			log_error "Unknown option: $1"
@@ -216,6 +221,38 @@ log_info "Found $SAMPLE_COUNT sample directories"
 if [ "$SAMPLE_COUNT" -eq 0 ]; then
 	log_error "No sample directories found in $FASTQ_DIR"
 	exit 128
+fi
+
+# Extract expected samples from sample sheet if available
+EXPECTED_SAMPLES=""
+if [ "$PROCESS_ALL" = false ]; then
+	SAMPLESHEET_FILE=$(find "$RUN_DIR" -maxdepth 2 -type f -name 'sample_sheet_*.csv' | head -1)
+	if [ -f "$SAMPLESHEET_FILE" ]; then
+		log_info "Reading sample sheet: $SAMPLESHEET_FILE"
+		
+		# Extract barcodes and aliases from sample sheet (skip header)
+		# Expected columns: experiment_id,kit,flow_cell_id,alias,barcode
+		BARCODES=$(tail -n +2 "$SAMPLESHEET_FILE" | cut -d, -f5 | sort -u)
+		ALIASES=$(tail -n +2 "$SAMPLESHEET_FILE" | cut -d, -f4 | sort -u)
+		
+		# Combine barcodes and aliases into expected samples list
+		EXPECTED_SAMPLES=$(echo -e "${BARCODES}\n${ALIASES}" | sort -u | tr '\n' ',')
+		EXPECTED_SAMPLES="${EXPECTED_SAMPLES%,}"  # Remove trailing comma
+		
+		if [ -n "$EXPECTED_SAMPLES" ]; then
+			log_success "Expected samples from sample sheet: $EXPECTED_SAMPLES"
+			
+			# If user didn't specify --only-samples, use the sample sheet list
+			if [ -z "$ONLY_SAMPLES" ]; then
+				ONLY_SAMPLES="$EXPECTED_SAMPLES"
+				log_info "Filtering samples based on sample sheet (use --all to process all directories)"
+			fi
+		fi
+	else
+		log_warning "No sample sheet found, processing all sample directories"
+	fi
+else
+	log_info "--all option specified, processing all sample directories"
 fi
 
 log_step "3/3: SUBMITTING WORKFLOWS"
