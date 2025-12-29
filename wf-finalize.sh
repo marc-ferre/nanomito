@@ -420,9 +420,6 @@ generate_sample_html_report() {
   local ann_tsv="$sample_dir/${sample}.ann.tsv"
   local demultmt_err="$sample_dir/slurm-${sample}.demultmt.err"
   local modmito_err="$sample_dir/slurm-${sample}.modmito.err"
-  
-  # Capture SCRIPT_DIR before entering HEREDOC context
-  local workflow_scripts_dir="$SCRIPT_DIR"
 
   # Metrics
   local chrM_reads="" matching_both=""
@@ -764,10 +761,8 @@ generate_sample_html_report() {
     <div class="section">
       <h2>Parameters</h2>
       $(
-        demultmt_script="$workflow_scripts_dir/wf-demultmt.sh"
-        bchg_script="$workflow_scripts_dir/wf-bchg.sh"
-        
-        echo "<!-- DEBUG: bchg_script=$bchg_script, exists=" && [ -f "$bchg_script" ] && echo "YES -->" || echo "NO -->"
+        demultmt_script="$SCRIPT_DIR/wf-demultmt.sh"
+        bchg_script="$SCRIPT_DIR/wf-bchg.sh"
         
         # Extract Dorado parameters from wf-bchg.sh script
         dorado_params="N/A"
@@ -1001,11 +996,12 @@ append_html "  </div>"
 append_html "</div>"
 
 # --- 0. PRE-FLIGHT CHECK (non-blocking) -----------------------------------
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CHECK_SCRIPT="$SCRIPT_DIR/tools/check_run_ready.sh"
+# Note: Use local variable to avoid overwriting SCRIPT_DIR which is needed for tool paths
+local_script_dir="$(cd "$(dirname "$0")" && pwd)"
+CHECK_SCRIPT="$local_script_dir/tools/check_run_ready.sh"
 if [ ! -x "$CHECK_SCRIPT" ]; then
   # Try parent directory layout if script is in repo root
-  [ -x "$SCRIPT_DIR/../tools/check_run_ready.sh" ] && CHECK_SCRIPT="$SCRIPT_DIR/../tools/check_run_ready.sh"
+  [ -x "$local_script_dir/../tools/check_run_ready.sh" ] && CHECK_SCRIPT="$local_script_dir/../tools/check_run_ready.sh"
 fi
 if [ -x "$CHECK_SCRIPT" ]; then
   append_section "PRE-FLIGHT CHECK"
