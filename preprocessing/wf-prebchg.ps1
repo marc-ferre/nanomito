@@ -333,16 +333,17 @@ function Invoke-DoradoBasecaller {
         Write-Log "Command: $doradoExe $($arguments -join ' ')" -Level "INFO"
         
         # Capture Dorado output to a temp log file (stdout + stderr)
+        # Use Windows redirection > instead of PowerShell pipes to avoid ErrorActionPreference issues
         $doradoLogPath = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_$([System.Guid]::NewGuid().ToString()).log"
         Write-Log "Dorado log: $doradoLogPath" -Level "INFO"
         
-        # Run Dorado and capture all output
-        try {
-            & $doradoExe @arguments 2>&1 | Tee-Object -FilePath $doradoLogPath
-        }
-        catch {
-            throw "Dorado execution failed: $($_.Exception.Message)"
-        }
+        # Construct command with output redirection
+        $cmdString = "& `"$doradoExe`" $($arguments -join ' ') > `"$doradoLogPath`" 2>&1"
+        Write-Log "Executing with full log capture..." -Level "INFO"
+        
+        # Execute command with output redirection (suppresses PowerShell error displays)
+        Invoke-Expression $cmdString
+        $exitCode = $LASTEXITCODE
         
         # Check if Dorado succeeded by verifying output exists
         $endTime = Get-Date
