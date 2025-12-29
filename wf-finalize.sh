@@ -764,6 +764,8 @@ generate_sample_html_report() {
         demultmt_script="$SCRIPT_DIR/wf-demultmt.sh"
         bchg_script="$SCRIPT_DIR/wf-bchg.sh"
         
+        echo "<!-- DEBUG: bchg_script=$bchg_script, exists=" && [ -f "$bchg_script" ] && echo "YES -->" || echo "NO -->"
+        
         # Extract Dorado parameters from wf-bchg.sh script
         dorado_params="N/A"
         if [ -f "$bchg_script" ]; then
