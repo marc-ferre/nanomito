@@ -66,6 +66,16 @@ param(
 # Load configuration from centralized config file
 . "$PSScriptRoot\preprocessing.ps1"
 
+# Version from git tags (fallback to 'unknown' if not in git repo)
+$Version = & {
+    $gitDir = Split-Path -Parent $PSScriptRoot
+    try {
+        $version = & git -C "$gitDir" describe --tags 2>$null
+        if ($?) { return $version }
+    } catch { }
+    return 'unknown'
+}
+
 # Script paths (from config)
 $DoradoScript = $Script:DoradoScript
 $MitochondrialScript = $Script:MitochondrialScript

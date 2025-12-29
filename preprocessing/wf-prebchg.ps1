@@ -107,6 +107,17 @@ if (Test-Path $configPath) {
 } else {
     Write-Warning "Configuration file not found: $configPath"
     Write-Warning "Using command-line parameters or script defaults"
+}
+
+# Version from git tags (fallback to 'unknown' if not in git repo)
+$Version = & {
+    $gitDir = Split-Path -Parent $PSScriptRoot
+    try {
+        $version = & git -C "$gitDir" describe --tags 2>$null
+        if ($?) { return $version }
+    } catch { }
+    return 'unknown'
+}
     
     # Fallback defaults if no config file
     if ([string]::IsNullOrEmpty($DoradoBasePath)) { $DoradoBasePath = "C:\Users\mferre\bioapps" }

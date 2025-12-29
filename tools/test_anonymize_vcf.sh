@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Version from git tags (fallback to 'unknown' if not in git repo)
+VERSION="$(git -C "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" describe --tags 2>/dev/null || echo 'unknown')"
+
 # Simple test for tools/anonymize_vcf.sh
 ROOTDIR=$(cd "$(dirname "$0")" && pwd)
 TESTDIR="$ROOTDIR/test_data"

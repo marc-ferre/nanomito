@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Version from git tags (fallback to 'unknown' if not in git repo)
+VERSION="$(git -C "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" describe --tags 2>/dev/null || echo 'unknown')"
+
 # Quick pre-flight check for a Nanomito run directory
 # Validates presence of key outputs needed by wf-finalize.sh
 # Usage: tools/check_run_ready.sh [RUN_DIR=. ] [--strict]
