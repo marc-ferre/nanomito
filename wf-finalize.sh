@@ -606,7 +606,29 @@ generate_sample_html_report() {
       <label for="passOnly" class="filter-toggle">Show PASS only</label>
       $(
         if [ -f "$ann_tsv" ]; then
-          tsv_to_html_table "$ann_tsv" "disease" "variants-table"
+          # If VCF present, enrich deletions in ALT with END/SVLEN from VCF
+          tmp_ann_for_html="$ann_tsv"
+          if [ -f "$ann_vcf" ]; then
+            tmp_ann_for_html=$(mktemp)
+            awk 'FNR==NR {
+                   if ($1 ~ /^#/) next;
+                   if ($5 ~ /^<DEL/) {
+                     pos=$2;
+                     end=""; svlen="";
+                     if (match($0, /;END=([^;]+)/, m)) end=m[1];
+                     if (match($0, /;SVLEN=([^;]+)/, m2)) svlen=m2[1];
+                     del[pos]=sprintf("<DEL:END=%s;SVLEN=%s>", end, svlen);
+                   }
+                   next;
+                 }
+                 FNR==1 { print; next }
+                 {
+                   if ($5=="<DEL>" && ($2 in del)) { $5 = del[$2] }
+                   print
+                 }' "$ann_vcf" "$ann_tsv" > "$tmp_ann_for_html"
+          fi
+          tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
+          [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
         else
           echo "<p>Variant TSV not found: $(sanitize_html "$ann_tsv")</p>"
         fi
