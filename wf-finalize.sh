@@ -610,7 +610,8 @@ generate_sample_html_report() {
           tmp_ann_for_html="$ann_tsv"
           if [ -f "$ann_vcf" ]; then
             tmp_ann_for_html=$(mktemp)
-            awk 'FNR==NR {
+            awk 'BEGIN { FS="\t"; OFS="\t" }
+                 FNR==NR {
                    if ($1 ~ /^#/) next;
                    if ($5 ~ /^<DEL/) {
                      pos=$2;
