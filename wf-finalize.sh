@@ -603,8 +603,30 @@ generate_sample_html_report() {
       <h2>Variants</h2>
       <input type="checkbox" id="passOnly" class="pass-toggle">
       <label for="passOnly" class="filter-toggle">Show PASS only</label>
-      <p>TEST: ann_tsv=$ann_tsv, ann_vcf=$ann_vcf</p>
-      $([[ -f "$ann_tsv" ]] && echo "TSV exists" || echo "TSV NOT found")
+      $(
+        if [ -f "$ann_tsv" ]; then
+          # If VCF present, regenerate TSV with END/SVLEN columns, then enrich DEL ALT
+          tmp_ann_for_html="$ann_tsv"
+          if [ -f "$ann_vcf" ]; then
+            tmp_ann_for_html=$(mktemp)
+            # Regenerate TSV with END and SVLEN as last columns (like compare_vcf.sh)
+            # Must activate conda in subshell to get bcftools
+            {
+              . /local/env/envconda.sh 2>/dev/null || true
+              conda activate "$ANNOTMT_ENV" 2>/dev/null || true
+              
+              echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP\tEND\tSVLEN" > "$tmp_ann_for_html"
+              bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\t%INFO/END\t%INFO/SVLEN\n' "$ann_vcf" >> "$tmp_ann_for_html" 2>/dev/null
+              # Enrich ALT for deletions using END/SVLEN columns (same as compare_vcf.sh)
+              awk 'BEGIN{FS=OFS="\t"} NR>1 && $5 == "<DEL>" { $5 = "<DEL:END=" $(NF-1) ";SVLEN=" $NF ">" } { print }' "$tmp_ann_for_html" > "${tmp_ann_for_html}.tmp" && mv "${tmp_ann_for_html}.tmp" "$tmp_ann_for_html"
+            } 2>/dev/null || true
+          fi
+          tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
+          [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
+        else
+          echo "<p>Variant TSV not found: $(sanitize_html "$ann_tsv")</p>"
+        fi
+      )
         ann_tsv_exists="false"
         ann_vcf_exists="false"
         if [ -f "$ann_tsv" ]; then

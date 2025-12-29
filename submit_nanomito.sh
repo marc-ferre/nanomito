@@ -341,7 +341,7 @@ if [ "$FINALIZE_ONLY" = true ]; then
 		--chdir="$RUN_DIR" \
 		--job-name="f${RUN_ID: -7}" \
 		--output="$FINAL_OUT" \
-		"$SCRIPT_DIR/wf-finalize.sh")
+		"$SCRIPT_DIR/wf-finalize.sh" --reports-only "$RUN_DIR")
 	
 	if [ -n "$FINAL_JOBID" ]; then
 		log_success "Submitted finalization job $FINAL_JOBID"
