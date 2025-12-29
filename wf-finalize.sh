@@ -309,6 +309,24 @@ EOF
 end_html() {
   cat >> "$EMAIL_BODY_FILE" << 'EOF'
 </div>
+<script>
+  // Update filter label text when checkbox state changes
+  const filterCheckbox = document.getElementById('passOnly');
+  const filterLabel = document.getElementById('filterLabel');
+  
+  if (filterCheckbox && filterLabel) {
+    // Initialize label based on current checkbox state
+    function updateLabel() {
+      filterLabel.textContent = filterCheckbox.checked ? 'Show all variants' : 'Show PASS only';
+    }
+    
+    // Update on change event (works well on iOS)
+    filterCheckbox.addEventListener('change', updateLabel);
+    
+    // Initialize on page load
+    updateLabel();
+  }
+</script>
 </body>
 </html>
 EOF
@@ -605,7 +623,7 @@ generate_sample_html_report() {
     <div class="section">
       <h2>Variants</h2>
       <input type="checkbox" id="passOnly" class="pass-toggle">
-      <label for="passOnly" class="filter-toggle">Show PASS only</label>
+      <label for="passOnly" class="filter-toggle"><span id="filterLabel">Show PASS only</span></label>
       $(
         if [ -f "$ann_tsv" ]; then
           # If VCF present, regenerate TSV with END/SVLEN columns, then enrich DEL ALT
