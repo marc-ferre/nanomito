@@ -661,7 +661,7 @@ generate_sample_html_report() {
       $(
         del_file="$sample_dir/varcall/${sample}.baldur_del.txt"
         if [ -f "$del_file" ]; then
-          del_count=$(grep -vcE '^(#|$)' "$del_file" 2>/dev/null || echo "0")
+          del_count=$(grep -vcE '^(#|$)' "$del_file" 2>/dev/null | xargs || echo "0")
           if [ "$del_count" -gt 0 ]; then
             echo '<table class="deletions-table">'
             echo '<thead><tr><th>Start</th><th>Stop</th><th>Strand</th><th>Length</th><th>Type</th><th>Count</th></tr></thead>'
@@ -1312,7 +1312,7 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   if [ -f "$del_file" ]; then
     # Count deletions (skip header if present)
     # Use || true to prevent grep from causing script to exit when no matches found (with set -e)
-    del_count=$(grep -vcE '^(#|$)' "$del_file" 2>/dev/null || echo "0")
+    del_count=$(grep -vcE '^(#|$)' "$del_file" 2>/dev/null | xargs || echo "0")
     
     if [ "$del_count" -gt 0 ]; then
       append_html "  <div style=\"margin: 10px 0;\">"
