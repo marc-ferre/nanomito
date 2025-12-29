@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: CECILL-2.1
 # Nanomito Global Configuration (template)
 # Copy this file to nanomito.config and customize paths, environments, and mail settings.
+# shellcheck disable=SC2034
 
 # =============================================================================
 # BINARIES
