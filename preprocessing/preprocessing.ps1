@@ -4,6 +4,8 @@
 # This file centralizes all configuration variables used across preprocessing PowerShell scripts.
 # It should be dot-sourced at the beginning of each PowerShell preprocessing script.
 #
+# Configuration values are loaded from preprocessing.config file.
+#
 # Usage:
 #   . .\preprocessing\preprocessing.ps1
 #   OR
@@ -11,21 +13,48 @@
 #
 
 # ============================================================================
+# LOAD CONFIGURATION FROM preprocessing.config
+# ============================================================================
+
+# Find and load preprocessing.config
+$ConfigPath = "$PSScriptRoot\preprocessing.config"
+if (-Not (Test-Path $ConfigPath)) {
+    Write-Error "Configuration file not found: $ConfigPath"
+    exit 1
+}
+
+# Load configuration file
+$configContent = Get-Content $ConfigPath -Raw
+# Parse bash variable assignments
+$configLines = $configContent -split "`n" | Where-Object { $_ -match "^[A-Z_]+='" }
+
+foreach ($line in $configLines) {
+    if ($line -match "^([A-Z_]+)='(.*)'\s*$") {
+        $varName = $matches[1]
+        $varValue = $matches[2]
+        
+        # Convert bash variable names to PowerShell
+        $psVarName = switch ($varName) {
+            'DORADO_BASE_PATH'  { 'DoradoBasePath' }
+            'DORADO_EXECUTABLE' { 'DoradoExecutable' }
+            'DORADO_MODEL'      { 'DoradoModel' }
+            'DORADO_KIT'        { 'DoradoKit' }
+            default             { $varName }
+        }
+        
+        New-Variable -Name $psVarName -Value $varValue -Scope Script -Force
+    }
+}
+
+# ============================================================================
 # DORADO CONFIGURATION
 # ============================================================================
 
-# Path to Dorado installation directory
-$Script:DoradoBasePath = "C:\Users\mferre\bioapps"
-
-# Relative path to Dorado executable from DoradoBasePath
-# Update this when upgrading Dorado version
-$Script:DoradoExecutable = "dorado-1.2.0-win64\bin\dorado.exe"
-
-# Default basecalling model (fast, hac, sup)
-$Script:DoradoModel = "hac"
-
-# Default sequencing kit
-$Script:DoradoKit = "SQK-NBD114-24"
+# Values loaded from preprocessing.config above
+# $Script:DoradoBasePath
+# $Script:DoradoExecutable  
+# $Script:DoradoModel
+# $Script:DoradoKit
 
 # ============================================================================
 # DATA DIRECTORIES
