@@ -784,8 +784,9 @@ generate_sample_html_report() {
           # Extract the baldur command (multi-line with backslashes)
           baldur_params=$(awk '/BALDUR_BIN.*--mapq/,/"\$BAM_FILE"/ {print}' "$demultmt_script" | \
                          grep -oE '\-\-[a-z-]+\s+[0-9]+|\-\-[a-z-]+' | \
+                         grep -v -E '(--reference|--output-prefix|--sample)' | \
                          tr '\n' ' ' | \
-                         sed 's/--reference.*//; s/--output-prefix.*//; s/--sample.*//; s/ $//')
+                         sed 's/ $//')
         fi
         
         # Extract Haplocheck parameters from wf-demultmt.sh script
