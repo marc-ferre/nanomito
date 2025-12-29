@@ -381,7 +381,12 @@ tsv_to_html_table() {
           svlenv=(svlen_idx>0 ? $(svlen_idx) : "")
           val="<DEL:END=" endv ";SVLEN=" svlenv ">"
         }
-        printf "<td>%s</td>", esc(val)
+        # Don't escape HTML in ALT column if it contains <DEL: tags
+        if (alt_idx>0 && i==alt_idx && val ~ /^<DEL:/) {
+          printf "<td>%s</td>", val
+        } else {
+          printf "<td>%s</td>", esc(val)
+        }
       }
       print "</tr>"
     }
