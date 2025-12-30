@@ -91,6 +91,8 @@ SKIP_ARCHIVING=false
 INCLUDE_UNCLASSIFIED=false
 ONLY_SAMPLES=""
 PROCESS_ALL=false
+EXPORT_RESULTS=false
+EXPORT_NAME=""
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -120,6 +122,14 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--only-samples)
 			ONLY_SAMPLES="$2"
+			shift 2
+			;;
+		--export-results)
+			EXPORT_RESULTS=true
+			shift
+			;;
+		--export-name)
+			EXPORT_NAME="$2"
 			shift 2
 			;;
 		--all)
@@ -519,5 +529,41 @@ if [ -n "$JOBID_LIST" ]; then
 		log_info "  Output: $FINAL_OUT"
 	else
 		log_error "Failed to submit final notification job"
+	fi
+
+	# Submit export job (optional) after finalization
+	if [ "$EXPORT_RESULTS" = true ]; then
+		EXPORT_DEP_STR="afterok:$FINAL_JOBID"
+		if [ -z "$FINAL_JOBID" ]; then
+			EXPORT_DEP_STR="$FINAL_DEP_STR"
+		fi
+
+		# Default source is archive if available, otherwise scratch run directory
+		EXPORT_SOURCE="$RUN_DIR"
+		if [ "$SKIP_ARCHIVING" = false ] && [ -n "$ARCHIVING_DIR" ]; then
+			EXPORT_SOURCE="$ARCHIVING_DIR"
+		fi
+
+		EXPORT_OUT="$PROCESS_DIR/slurm-$RUN_ID.export.out"
+		EXPORT_ARGS=("$SCRIPT_DIR/wf-export.sh" "$EXPORT_SOURCE")
+		if [ -n "$EXPORT_NAME" ]; then
+			EXPORT_ARGS+=("$EXPORT_NAME")
+		fi
+
+		EXPORT_JOBID=$(sbatch --parsable \
+			--dependency="$EXPORT_DEP_STR" \
+			--export=ALL \
+			--chdir="$RUN_DIR" \
+			--job-name="e${RUN_ID: -7}" \
+			--output="$EXPORT_OUT" \
+			"${EXPORT_ARGS[@]}")
+
+		if [ -n "$EXPORT_JOBID" ]; then
+			log_success "Submitted export job $EXPORT_JOBID (depends on finalization)"
+			log_info "  Output: $EXPORT_OUT"
+			log_info "  Source: $EXPORT_SOURCE"
+		else
+			log_error "Failed to submit export job"
+		fi
 	fi
 fi
