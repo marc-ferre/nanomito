@@ -22,6 +22,7 @@
 import argparse  # Command line argument parsing
 import os  # Operating system interface
 from pathlib import Path  # Object-oriented filesystem paths
+import subprocess  # For retrieving Git version info
 import sys  # System-specific parameters and functions
 
 # Third-party imports
@@ -29,7 +30,6 @@ import pysam  # Python interface to SAM/BAM files
 import pod5  # Oxford Nanopore Pod5 file format library
 
 # Script metadata
-VERSION = "25.10.26.2"
 AUTHOR = "Marc FERRE <marc.ferre@univ-angers.fr>"
 
 
@@ -43,7 +43,8 @@ def parse_args():
             - pod5: Path to Pod5 raw data directory
             - output: Output file path for unique parent IDs
             - dict: Path to read_id→parent_id dictionary file (optional)
-            - verbose: Enable verbose output
+                - verbose: Enable verbose output
+                - debug_per_read: Emit per-read logging (very verbose)
     """
     parser = argparse.ArgumentParser(
         description="Get unique parent IDs (pIDs) of reads aligned to chrM from BAM files."
@@ -74,7 +75,22 @@ def parse_args():
         action="store_true",
         help="Enable verbose output (default: False)",
     )
+    parser.add_argument(
+        "--debug-per-read",
+        action="store_true",
+        help="Emit per-read logging (very verbose; off by default)",
+    )
     return parser.parse_args()
+
+
+def get_git_version() -> str:
+    """Return a Git-based version string; fall back to 'unknown' if unavailable."""
+    try:
+        repo_root = Path(__file__).resolve().parent
+        cmd = ["git", "-C", str(repo_root), "describe", "--tags", "--always", "--dirty"]
+        return subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL).strip()
+    except Exception:
+        return "unknown"
 
 
 def get_pod5_ids(pod5_dir: str) -> set[str]:
@@ -150,7 +166,11 @@ def load_pid_dictionary(dict_file: str) -> dict[str, str]:
 
 
 def get_chrM_pids(
-    bam_dir: str, pod5_ids: set[str], pid_dict: dict[str, str] = None, verbose: bool = False
+    bam_dir: str,
+    pod5_ids: set[str],
+    pid_dict: dict[str, str] = None,
+    verbose: bool = False,
+    debug_per_read: bool = False,
 ) -> tuple[set[str], list[str], int, int, int, int]:
     """
     Extract unique parent IDs from BAM files for reads aligned to chrM.
@@ -166,6 +186,7 @@ def get_chrM_pids(
         pod5_ids (set[str]): Set of available Pod5 read IDs for validation
         pid_dict (dict[str, str], optional): Dictionary mapping read_id → parent_id
         verbose (bool): Enable verbose output for detailed logging
+        debug_per_read (bool): Emit per-read logging (very verbose)
 
     Returns:
         tuple containing:
@@ -190,6 +211,9 @@ def get_chrM_pids(
         print(f"[INFO] Using provided read_id→parent_id dictionary ({len(pid_dict)} entries)")
     else:
         print(f"[INFO] Will extract parent IDs from pi:Z tags in BAM files")
+
+    if verbose:
+        print("[INFO] Verbose mode enabled (summary only; per-read logging requires --debug-per-read)")
 
     # Set to store unique parent IDs (pIDs) of reads aligned to chrM
     # For split reads, this will be the parent ID from dictionary or pi:Z tag
@@ -239,56 +263,56 @@ def get_chrM_pids(
                                 pid = pid_dict[read_id]
                                 if pid != read_id:
                                     read_split_count += 1
-                                    if verbose:
+                                    if debug_per_read:
                                         print(
                                             f"[INFO]    Subread ID# {read_id} was generated from Parent read pID# {pid} [FROM DICT]"
                                         )
                                 else:
-                                    if verbose:
+                                    if debug_per_read:
                                         print(f"[INFO]    Read pID# {pid} [FROM DICT]")
                             else:
                                 # Read ID not in dictionary, use read_id as parent_id
                                 pid = read_id
-                                if verbose:
+                                if debug_per_read:
                                     print(f"[WARNING] Read ID {read_id} not found in dictionary, using read_id as parent_id")
                         else:
                             # No dictionary, try to extract from pi:Z tag
                             if read.has_tag("pi:Z"):
                                 read_split_count += 1
                                 pid = read.get_tag("pi:Z")  # Extract parent ID from tag
-                                if verbose:
+                                if debug_per_read:
                                     print(
                                         f"[INFO]    Subread ID# {read_id} was generated from Parent read pID# {pid} [FROM BAM TAG]"
                                     )
                             else:
                                 # No split read tag, so parent ID is the same as read ID
                                 pid = read_id
-                                if verbose:
+                                if debug_per_read:
                                     print(f"[INFO]    Read pID# {pid}")
 
                         # Check if this parent ID has already been encountered (avoid duplicates)
                         if pid in pids:
                             read_duplicate_count += 1
-                            if verbose:
+                            if debug_per_read:
                                 print(
                                     "[INFO]       Duplicate entry (not re-stored) [DUPLICATE]"
                                 )
                         else:
                             # Add new unique parent ID to the set
                             pids.add(pid)  # Use add() for sets, not append()
-                            if verbose:
+                            if debug_per_read:
                                 print("      [OK] Storing entry")
 
                             # Verify that the parent ID exists in the Pod5 data
                             if (
                                 pid in pod5_ids
                             ):  # Use pod5_ids parameter instead of undefined allids
-                                if verbose:
+                                if debug_per_read:
                                     print("      [OK] pID in Pod5 raw reads")
                             else:
                                 # Parent ID found in BAM but missing from Pod5 data
                                 missingids.append(pid)
-                                if verbose:
+                                if debug_per_read:
                                     print(
                                         "      [WARNING] pID (BAM ID) missing from Pod5 IDs [MISSING]",
                                     )
@@ -354,7 +378,7 @@ def main():
     6. Displays comprehensive statistics about the processing
     7. Writes the unique parent IDs to the output file
     """
-    print(f"Script: get_chrMpid.py v.{VERSION} by {AUTHOR}")
+    print(f"Script: get_chrMpid.py v.{get_git_version()} by {AUTHOR}")
 
     # Parse command line arguments
     args = parse_args()
@@ -394,7 +418,13 @@ def main():
         read_chrM_count,  # Total reads aligned to chrM
         read_split_count,  # Split reads count
         read_duplicate_count,  # Duplicate reads ignored
-    ) = get_chrM_pids(args.bam, pod5_ids, pid_dict, args.verbose)
+    ) = get_chrM_pids(
+        args.bam,
+        pod5_ids,
+        pid_dict,
+        args.verbose,
+        args.debug_per_read,
+    )
 
     # Display comprehensive processing statistics
     print("\n" + "=" * 50)

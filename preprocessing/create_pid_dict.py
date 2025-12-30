@@ -7,6 +7,7 @@ Usage: create_pid_dict.py -b /path/to/bam_dir -o /path/to/output_dict.tsv
 """
 import argparse
 from pathlib import Path
+import subprocess
 import sys
 import os
 try:
@@ -75,6 +76,7 @@ def main():
 
 
 if __name__ == '__main__':
+    print(f"Script: create_pid_dict.py v.{get_git_version()} by {AUTHOR}")
     main()
 #!/usr/bin/env python3
 ###############################################################################
@@ -99,8 +101,17 @@ from pathlib import Path
 
 import pysam
 
-VERSION = "25.10.26.1"
 AUTHOR = "Marc FERRE <marc.ferre@univ-angers.fr>"
+
+
+def get_git_version() -> str:
+    """Return a Git-based version string; fall back to 'unknown' if unavailable."""
+    try:
+        repo_root = Path(__file__).resolve().parent
+        cmd = ["git", "-C", str(repo_root), "describe", "--tags", "--always", "--dirty"]
+        return subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL).strip()
+    except Exception:
+        return "unknown"
 
 
 def parse_args():
