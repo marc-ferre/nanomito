@@ -368,13 +368,11 @@ function Invoke-DoradoBasecaller {
         }
         
         Write-Log "Command: $doradoExe $($arguments -join ' ')" -Level "INFO"
+        Write-Log "Starting Dorado basecaller - output will be captured below" -Level "INFO"
         
-        # Capture Dorado output to a temp log file (stdout + stderr)
-        $doradoLogPath = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_$([System.Guid]::NewGuid().ToString()).log"
-        Write-Log "Dorado log: $doradoLogPath" -Level "INFO"
-        
-        # Direct invocation with stdout/stderr mirrored to a log file
-        & $doradoExe @arguments 2>&1 | Tee-Object -FilePath $doradoLogPath -Append
+        # Direct invocation with stdout/stderr mirrored to console and main log file
+        # Note: stderr may appear in red in terminal - this is normal PowerShell formatting
+        & $doradoExe @arguments 2>&1 | Tee-Object -FilePath $LogPath -Append
         $exitCode = $LASTEXITCODE
         
         # Check if Dorado succeeded by verifying output exists
@@ -389,31 +387,18 @@ function Invoke-DoradoBasecaller {
         if ($bamFiles) {
             Write-Log "Basecalling completed successfully in $($duration.ToString('hh\:mm\:ss'))" -Level "SUCCESS"
             Write-Log "Output files in: $OutputPath" -Level "SUCCESS"
-            
-            # Move Dorado log file to output directory
-            try {
-                $doradoLogDestination = Join-Path $OutputPath "dorado_full.log"
-                if (Test-Path $doradoLogPath) {
-                    Write-Log "Moving Dorado log to: $doradoLogDestination" -Level "INFO"
-                    Move-Item -Path $doradoLogPath -Destination $doradoLogDestination -Force
-                    Write-Log "Dorado log file saved successfully" -Level "SUCCESS"
-                }
-            }
-            catch {
-                Write-Log "Error moving Dorado log: $($_.Exception.Message)" -Level "WARNING"
-            }
-            
-            # Move main log file to output directory
+
+            # Copy main log file to output directory
             try {
                 $logDestination = Join-Path $OutputPath (Split-Path $LogPath -Leaf)
                 if (Test-Path $LogPath) {
-                    Write-Log "Moving log file to: $logDestination" -Level "INFO"
-                    Move-Item -Path $LogPath -Destination $logDestination -Force
-                    Write-Log "Log file moved successfully" -Level "SUCCESS"
+                    Write-Log "Copying log file to: $logDestination" -Level "INFO"
+                    Copy-Item -Path $LogPath -Destination $logDestination -Force
+                    Write-Log "Log file copied successfully" -Level "SUCCESS"
                 }
             }
             catch {
-                Write-Log "Error moving log file: $($_.Exception.Message)" -Level "WARNING"
+                Write-Log "Error copying log file: $($_.Exception.Message)" -Level "WARNING"
             }
         }
         else {
@@ -429,18 +414,18 @@ function Invoke-DoradoBasecaller {
         Write-Log "=== End of execution ===" -Level "INFO"
         Clean-DoradoTempDirs -BasePath $RunDirectory
         
-        # If execution ended with an error and log was not moved
-        # try to move it anyway if output directory exists
+        # If execution ended with an error and log was not copied
+        # try to copy it anyway if output directory exists
         if (Test-Path $LogPath -ErrorAction SilentlyContinue) {
             try {
                 if ((Test-Path $OutputPath -ErrorAction SilentlyContinue)) {
                     $logDestination = Join-Path $OutputPath (Split-Path $LogPath -Leaf)
-                    Write-Log "Final log file move to: $logDestination" -Level "INFO"
-                    Move-Item -Path $LogPath -Destination $logDestination -Force -ErrorAction SilentlyContinue
+                    Write-Log "Final log file copy to: $logDestination" -Level "INFO"
+                    Copy-Item -Path $LogPath -Destination $logDestination -Force -ErrorAction SilentlyContinue
                 }
             }
             catch {
-                # Silently ignore final move errors
+                # Silently ignore final copy errors
             }
         }
     }
