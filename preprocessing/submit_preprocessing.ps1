@@ -363,25 +363,34 @@ try {
             $SuccessfulSteps++
         }
         else {
-            throw "HPC upload failed - stopping pipeline"
+            Write-ColorMessage "[WARNING] HPC upload failed but pipeline will continue" "Yellow"
         }
     }
     
     # Final summary
     Write-Host ""
-    Write-Host ("=" * 60) -ForegroundColor Green
-    if ($DryRun) {
-        Write-ColorMessage "DRY RUN COMPLETED SUCCESSFULLY" "Green"
-        Write-ColorMessage "All pipeline steps validated - ready for execution" "Green"
+    if ($SuccessfulSteps -eq $TotalSteps) {
+        Write-Host ("=" * 60) -ForegroundColor Green
+        if ($DryRun) {
+            Write-ColorMessage "DRY RUN COMPLETED SUCCESSFULLY" "Green"
+            Write-ColorMessage "All pipeline steps validated - ready for execution" "Green"
+        }
+        else {
+            Write-ColorMessage "PIPELINE COMPLETED SUCCESSFULLY" "Green"
+            Write-ColorMessage "All $TotalSteps steps completed successfully" "Green"
+        }
+        Write-ColorMessage "Run Directory: $RunDirectory" "White"
+        Write-Host ("=" * 60) -ForegroundColor Green
+        exit 0
     }
     else {
-        Write-ColorMessage "PIPELINE COMPLETED SUCCESSFULLY" "Green"
-        Write-ColorMessage "All $SuccessfulSteps steps completed successfully" "Green"
+        Write-Host ("=" * 60) -ForegroundColor Yellow
+        Write-ColorMessage "PIPELINE COMPLETED WITH WARNINGS" "Yellow"
+        Write-ColorMessage "Completed: $SuccessfulSteps/$TotalSteps steps" "Yellow"
+        Write-ColorMessage "Run Directory: $RunDirectory" "White"
+        Write-Host ("=" * 60) -ForegroundColor Yellow
+        exit 1
     }
-    Write-ColorMessage "Run Directory: $RunDirectory" "White"
-    Write-Host ("=" * 60) -ForegroundColor Green
-    
-    exit 0
 }
 catch {
     Write-Host ""
