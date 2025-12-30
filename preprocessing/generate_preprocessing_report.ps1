@@ -146,14 +146,21 @@ if (Test-Path $GETMT_LOG -PathType Leaf) {
 
 # Get Pod5 file size
 $POD5_FILE = Join-Path $POD5_CHR_DIR "$RUN_ID.chrM.pod5"
+$chrMPod5SizeBytes = 0
+$chrMPod5Percent = 0
 if (Test-Path $POD5_FILE -PathType Leaf) {
-    $sizeBytes = (Get-Item $POD5_FILE).Length
-    if ($sizeBytes -gt 1GB) {
-        $GETMT_METRICS.Pod5Size = "{0:F2} GB" -f ($sizeBytes / 1GB)
-    } elseif ($sizeBytes -gt 1MB) {
-        $GETMT_METRICS.Pod5Size = "{0:F2} MB" -f ($sizeBytes / 1MB)
+    $chrMPod5SizeBytes = (Get-Item $POD5_FILE).Length
+    if ($chrMPod5SizeBytes -gt 1GB) {
+        $GETMT_METRICS.Pod5Size = "{0:F2} GB" -f ($chrMPod5SizeBytes / 1GB)
+    } elseif ($chrMPod5SizeBytes -gt 1MB) {
+        $GETMT_METRICS.Pod5Size = "{0:F2} MB" -f ($chrMPod5SizeBytes / 1MB)
     } else {
-        $GETMT_METRICS.Pod5Size = "{0:F2} KB" -f ($sizeBytes / 1KB)
+        $GETMT_METRICS.Pod5Size = "{0:F2} KB" -f ($chrMPod5SizeBytes / 1KB)
+    }
+    
+    # Calculate percentage of total Pod5 files
+    if ($POD5_SIZE -gt 0) {
+        $chrMPod5Percent = ($chrMPod5SizeBytes / $POD5_SIZE) * 100
     }
 }
 
@@ -430,7 +437,7 @@ $html = @"
       <div class="metric-box">
         <div class="metric-label">chrM Pod5 File</div>
         <div class="metric-value">$($GETMT_METRICS.Pod5Size)</div>
-        <div class="metric-subtext">($($GETMT_METRICS.Pod5Batches) batches)</div>
+        <div class="metric-subtext">($($GETMT_METRICS.Pod5Batches) batches, {0:F2}% of total Pod5)</div>
       </div>
     </div>
   </div>
@@ -468,9 +475,11 @@ $html = @"
 # Replace placeholders with actual values
 $filteringPercentStr = "{0:F3}" -f $filteringPercent
 $chrMPercentStr = "{0:F1}" -f $chrMPercent
+$chrMPod5PercentStr = "{0:F2}" -f $chrMPod5Percent
 $html = $html.Replace("{0:F3}%", "$filteringPercentStr%")
 $html = $html.Replace("{0:F1}%", "$chrMPercentStr%")
 $html = $html.Replace("{0:F3}% of all reads", "$chrMPercentStr% of all reads")
+$html = $html.Replace("{0:F2}% of total Pod5", "$chrMPod5PercentStr% of total Pod5")
 
 # Save HTML report
 $html | Out-File -FilePath $REPORT_FILE -Encoding UTF8 -Force
