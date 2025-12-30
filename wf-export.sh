@@ -28,7 +28,8 @@ RUN_DIR=$(cd "$1" && pwd)
 RUN_NAME="${2:-}"  # optional export name override
 RUN_ID=$(basename "$RUN_DIR")
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Use NANOMITO_DIR from SLURM export if available, otherwise resolve from script location
+SCRIPT_DIR="${NANOMITO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 EXPORT_SCRIPT="$SCRIPT_DIR/tools/export_results.sh"
 
 if [ ! -x "$EXPORT_SCRIPT" ]; then
