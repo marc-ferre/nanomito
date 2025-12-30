@@ -370,10 +370,24 @@ function Invoke-DoradoBasecaller {
         Write-Log "Command: $doradoExe $($arguments -join ' ')" -Level "INFO"
         Write-Log "Starting Dorado basecaller - output will be captured below" -Level "INFO"
         
-        # Direct invocation with stdout/stderr mirrored to console and main log file
-        # Note: stderr may appear in red in terminal - this is normal PowerShell formatting
-        & $doradoExe @arguments 2>&1 | Tee-Object -FilePath $LogPath -Append
-        $exitCode = $LASTEXITCODE
+        # Capture Dorado output to temp file, then display and append to main log
+        $tempLog = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_$(Get-Random).tmp"
+        try {
+            & $doradoExe @arguments > $tempLog 2>&1
+            $exitCode = $LASTEXITCODE
+            
+            # Read and display output
+            $output = Get-Content $tempLog -Raw -ErrorAction SilentlyContinue
+            if ($output) {
+                Write-Host $output
+                Add-Content -Path $LogPath -Value $output
+            }
+        }
+        finally {
+            if (Test-Path $tempLog) {
+                Remove-Item $tempLog -Force -ErrorAction SilentlyContinue
+            }
+        }
         
         # Check if Dorado succeeded by verifying output exists
         $endTime = Get-Date
