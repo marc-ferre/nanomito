@@ -3,6 +3,10 @@
 #
 # Submit Nanomito workflows to Slurm
 #
+# SBATCH directives for output redirection (when run via sbatch)
+#SBATCH --output=/dev/null
+#SBATCH --error=/dev/null
+#
 # submit_nanomito.sh [OPTIONS] /Path/to/run/dir/
 #
 # Options:
@@ -123,6 +127,10 @@ while [[ $# -gt 0 ]]; do
 			shift 2
 			;;
 		--skip-export)
+--export-results)
+EXPORT_RESULTS=true
+shift
+;;
 			EXPORT_RESULTS=false
 			shift
 			;;
