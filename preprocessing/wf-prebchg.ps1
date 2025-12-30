@@ -428,6 +428,18 @@ function Invoke-DoradoBasecaller {
         Write-Log "=== End of execution ===" -Level "INFO"
         Clean-DoradoTempDirs -BasePath $RunDirectory
         
+        # Clean up temporary dorado log files
+        try {
+            $tempDoradoLogs = Get-ChildItem -Path $env:TEMP -Filter "dorado*" -ErrorAction SilentlyContinue
+            if ($tempDoradoLogs) {
+                Write-Log "Cleaning up $($tempDoradoLogs.Count) temporary Dorado files" -Level "INFO"
+                $tempDoradoLogs | Remove-Item -Force -ErrorAction SilentlyContinue
+            }
+        }
+        catch {
+            Write-Log "Could not clean temporary files: $($_.Exception.Message)" -Level "WARNING"
+        }
+        
         # If execution ended with an error and log was not copied
         # try to copy it anyway if output directory exists
         if (Test-Path $LogPath -ErrorAction SilentlyContinue) {
