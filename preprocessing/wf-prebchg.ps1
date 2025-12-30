@@ -237,7 +237,7 @@ function Test-PathExists {
     return $true
 }
 
-# Cleanup leftover Dorado temp directories in the run folder
+# Cleanup leftover Dorado temp directories and files in the run folder
 function Remove-DoradoTempDirs {
     param(
         [string]$BasePath
@@ -245,17 +245,16 @@ function Remove-DoradoTempDirs {
     if (-not (Test-Path $BasePath -PathType Container)) {
         return
     }
-    # Match Dorado temp directories: .temp*, .tmp*, .temp_dorado_model*, .tmp_pod5*
-    $patterns = @(".temp*", ".tmp*")
+    $patterns = @(".temp_dorado_model*", ".tmp_pod5*")
     foreach ($pattern in $patterns) {
-        $tempDirs = Get-ChildItem -Path $BasePath -Directory -Filter $pattern -ErrorAction SilentlyContinue
-        foreach ($dir in $tempDirs) {
+        $tempItems = Get-ChildItem -Path $BasePath -Filter $pattern -ErrorAction SilentlyContinue
+        foreach ($item in $tempItems) {
             try {
-                Write-Log "Removing leftover temp dir: $($dir.FullName)" -Level "INFO"
-                Remove-Item -Path $dir.FullName -Recurse -Force -ErrorAction Stop
+                Write-Log "Removing leftover temp item: $($item.FullName)" -Level "INFO"
+                Remove-Item -Path $item.FullName -Recurse -Force -ErrorAction Stop
             }
             catch {
-                Write-Log "Could not remove temp dir $($dir.FullName): $($_.Exception.Message)" -Level "WARNING"
+                Write-Log "Could not remove temp item $($item.FullName): $($_.Exception.Message)" -Level "WARNING"
             }
         }
     }
