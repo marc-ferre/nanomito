@@ -171,6 +171,21 @@ if ($BAM_SIZE -gt 1GB) {
     $BAM_SIZE_STR = "{0:F2} MB" -f ($BAM_SIZE / 1MB)
 }
 
+# Get total Pod5 file size
+$POD5_DIR = Join-Path $RunDirectory "pod5"
+$POD5_SIZE = 0
+$POD5_SIZE_STR = "N/A"
+if (Test-Path $POD5_DIR -PathType Container) {
+    $POD5_SIZE = (Get-ChildItem -Path $POD5_DIR -Recurse -Filter "*.pod5" -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+    if ($POD5_SIZE -gt 1GB) {
+        $POD5_SIZE_STR = "{0:F2} GB" -f ($POD5_SIZE / 1GB)
+    } elseif ($POD5_SIZE -gt 1MB) {
+        $POD5_SIZE_STR = "{0:F2} MB" -f ($POD5_SIZE / 1MB)
+    } else {
+        $POD5_SIZE_STR = "{0:F2} KB" -f ($POD5_SIZE / 1KB)
+    }
+}
+
 # Format numbers with thousand separators
 $DORADO_METRICS.BasecalledReads = "{0:N0}" -f $DORADO_METRICS.BasecalledReads
 $DORADO_METRICS.FilteredReads = "{0:N0}" -f $DORADO_METRICS.FilteredReads
@@ -384,6 +399,10 @@ $html = @"
   <div class="section">
     <div class="section-title">Mitochondrial Extraction</div>
     <div class="metric-grid">
+      <div class="metric-box">
+        <div class="metric-label">Total Pod5 Files</div>
+        <div class="metric-value info">$POD5_SIZE_STR</div>
+      </div>
       <div class="metric-box">
         <div class="metric-label">Total Pod5 Reads</div>
         <div class="metric-value">$($GETMT_METRICS.TotalReads)</div>
