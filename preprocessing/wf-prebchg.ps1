@@ -238,7 +238,7 @@ function Test-PathExists {
 }
 
 # Cleanup leftover Dorado temp directories in the run folder
-function Clean-DoradoTempDirs {
+function Remove-DoradoTempDirs {
     param(
         [string]$BasePath
     )
@@ -340,7 +340,7 @@ function Invoke-DoradoBasecaller {
         }
 
         # Clean leftover Dorado temp directories from previous runs
-        Clean-DoradoTempDirs -BasePath $RunDirectory
+        Remove-DoradoTempDirs -BasePath $RunDirectory
         
         # Build and execute Dorado command
         Write-Log "Starting basecalling..." -Level "INFO"
@@ -371,7 +371,7 @@ function Invoke-DoradoBasecaller {
         Write-Log "Starting Dorado basecaller - output will be captured below" -Level "INFO"
         
         # Capture Dorado output to temp file, then display and append to main log
-        $tempLog = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_$(Get-Random).tmp"
+        $tempLog = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_output_$(Get-Random).tmp"
         try {
             & $doradoExe @arguments > $tempLog 2>&1
             $exitCode = $LASTEXITCODE
@@ -426,7 +426,7 @@ function Invoke-DoradoBasecaller {
     }
     finally {
         Write-Log "=== End of execution ===" -Level "INFO"
-        Clean-DoradoTempDirs -BasePath $RunDirectory
+        Remove-DoradoTempDirs -BasePath $RunDirectory
         
         # Clean up temporary dorado log files
         try {
