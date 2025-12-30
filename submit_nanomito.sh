@@ -1,11 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: CECILL-2.1
 #
-# Submit Nanomito workflows to Slurm
-#
-# SBATCH directives for output redirection (when run via sbatch)
-#SBATCH --output=/dev/null
-#SBATCH --error=/dev/null
+# Submit Nanomito workflows to Slurm (this script is run directly; it submits jobs via sbatch internally)
 #
 # submit_nanomito.sh [OPTIONS] /Path/to/run/dir/
 #
