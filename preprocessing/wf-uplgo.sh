@@ -77,7 +77,7 @@ setup_ssh() {
     
     # Try to add the SSH key (will prompt for passphrase)
     echo "[INFO] Adding SSH key to agent (passphrase required)..."
-    if ssh-add ~/.ssh/id_rsa 2>&1; then
+    if ssh-add ~/.ssh/id_rsa > /dev/null 2>&1; then
         echo "[OK] SSH key added successfully"
     else
         echo "[WARNING] Could not add SSH key to agent"
