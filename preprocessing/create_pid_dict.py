@@ -1,84 +1,4 @@
 #!/usr/bin/env python3
-"""create_pid_dict.py
-
-Create a TSV file mapping read_id -> parent_id from BAM files (Dorado outputs).
-
-Usage: create_pid_dict.py -b /path/to/bam_dir -o /path/to/output_dict.tsv
-"""
-import argparse
-from pathlib import Path
-import subprocess
-import sys
-import os
-try:
-    import pysam
-except Exception as e:
-    print(f"[ERROR] pysam is required: {e}")
-    sys.exit(1)
-
-
-def parse_args():
-    p = argparse.ArgumentParser(description="Create read_id->parent_id dictionary from BAMs")
-    p.add_argument("-b", "--bam", required=True, help="BAM directory")
-    p.add_argument("-o", "--output", required=True, help="Output TSV file")
-    return p.parse_args()
-
-
-def main():
-    args = parse_args()
-    bam_dir = Path(args.bam)
-    out_file = Path(args.output)
-
-    if not bam_dir.is_dir():
-        print(f"[ERROR] BAM directory does not exist: {bam_dir}")
-        sys.exit(66)
-
-    out_file.parent.mkdir(parents=True, exist_ok=True)
-
-    # Map to store read_id -> parent_id
-    mapping = {}
-
-    for root, _, files in os.walk(bam_dir):
-        for fn in files:
-            if not fn.endswith('.bam'):
-                continue
-            bam_path = os.path.join(root, fn)
-            print(f"[INFO] Scanning BAM: {bam_path}")
-            try:
-                with pysam.AlignmentFile(bam_path, "rb") as bf:
-                    for read in bf.fetch(until_eof=True):
-                        rid = read.query_name
-                        pid = None
-                        # Try common tag names
-                        try:
-                            if read.has_tag('pi:Z'):
-                                pid = read.get_tag('pi:Z')
-                            elif read.has_tag('pi'):
-                                pid = read.get_tag('pi')
-                        except Exception:
-                            # ignore tag errors
-                            pid = None
-
-                        if pid is None:
-                            pid = rid
-
-                        mapping[rid] = pid
-            except Exception as e:
-                print(f"[WARNING] Failed to process {bam_path}: {e}")
-                continue
-
-    # Write TSV
-    with out_file.open('w') as fo:
-        for rid, pid in mapping.items():
-            fo.write(f"{rid}\t{pid}\n")
-
-    print(f"[OK] Wrote {len(mapping)} mappings to {out_file}")
-
-
-if __name__ == '__main__':
-    print(f"Script: create_pid_dict.py v.{get_git_version()} by {AUTHOR}")
-    main()
-#!/usr/bin/env python3
 ###############################################################################
 # create_pid_dict.py - Create read_id to parent_id dictionary from BAM files
 #
@@ -97,6 +17,7 @@ if __name__ == '__main__':
 import argparse
 import os
 import sys
+import subprocess
 from pathlib import Path
 
 import pysam
@@ -221,7 +142,7 @@ def write_dictionary(pid_dict: dict[str, str], output_file: str) -> None:
 
 def main():
     """Main function."""
-    print(f"Script: create_pid_dict.py v.{VERSION} by {AUTHOR}")
+    print(f"Script: create_pid_dict.py v.{get_git_version()} by {AUTHOR}")
     
     args = parse_args()
     
