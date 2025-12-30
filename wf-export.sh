@@ -3,6 +3,7 @@
 #SBATCH --job-name=export
 #SBATCH --time=00:15:00
 #SBATCH --mail-type=FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_80
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 
 # wf-export.sh - SLURM wrapper to export Nanomito results
 # Usage (sbatch): wf-export.sh <run_dir> [export_name]

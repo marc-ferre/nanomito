@@ -16,6 +16,7 @@
 #   --skip-archiving  Skip archiving step in the workflow
 #   --finalize-only   Only submit finalization job (email report from existing data)
 #   --help            Display this help message
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 #
 # Strict error handling
 set -euo pipefail
