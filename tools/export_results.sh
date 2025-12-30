@@ -24,7 +24,7 @@ Arguments:
     RUN_PATH    Required. Path to the run directory to export
                 (e.g., /path/to/workbench/run_dir)
     
-    RUN_NAME    Optional. Name to use for the export directory and ZIP file.
+    RUN_NAME    Optional. Name to use for the export directory and archive file.
                 If not provided, uses the basename of RUN_PATH.
 
 Examples:
@@ -36,7 +36,7 @@ Examples:
 
 Output:
     Files are exported to: $EXPORT_BASE/<run_name>/<sample_id>/
-    ZIP archive created:   $EXPORT_BASE/<run_name>.zip
+    Archive created: $EXPORT_BASE/<run_name>.tar.gz
 
 Exported files:
     - *.ann.tsv
@@ -103,7 +103,7 @@ Arguments:
   RUN_PATH    Required. Path to the run directory to export
               (e.g., /path/to/workbench/run_dir)
 
-  RUN_NAME    Optional. Custom name to use for the export directory and ZIP file.
+  RUN_NAME    Optional. Custom name to use for the export directory and archive file.
               If not provided, uses the basename of RUN_PATH.
 
 Examples:
@@ -115,7 +115,7 @@ Examples:
 
 Output:
   Files are exported to: $EXPORT_DIR/<run_name>/<sample_id>/
-  ZIP archive created:   $EXPORT_DIR/<run_name>.zip
+  Archive created: $EXPORT_DIR/<run_name>.zip (or .tar.gz if zip unavailable)
 
 Exported files per sample:
   - *.ann.tsv
@@ -234,18 +234,18 @@ export_run() {
     else
         log_success "Run $run_id: $exported_count/$sample_count sample(s) exported successfully"
         
-        # Create ZIP archive
-        log_info "Creating ZIP archive..."
-        local zip_file="$EXPORT_DIR/${run_id}.zip"
-        
-        # Create ZIP from the export directory
+        # Create TAR.GZ archive (portable across all systems)
         cd "$EXPORT_DIR" || return 1
-        if zip -r -q "${run_id}.zip" "$run_id"; then
-            local zip_size
-            zip_size=$(du -h "$zip_file" | cut -f1)
-            log_success "Archive created: ${run_id}.zip (${zip_size})"
+        
+        log_info "Creating TAR.GZ archive..."
+        local tar_file="$EXPORT_DIR/${run_id}.tar.gz"
+        
+        if tar czf "${run_id}.tar.gz" "$run_id"; then
+            local tar_size
+            tar_size=$(du -h "$tar_file" | cut -f1)
+            log_success "Archive created: ${run_id}.tar.gz (${tar_size})"
         else
-            log_error "Failed to create ZIP archive"
+            log_error "Failed to create TAR.GZ archive"
             return 1
         fi
     fi

@@ -1,6 +1,21 @@
 # TODO List - Nanomito
 
-Last updated: 2025-12-29
+Last updated: 2025-12-30
+
+## ✅ Recently Completed (v2.2.0 - 2025-12-30)
+
+### Export Job Integration & Metadata Hygiene
+
+- [x] **Optional export job after finalization** ✅ COMPLETED
+  - ✅ `wf-subwf.sh` now submits `wf-export.sh` after finalization (default enabled)
+  - ✅ Export source switches to archived directory when available, otherwise uses scratch run directory
+  - ✅ Custom export name supported via `--export-name`, defaults to run basename
+  - ✅ Export skips cleanly with `--skip-export`
+
+- [x] **Submission passthrough and headers** ✅ COMPLETED
+  - ✅ `submit_nanomito.sh` passes `--export-results/--skip-export/--export-name` flags to subworkflow
+  - ✅ Added author headers to submission, export, archiving, and batch-change scripts for traceability
+  - ✅ PowerShell Dorado runner isolates stdout/stderr streams
 
 ## ✅ Recently Completed (v2.1.4 - 2025-12-29)
 

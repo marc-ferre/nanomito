@@ -4,6 +4,7 @@
 # Archiving a run
 #
 # archiving.sh /Path/to/run/dir/
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 #
 # Strict error handling
 set -euo pipefail
