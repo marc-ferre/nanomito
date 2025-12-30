@@ -245,7 +245,8 @@ function Remove-DoradoTempDirs {
     if (-not (Test-Path $BasePath -PathType Container)) {
         return
     }
-    $patterns = @(".temp_dorado_model*", ".tmp_pod5*")
+    # Match Dorado temp directories: .temp*, .tmp*, .temp_dorado_model*, .tmp_pod5*
+    $patterns = @(".temp*", ".tmp*")
     foreach ($pattern in $patterns) {
         $tempDirs = Get-ChildItem -Path $BasePath -Directory -Filter $pattern -ErrorAction SilentlyContinue
         foreach ($dir in $tempDirs) {
