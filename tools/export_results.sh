@@ -238,12 +238,11 @@ export_run() {
         cd "$EXPORT_DIR" || return 1
         
         # Try ZIP first (use full path for SLURM compatibility)
-        if command -v /usr/bin/zip &>/dev/null || command -v zip &>/dev/null; then
+        if [ -x /usr/bin/zip ]; then
             log_info "Creating ZIP archive..."
             local zip_file="$EXPORT_DIR/${run_id}.zip"
-            local zip_cmd="${zip_cmd:-$(command -v /usr/bin/zip || command -v zip)}"
             
-            if "$zip_cmd" -r -q "${run_id}.zip" "$run_id"; then
+            if /usr/bin/zip -r -q "${run_id}.zip" "$run_id"; then
                 local zip_size
                 zip_size=$(du -h "$zip_file" | cut -f1)
                 log_success "Archive created: ${run_id}.zip (${zip_size})"
@@ -253,7 +252,7 @@ export_run() {
             fi
         else
             # Fallback to TAR.GZ if zip not available
-            log_warning "zip command not found; using TAR.GZ instead"
+            log_warning "zip command not found at /usr/bin/zip; using TAR.GZ instead"
             log_info "Creating TAR.GZ archive..."
             local tar_file="$EXPORT_DIR/${run_id}.tar.gz"
             
