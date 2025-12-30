@@ -237,12 +237,13 @@ export_run() {
         # Create archive (ZIP preferred, fallback to TAR.GZ if zip unavailable)
         cd "$EXPORT_DIR" || return 1
         
-        # Try ZIP first
-        if command -v zip &>/dev/null; then
+        # Try ZIP first (use full path for SLURM compatibility)
+        if command -v /usr/bin/zip &>/dev/null || command -v zip &>/dev/null; then
             log_info "Creating ZIP archive..."
             local zip_file="$EXPORT_DIR/${run_id}.zip"
+            local zip_cmd="${zip_cmd:-$(command -v /usr/bin/zip || command -v zip)}"
             
-            if zip -r -q "${run_id}.zip" "$run_id"; then
+            if "$zip_cmd" -r -q "${run_id}.zip" "$run_id"; then
                 local zip_size
                 zip_size=$(du -h "$zip_file" | cut -f1)
                 log_success "Archive created: ${run_id}.zip (${zip_size})"
