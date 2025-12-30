@@ -367,6 +367,17 @@ try {
         }
     }
     
+    # Generate preprocessing report
+    Write-ColorMessage "`n[INFO] Generating preprocessing report..." "Cyan"
+    try {
+        $reportScript = Join-Path $PSScriptRoot "generate_preprocessing_report.ps1"
+        & $reportScript -RunDirectory $RunDirectory
+        Write-ColorMessage "[SUCCESS] Preprocessing report generated" "Green"
+    }
+    catch {
+        Write-ColorMessage "[WARNING] Failed to generate report: $($_.Exception.Message)" "Yellow"
+    }
+    
     # Final summary
     Write-Host ""
     if ($SuccessfulSteps -eq $TotalSteps) {
