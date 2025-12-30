@@ -127,11 +127,11 @@ while [[ $# -gt 0 ]]; do
 			shift 2
 			;;
 		--skip-export)
---export-results)
-EXPORT_RESULTS=true
-shift
-;;
 			EXPORT_RESULTS=false
+			shift
+			;;
+		--export-results)
+			EXPORT_RESULTS=true
 			shift
 			;;
 		--export-name)
