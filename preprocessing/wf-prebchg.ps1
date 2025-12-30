@@ -237,6 +237,29 @@ function Test-PathExists {
     return $true
 }
 
+# Cleanup leftover Dorado temp directories in the run folder
+function Clean-DoradoTempDirs {
+    param(
+        [string]$BasePath
+    )
+    if (-not (Test-Path $BasePath -PathType Container)) {
+        return
+    }
+    $patterns = @(".temp_dorado_model*", ".tmp_pod5*")
+    foreach ($pattern in $patterns) {
+        $tempDirs = Get-ChildItem -Path $BasePath -Directory -Filter $pattern -ErrorAction SilentlyContinue
+        foreach ($dir in $tempDirs) {
+            try {
+                Write-Log "Removing leftover temp dir: $($dir.FullName)" -Level "INFO"
+                Remove-Item -Path $dir.FullName -Recurse -Force -ErrorAction Stop
+            }
+            catch {
+                Write-Log "Could not remove temp dir $($dir.FullName): $($_.Exception.Message)" -Level "WARNING"
+            }
+        }
+    }
+}
+
 # Main function
 function Invoke-DoradoBasecaller {
     try {
@@ -315,6 +338,9 @@ function Invoke-DoradoBasecaller {
         if ($freeSpaceGB -lt 10) {
             Write-Log "Warning: Low disk space ($freeSpaceGB GB)" -Level "WARNING"
         }
+
+        # Clean leftover Dorado temp directories from previous runs
+        Clean-DoradoTempDirs -BasePath $RunDirectory
         
         # Build and execute Dorado command
         Write-Log "Starting basecalling..." -Level "INFO"
@@ -323,12 +349,23 @@ function Invoke-DoradoBasecaller {
         $arguments = @(
             "basecaller"
             $Model
-            "`"$InputPath`""
+            $InputPath
             "--recursive"
-            "--sample-sheet", "`"$SampleSheet`""
-            "--reference", "`"$ReferencePath`""
-            "--output-dir", "`"$OutputPath`""
+            "--sample-sheet", $SampleSheet
+            "--reference", $ReferencePath
+            "--output-dir", $OutputPath
         )
+        
+        Write-Log "Dorado executable: $doradoExe" -Level "INFO"
+        try {
+            $doradoVersion = (& $doradoExe --version 2>$null) -join ' '
+            if (-not [string]::IsNullOrWhiteSpace($doradoVersion)) {
+                Write-Log "Dorado version: $doradoVersion" -Level "INFO"
+            }
+        }
+        catch {
+            Write-Log "Could not retrieve Dorado version: $($_.Exception.Message)" -Level "WARNING"
+        }
         
         Write-Log "Command: $doradoExe $($arguments -join ' ')" -Level "INFO"
         
@@ -336,28 +373,20 @@ function Invoke-DoradoBasecaller {
         $doradoLogPath = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_$([System.Guid]::NewGuid().ToString()).log"
         Write-Log "Dorado log: $doradoLogPath" -Level "INFO"
         
-        # Run Dorado via Start-Process to avoid Ctrl+C propagation from the parent console.
-        # Redirect stdout/stderr to separate temp files, then merge into doradoLogPath.
-        $doradoStdoutPath = $doradoLogPath + '.stdout'
-        $doradoStderrPath = $doradoLogPath + '.stderr'
-        Write-Log "Executing Dorado basecaller with redirected output" -Level "INFO"
-
-        $process = Start-Process -FilePath $doradoExe -ArgumentList $arguments -PassThru -Wait -WindowStyle Hidden -RedirectStandardOutput $doradoStdoutPath -RedirectStandardError $doradoStderrPath
-
-        # Merge outputs to a single log
-        if (Test-Path $doradoStdoutPath) {
-            Get-Content $doradoStdoutPath | Out-File -FilePath $doradoLogPath -Encoding UTF8
-        }
-        if (Test-Path $doradoStderrPath) {
-            Get-Content $doradoStderrPath | Out-File -FilePath $doradoLogPath -Append -Encoding UTF8
-        }
-        Remove-Item -Path $doradoStdoutPath, $doradoStderrPath -ErrorAction SilentlyContinue
+        # Direct invocation with stdout/stderr mirrored to a log file
+        & $doradoExe @arguments 2>&1 | Tee-Object -FilePath $doradoLogPath -Append
+        $exitCode = $LASTEXITCODE
         
         # Check if Dorado succeeded by verifying output exists
         $endTime = Get-Date
         $duration = $endTime - $startTime
         
-        if (Test-Path $OutputPath) {
+        if ($exitCode -ne 0) {
+            throw "Dorado exited with code $exitCode"
+        }
+
+        $bamFiles = Get-ChildItem -Path $OutputPath -Recurse -Filter "*.bam" -File -ErrorAction SilentlyContinue
+        if ($bamFiles) {
             Write-Log "Basecalling completed successfully in $($duration.ToString('hh\:mm\:ss'))" -Level "SUCCESS"
             Write-Log "Output files in: $OutputPath" -Level "SUCCESS"
             
@@ -388,7 +417,7 @@ function Invoke-DoradoBasecaller {
             }
         }
         else {
-            throw "Dorado basecalling produced no output in $OutputPath"
+            throw "Dorado basecalling produced no BAM output in $OutputPath"
         }
     }
     catch {
@@ -398,6 +427,7 @@ function Invoke-DoradoBasecaller {
     }
     finally {
         Write-Log "=== End of execution ===" -Level "INFO"
+        Clean-DoradoTempDirs -BasePath $RunDirectory
         
         # If execution ended with an error and log was not moved
         # try to move it anyway if output directory exists
