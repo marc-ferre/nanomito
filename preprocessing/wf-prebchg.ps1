@@ -336,13 +336,22 @@ function Invoke-DoradoBasecaller {
         $doradoLogPath = Join-Path ([System.IO.Path]::GetTempPath()) "dorado_$([System.Guid]::NewGuid().ToString()).log"
         Write-Log "Dorado log: $doradoLogPath" -Level "INFO"
         
-        # Use cmd.exe to invoke Dorado with output redirection (bypasses PowerShell pipes issue)
-        # Build single-line command string for cmd.exe /c  
-        $cmdString = "`"$doradoExe`" basecaller $Model `"$InputPath`" --recursive --sample-sheet `"$SampleSheet`" --reference `"$ReferencePath`" --output-dir `"$OutputPath`" > `"$doradoLogPath`" 2>&1"
-        
-        Write-Log "Executing: $cmdString" -Level "INFO"
-        Write-Log "Executing Dorado basecaller via cmd.exe..." -Level "INFO"
-        & cmd.exe /c $cmdString | Out-Null
+        # Run Dorado via Start-Process to avoid Ctrl+C propagation from the parent console.
+        # Redirect stdout/stderr to separate temp files, then merge into doradoLogPath.
+        $doradoStdoutPath = $doradoLogPath + '.stdout'
+        $doradoStderrPath = $doradoLogPath + '.stderr'
+        Write-Log "Executing Dorado basecaller with redirected output" -Level "INFO"
+
+        $process = Start-Process -FilePath $doradoExe -ArgumentList $arguments -PassThru -Wait -WindowStyle Hidden -RedirectStandardOutput $doradoStdoutPath -RedirectStandardError $doradoStderrPath
+
+        # Merge outputs to a single log
+        if (Test-Path $doradoStdoutPath) {
+            Get-Content $doradoStdoutPath | Out-File -FilePath $doradoLogPath -Encoding UTF8
+        }
+        if (Test-Path $doradoStderrPath) {
+            Get-Content $doradoStderrPath | Out-File -FilePath $doradoLogPath -Append -Encoding UTF8
+        }
+        Remove-Item -Path $doradoStdoutPath, $doradoStderrPath -ErrorAction SilentlyContinue
         
         # Check if Dorado succeeded by verifying output exists
         $endTime = Get-Date
