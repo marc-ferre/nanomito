@@ -36,7 +36,7 @@ Examples:
 
 Output:
     Files are exported to: $EXPORT_BASE/<run_name>/<sample_id>/
-    Archive created: $EXPORT_BASE/<run_name>.zip (or .tar.gz if zip unavailable)
+    Archive created: $EXPORT_BASE/<run_name>.tar.gz
 
 Exported files:
     - *.ann.tsv
@@ -234,36 +234,19 @@ export_run() {
     else
         log_success "Run $run_id: $exported_count/$sample_count sample(s) exported successfully"
         
-        # Create archive (ZIP preferred, fallback to TAR.GZ if zip unavailable)
+        # Create TAR.GZ archive (portable across all systems)
         cd "$EXPORT_DIR" || return 1
         
-        # Try ZIP first (use full path for SLURM compatibility)
-        if [ -x /usr/bin/zip ]; then
-            log_info "Creating ZIP archive..."
-            local zip_file="$EXPORT_DIR/${run_id}.zip"
-            
-            if /usr/bin/zip -r -q "${run_id}.zip" "$run_id"; then
-                local zip_size
-                zip_size=$(du -h "$zip_file" | cut -f1)
-                log_success "Archive created: ${run_id}.zip (${zip_size})"
-            else
-                log_error "Failed to create ZIP archive"
-                return 1
-            fi
+        log_info "Creating TAR.GZ archive..."
+        local tar_file="$EXPORT_DIR/${run_id}.tar.gz"
+        
+        if tar czf "${run_id}.tar.gz" "$run_id"; then
+            local tar_size
+            tar_size=$(du -h "$tar_file" | cut -f1)
+            log_success "Archive created: ${run_id}.tar.gz (${tar_size})"
         else
-            # Fallback to TAR.GZ if zip not available
-            log_warning "zip command not found at /usr/bin/zip; using TAR.GZ instead"
-            log_info "Creating TAR.GZ archive..."
-            local tar_file="$EXPORT_DIR/${run_id}.tar.gz"
-            
-            if tar czf "${run_id}.tar.gz" "$run_id"; then
-                local tar_size
-                tar_size=$(du -h "$tar_file" | cut -f1)
-                log_success "Archive created: ${run_id}.tar.gz (${tar_size})"
-            else
-                log_error "Failed to create TAR.GZ archive"
-                return 1
-            fi
+            log_error "Failed to create TAR.GZ archive"
+            return 1
         fi
     fi
     
