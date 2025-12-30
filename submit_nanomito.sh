@@ -223,18 +223,23 @@ fi
 
 # Load global configuration BEFORE changing directory
 # Get absolute path to script directory (works even with relative paths and symlinks)
-# Use BASH_SOURCE when available (sbatch), fallback to $0 for direct execution
-SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
-if [ -L "$SCRIPT_PATH" ]; then
-    # Script is a symlink, resolve it
-    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+# Use NANOMITO_DIR env var if available (SLURM context), otherwise resolve from script path
+if [ -n "${NANOMITO_DIR:-}" ]; then
+    SCRIPT_DIR="$NANOMITO_DIR"
+else
+    # Use BASH_SOURCE when available (sbatch), fallback to $0 for direct execution
+    SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+    if [ -L "$SCRIPT_PATH" ]; then
+        # Script is a symlink, resolve it
+        SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+    fi
+    
+    # Get absolute directory path
+    case "$SCRIPT_PATH" in
+        /*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
+        *)  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)" ;;
+    esac
 fi
-
-# Get absolute directory path
-case "$SCRIPT_PATH" in
-    /*) SCRIPT_DIR="$(dirname "$SCRIPT_PATH")" ;;
-    *)  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)" ;;
-esac
 
 CONFIG_FILE="$SCRIPT_DIR/nanomito.config"
 
