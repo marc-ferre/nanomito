@@ -71,6 +71,8 @@ SKIP_ARCHIVING=false
 FINALIZE_ONLY=false
 INCLUDE_UNCLASSIFIED=false
 ONLY_SAMPLES=""
+EXPORT_RESULTS=true
+EXPORT_NAME=""
 SHOW_HELP=false
 
 while [[ $# -gt 0 ]]; do
@@ -119,6 +121,14 @@ while [[ $# -gt 0 ]]; do
 			ONLY_SAMPLES="$2"
 			shift 2
 			;;
+		--skip-export)
+			EXPORT_RESULTS=false
+			shift
+			;;
+		--export-name)
+			EXPORT_NAME="$2"
+			shift 2
+			;;
 		--help|-h)
 			SHOW_HELP=true
 			shift
@@ -144,6 +154,8 @@ if [ "$SHOW_HELP" = true ]; then
 	echo "  --archiving-only        Only submit archiving job (archives existing data)"
 	echo "  --skip-archiving        Skip archiving step in the workflow"
 	echo "  --finalize-only         Only submit finalization job (email report from existing data)"
+	echo "  --skip-export           Disable automatic export job after finalization"
+	echo "  --export-name NAME      Override export directory/zip name"
 	echo "  --include-unclassified  Include 'unclassified' folder in sample processing"
 	echo "  --only-samples SAMPLES  Process only specified samples (comma-separated list)"
 	echo "  --help, -h              Display this help message"
@@ -403,6 +415,12 @@ if [ "$BCHG_ONLY" = false ]; then
 	fi
 	if [ -n "$ONLY_SAMPLES" ]; then
 		SUBWF_ARGS="$SUBWF_ARGS --only-samples $ONLY_SAMPLES"
+	fi
+	if [ "$EXPORT_RESULTS" = true ]; then
+		SUBWF_ARGS="$SUBWF_ARGS --export-results"
+	fi
+	if [ -n "$EXPORT_NAME" ]; then
+		SUBWF_ARGS="$SUBWF_ARGS --export-name $EXPORT_NAME"
 	fi
 	
 	# Submit wf-subwf.sh which will discover samples and submit demultmt/modmito jobs
