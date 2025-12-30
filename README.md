@@ -19,7 +19,8 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 - 🔬 **Modification detection** - 5mC, 5hmC, and 6mA base modification calling
 - 📊 **SLURM integration** - Optimized for HPC environments with automatic job dependency management
 - 📦 **Automated archiving** - Integrated archiving to project storage with dependency management
-- 📧 **HTML email reports** - Beautiful responsive HTML email notifications with comprehensive summaries
+- � **Optional export packaging** - Post-run export to $HOME/export (per-sample results + ZIP)
+- �📧 **HTML email reports** - Beautiful responsive HTML email notifications with comprehensive summaries
 - 📄 **Per-sample HTML reports** - Interactive individual reports with variants filtering and disease coloring
 - ✅ **Robust error handling** - Comprehensive logging and error recovery mechanisms
 
@@ -63,6 +64,13 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
                                  │wf-finalize.sh│
                                  │ HTML email   │
                                  │ report       │
+                                 └──────┬───────┘
+                                        │
+                                        ▼
+                                 ┌──────────────┐
+                                 │ wf-export.sh │
+                                 │ Package &    │
+                                 │ ZIP results  │
                                  └──────────────┘
 ```
 
@@ -70,7 +78,7 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 
 1. `submit_nanomito.sh` submits `wf-bchg.sh` and `wf-subwf.sh`
 2. `wf-subwf.sh` waits for basecalling completion, discovers samples, then submits analysis jobs
-3. `wf-subwf.sh` also submits a final job (`wf-finalize.sh`) that sends a single notification email when all jobs finish
+3. `wf-subwf.sh` also submits a final job (`wf-finalize.sh`) that sends a single notification email when all jobs finish, and optionally schedules `wf-export.sh` after finalization when export is enabled.
 
 This design ensures dynamic sample discovery after basecalling creates the sample directories.
 
@@ -137,6 +145,8 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 - `--archiving-only` - Only submit archiving job (archives existing data)
 - `--skip-archiving` - Skip archiving step in the workflow
 - `--finalize-only` - Only submit finalization job (email report from existing data)
+- `--skip-export` - Disable export job after finalization (export is enabled by default)
+- `--export-name NAME` - Override export directory/zip name for `wf-export.sh`
 - `--include-unclassified` - Include 'unclassified' folder in sample processing (skipped by default)
 - `--only-samples SAMPLES` - Process only specified samples (comma-separated list). Final report includes all samples.
 - `--all` - Process all discovered samples, including those not declared in sample sheet (bypasses automatic filtering)
@@ -149,6 +159,7 @@ Main entry point for workflow submission. Orchestrates the entire pipeline by su
 - **Automatic sample filtering** from sample sheet (only declared barcodes/aliases processed by default)
 - Automatically skips 'unclassified' folder (use `--include-unclassified` to process it)
 - Integrated archiving workflow (enabled by default, use `--skip-archiving` to disable)
+- Optional export workflow after finalization (enabled by default, disable with `--skip-export`, override name with `--export-name`)
 - Manages job dependencies automatically (analysis → archiving → finalize)
 - Supports selective workflow execution with filtering options
 - Validation of option compatibility
@@ -243,6 +254,16 @@ Manual/interactive wrapper for archiving runs to project storage.
 - Useful for standalone archiving without full workflow
 - Calls `wf-archiving.sh` via sbatch
 - **Note:** For automated archiving, use `submit_nanomito.sh` with integrated archiving
+
+### 9. **wf-export.sh** (Result Export)
+
+Optional post-finalization export job that packages key outputs to `$HOME/export/<run_name>` and creates a ZIP archive.
+
+- Export is enabled by default; disable with `--skip-export`
+- Uses archived directory when available, otherwise exports from scratch run directory
+- Supports custom export name via `--export-name`
+- Copies per-sample results (VCF/TSV/BAM/BAI) and HTML reports, then zips the run folder
+- Runs after `wf-finalize.sh` to ensure reports and archiving are complete
 
 ## Preprocessing Workflows
 
