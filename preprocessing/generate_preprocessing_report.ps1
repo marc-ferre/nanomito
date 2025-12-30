@@ -437,6 +437,9 @@ $html = @"
       <div class="metric-box">
         <div class="metric-label">chrM Pod5 File</div>
         <div class="metric-value">$($GETMT_METRICS.Pod5Size)</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: {0:F2}%"></div>
+        </div>
         <div class="metric-subtext">($($GETMT_METRICS.Pod5Batches) batches, {0:F2}% of total Pod5)</div>
       </div>
     </div>
