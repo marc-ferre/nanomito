@@ -246,12 +246,19 @@ function Remove-DoradoTempDirs {
     # Match both specific and generic temp patterns created by Dorado
     $patterns = @(".temp_dorado_model*", ".tmp_pod5*", ".temp*", ".tmp*")
     
-    # Clean both run directory and current working directory
-    $pathsToClean = @($BasePath, (Get-Location).Path) | Where-Object { Test-Path $_ -PathType Container }
+    # Clean multiple locations:
+    # 1. Run directory (where data is)
+    # 2. Current working directory (where script runs from)
+    # 3. Script root directory (where submit_preprocessing.ps1 is called from)
+    $pathsToClean = @(
+        $BasePath,
+        (Get-Location).Path,
+        $PSScriptRoot
+    ) | Where-Object { $_ -and (Test-Path $_ -PathType Container) } | Get-Unique
     
     foreach ($cleanPath in $pathsToClean) {
         foreach ($pattern in $patterns) {
-            $tempItems = Get-ChildItem -Path $cleanPath -Filter $pattern -ErrorAction SilentlyContinue
+            $tempItems = Get-ChildItem -Path $cleanPath -Filter $pattern -Force -ErrorAction SilentlyContinue
             foreach ($item in $tempItems) {
                 try {
                     Write-Log "Removing leftover temp item: $($item.FullName)" -Level "INFO"
