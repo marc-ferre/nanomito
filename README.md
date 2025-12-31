@@ -696,6 +696,17 @@ If you use Nanomito in your research, please cite:
 
 ## Version History
 
+- **v2.2.4** (2025-12-31) - Preprocessing improvements and report generation
+  - **Preprocessing enhancements:** HTML report generator with comprehensive metrics
+  - **Progress visualization:** Progress bar for chrM Pod5 percentage tracking
+  - **Metrics expansion:** Percentage of total Pod5 files and Total Pod5 Files size metrics
+  - **Automatic cleanup:** Robust Dorado temp directory cleanup from both run and working directories
+  - **File management:** Dorado log copying to pod5_chrM directory with proper naming
+  - **Report archiving:** SHA256 checksum verification for archived reports
+  - **Encoding fixes:** Emoji replaced with ASCII text for proper string handling
+  - **Error handling:** Improved PowerShell temp file capture for Dorado execution
+  - **Configuration support:** NANOMITO_DIR support in submit_nanomito.sh
+
 - **v2.1.0** (2024-12-24) - Interactive per-sample HTML reports
   - **Per-sample HTML reports** - Individual interactive reports for each sample
   - **Interactive variants table** - PASS filter toggle button
