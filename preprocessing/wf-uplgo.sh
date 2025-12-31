@@ -76,8 +76,11 @@ setup_ssh() {
     fi
     
     # Try to add the SSH key (will prompt for passphrase)
-    echo "[INFO] Adding SSH key to agent (passphrase required)..."
-    if ssh-add ~/.ssh/id_rsa > /dev/null 2>&1; then
+    echo "[INFO] Adding SSH key to agent..."
+    # Try passphrase-protected key first, then fall back to passphrase-less key
+    if ssh-add /home/mferre/.ssh/id_rsa_np > /dev/null 2>&1; then
+        echo "[OK] SSH key added successfully (passphrase-less)"
+    elif echo | ssh-add /home/mferre/.ssh/id_rsa > /dev/null 2>&1; then
         echo "[OK] SSH key added successfully"
     else
         echo "[WARNING] Could not add SSH key to agent"
@@ -229,6 +232,7 @@ run_rsync() {
         --stats
         --progress
         --delete
+        --delete-excluded
         "--chmod=Du=rwx,Dgo=rx,Fu=rw,Fog=r"
         --exclude 'pod5'
         --exclude 'bam'
@@ -277,16 +281,21 @@ main() {
     # Setup SSH authentication
     setup_ssh
     
-    # Skip confirmation when called from pipeline (assumes pipeline already confirmed)
-    # Only ask for confirmation when run directly without pipeline
+    # Skip confirmation when:
+    # 1. Called from pipeline (PIPELINE_MODE=true)
+    # 2. Called from Windows/PowerShell (non-interactive stdin)
+    # 3. Dry run mode
     if [[ "$DRY_RUN" = false && "${PIPELINE_MODE:-false}" != "true" ]]; then
-        read -p "Do you want to proceed with the upload? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "[INFO] Upload cancelled by user"
-            exit 0
+        # Only ask if stdin is a terminal (interactive)
+        if [[ -t 0 ]]; then
+            read -p "Do you want to proceed with the upload? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "[INFO] Upload cancelled by user"
+                exit 0
+            fi
+            echo ""
         fi
-        echo ""
     fi
     
     run_rsync
