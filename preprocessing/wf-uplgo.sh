@@ -47,32 +47,26 @@ trap cleanup_ssh_agent EXIT
 setup_ssh() {
     echo "[INFO] Setting up SSH authentication..."
     
+    # Try to reuse existing SSH agent socket if available
+    # This persists across WSL sessions if keychain is set up
+    for socket in /tmp/ssh-*/agent.*; do
+        if [[ -S "$socket" ]]; then
+            export SSH_AUTH_SOCK="$socket"
+            echo "[INFO] Found existing SSH agent socket: $socket"
+            # Test if it works
+            if ssh-add -l > /dev/null 2>&1; then
+                echo "[OK] Using existing SSH agent"
+                return 0
+            fi
+            break
+        fi
+    done
+    
     # Start SSH agent if not already running
-    if ! pgrep -u "$USER" ssh-agent > /dev/null; then
-        echo "[INFO] Starting SSH agent..."
+    if ! pgrep -u "$USER" ssh-agent > /dev/null 2>/dev/null; then
+        echo "[INFO] Starting new SSH agent..."
         eval "$(ssh-agent -s)"
         SSH_AGENT_STARTED=1
-    else
-        # Agent is running but we need to connect to it
-        # Try to find existing agent socket
-        if [[ -z "${SSH_AUTH_SOCK:-}" ]]; then
-            SSH_AUTH_SOCK=$(find /tmp/ssh-* -name "agent.*" 2>/dev/null | head -n 1)
-            if [[ -n "$SSH_AUTH_SOCK" ]]; then
-                export SSH_AUTH_SOCK
-                echo "[INFO] Connected to existing SSH agent"
-            else
-                # Start new agent if we can't find the socket
-                echo "[INFO] Starting SSH agent..."
-                eval "$(ssh-agent -s)"
-                SSH_AGENT_STARTED=1
-            fi
-        fi
-    fi
-    
-    # Check if key is already loaded
-    if ssh-add -l > /dev/null 2>&1; then
-        echo "[OK] SSH key already loaded in agent"
-        return 0
     fi
     
     # Try to add the SSH key (will prompt for passphrase)
@@ -80,7 +74,7 @@ setup_ssh() {
     # Try passphrase-protected key first, then fall back to passphrase-less key
     if ssh-add /home/mferre/.ssh/id_rsa_np > /dev/null 2>&1; then
         echo "[OK] SSH key added successfully (passphrase-less)"
-    elif echo | ssh-add /home/mferre/.ssh/id_rsa > /dev/null 2>&1; then
+    elif ssh-add /home/mferre/.ssh/id_rsa > /dev/null 2>&1; then
         echo "[OK] SSH key added successfully"
     else
         echo "[WARNING] Could not add SSH key to agent"
