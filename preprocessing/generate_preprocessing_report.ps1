@@ -499,8 +499,8 @@ $html = $html.Replace("{0:F2}% of total Pod5", "$chrMPod5PercentStr% of total Po
 
 # Save HTML report
 $html | Out-File -FilePath $REPORT_FILE -Encoding UTF8 -Force
-Write-Host "✅ Report generated: $REPORT_FILE"
-Write-Host "📊 Metrics:"
+Write-Host "[OK] Report generated: $REPORT_FILE"
+Write-Host "[METRICS]"
 Write-Host "   - Basecalled reads: $($DORADO_METRICS.BasecalledReads)"
 Write-Host "   - chrM reads: $($GETMT_METRICS.UniqueReads)"
 Write-Host "   - BAM files: $BAM_COUNT ($BAM_SIZE_STR)"
