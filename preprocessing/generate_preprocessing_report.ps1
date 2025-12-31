@@ -23,6 +23,8 @@ param(
     [string]$RunDirectory
 )
 
+$WARNINGS = @()
+
 # Validate run directory
 if (-not (Test-Path $RunDirectory -PathType Container)) {
     Write-Error "Run directory not found: $RunDirectory"
@@ -55,6 +57,10 @@ foreach ($logPath in $possibleLogPaths) {
     }
 }
 
+if (-not $DORADO_LOG) {
+    $WARNINGS += "Dorado log not found; basecalling metrics set to N/A."
+}
+
 $DORADO_METRICS = @{
     BasecalledReads = 0
     FilteredReads = 0
@@ -69,14 +75,16 @@ $DORADO_METRICS = @{
 if ($DORADO_LOG -and (Test-Path $DORADO_LOG -PathType Leaf)) {
     $content = Get-Content $DORADO_LOG -Raw
     
-    # Extract basecalled reads
-    if ($content -match "Simplex reads basecalled:\s*(\d+)") {
-        $DORADO_METRICS.BasecalledReads = [int]$matches[1]
+    # Extract basecalled reads (take the last occurrence)
+    $basecalledMatches = [regex]::Matches($content, "Simplex reads basecalled:\s*(\d+)")
+    if ($basecalledMatches.Count -gt 0) {
+        $DORADO_METRICS.BasecalledReads = [int]$basecalledMatches[$basecalledMatches.Count - 1].Groups[1].Value
     }
     
-    # Extract filtered reads
-    if ($content -match "Simplex reads filtered:\s*(\d+)") {
-        $DORADO_METRICS.FilteredReads = [int]$matches[1]
+    # Extract filtered reads (take the last occurrence)
+    $filteredMatches = [regex]::Matches($content, "Simplex reads filtered:\s*(\d+)")
+    if ($filteredMatches.Count -gt 0) {
+        $DORADO_METRICS.FilteredReads = [int]$filteredMatches[$filteredMatches.Count - 1].Groups[1].Value
     }
     
     # Extract duration
@@ -155,9 +163,28 @@ if (Test-Path $GETMT_LOG -PathType Leaf) {
     if ($content -match "Found\s+(\d+)\s+batches,\s+(\d+)\s+reads") {
         $GETMT_METRICS.Pod5Batches = [int]$matches[1]
     }
+} else {
+    $WARNINGS += "Mito extraction log not found; chrM metrics set to N/A."
 }
 
-# Get Pod5 file size
+# Get total Pod5 file size before using it for chrM percentage
+$POD5_DIR = Join-Path $RunDirectory "pod5"
+$POD5_SIZE = 0
+$POD5_SIZE_STR = "N/A"
+if (Test-Path $POD5_DIR -PathType Container) {
+    $POD5_SIZE = (Get-ChildItem -Path $POD5_DIR -Recurse -Filter "*.pod5" -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+    if ($POD5_SIZE -gt 1GB) {
+        $POD5_SIZE_STR = "{0:F2} GB" -f ($POD5_SIZE / 1GB)
+    } elseif ($POD5_SIZE -gt 1MB) {
+        $POD5_SIZE_STR = "{0:F2} MB" -f ($POD5_SIZE / 1MB)
+    } else {
+        $POD5_SIZE_STR = "{0:F2} KB" -f ($POD5_SIZE / 1KB)
+    }
+} else {
+    $WARNINGS += "pod5 directory not found; unable to compute total Pod5 size."
+}
+
+# Get chrM Pod5 file size and percentage of total Pod5
 $POD5_FILE = Join-Path $POD5_CHR_DIR "$RUN_ID.chrM.pod5"
 $chrMPod5SizeBytes = 0
 $chrMPod5Percent = 0
@@ -175,6 +202,8 @@ if (Test-Path $POD5_FILE -PathType Leaf) {
     if ($POD5_SIZE -gt 0) {
         $chrMPod5Percent = ($chrMPod5SizeBytes / $POD5_SIZE) * 100
     }
+} else {
+    $WARNINGS += "chrM Pod5 file not found; size and percentage metrics are N/A."
 }
 
 # Get BAM files info
@@ -185,45 +214,53 @@ if (Test-Path $BAM_DIR -PathType Container) {
 
 $BAM_COUNT = $BAM_FILES.Count
 $BAM_SIZE = ($BAM_FILES | Measure-Object -Property Length -Sum).Sum
+if (-not $BAM_SIZE) {
+  $BAM_SIZE = 0
+}
 if ($BAM_SIZE -gt 1GB) {
     $BAM_SIZE_STR = "{0:F2} GB" -f ($BAM_SIZE / 1GB)
 } else {
     $BAM_SIZE_STR = "{0:F2} MB" -f ($BAM_SIZE / 1MB)
 }
 
-# Get total Pod5 file size
-$POD5_DIR = Join-Path $RunDirectory "pod5"
-$POD5_SIZE = 0
-$POD5_SIZE_STR = "N/A"
-if (Test-Path $POD5_DIR -PathType Container) {
-    $POD5_SIZE = (Get-ChildItem -Path $POD5_DIR -Recurse -Filter "*.pod5" -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
-    if ($POD5_SIZE -gt 1GB) {
-        $POD5_SIZE_STR = "{0:F2} GB" -f ($POD5_SIZE / 1GB)
-    } elseif ($POD5_SIZE -gt 1MB) {
-        $POD5_SIZE_STR = "{0:F2} MB" -f ($POD5_SIZE / 1MB)
-    } else {
-        $POD5_SIZE_STR = "{0:F2} KB" -f ($POD5_SIZE / 1KB)
-    }
-}
-
-# Format numbers with thousand separators
-$DORADO_METRICS.BasecalledReads = "{0:N0}" -f $DORADO_METRICS.BasecalledReads
-$DORADO_METRICS.FilteredReads = "{0:N0}" -f $DORADO_METRICS.FilteredReads
-$GETMT_METRICS.TotalReads = "{0:N0}" -f $GETMT_METRICS.TotalReads
-$GETMT_METRICS.AlignedReads = "{0:N0}" -f $GETMT_METRICS.AlignedReads
-$GETMT_METRICS.UniqueReads = "{0:N0}" -f $GETMT_METRICS.UniqueReads
-$GETMT_METRICS.SplitReads = "{0:N0}" -f $GETMT_METRICS.SplitReads
-$GETMT_METRICS.DuplicateReads = "{0:N0}" -f $GETMT_METRICS.DuplicateReads
-
-# Calculate filtering percentage
+# Calculate percentages using doubles to avoid overflow and preserve precision
 $filteringPercent = 0
-if ($DORADO_METRICS.BasecalledReads -as [int] -gt 0) {
-    $filteringPercent = ([int]$DORADO_METRICS.FilteredReads.Replace(",", "") / [int]$DORADO_METRICS.BasecalledReads.Replace(",", "")) * 100
+if ($DORADO_METRICS.BasecalledReads -gt 0) {
+  $filteringPercent = ([double]$DORADO_METRICS.FilteredReads / [double]$DORADO_METRICS.BasecalledReads) * 100
 }
 
 $chrMPercent = 0
-if ($GETMT_METRICS.TotalReads -as [int] -gt 0) {
-    $chrMPercent = ([int]$GETMT_METRICS.AlignedReads.Replace(",", "") / [int]$GETMT_METRICS.TotalReads.Replace(",", "")) * 100
+if ($GETMT_METRICS.TotalReads -gt 0) {
+  $chrMPercent = ([double]$GETMT_METRICS.AlignedReads / [double]$GETMT_METRICS.TotalReads) * 100
+}
+
+$filteringPercentStr = "{0:F3}" -f $filteringPercent
+$chrMPercentStr = "{0:F1}" -f $chrMPercent
+$chrMPod5PercentStr = "{0:F2}" -f $chrMPod5Percent
+$filteringPercentDisplay = "$filteringPercentStr%"
+$chrMPercentDisplay = "$chrMPercentStr%"
+$chrMPod5PercentDisplay = "$chrMPod5PercentStr%"
+
+# Format numbers with thousand separators for display (using non-breaking spaces)
+$DORADO_METRICS.BasecalledReads = ("{0:N0}" -f $DORADO_METRICS.BasecalledReads).Replace(' ', [char]0x00A0)
+$DORADO_METRICS.FilteredReads = ("{0:N0}" -f $DORADO_METRICS.FilteredReads).Replace(' ', [char]0x00A0)
+$GETMT_METRICS.TotalReads = ("{0:N0}" -f $GETMT_METRICS.TotalReads).Replace(' ', [char]0x00A0)
+$GETMT_METRICS.AlignedReads = ("{0:N0}" -f $GETMT_METRICS.AlignedReads).Replace(' ', [char]0x00A0)
+$GETMT_METRICS.UniqueReads = ("{0:N0}" -f $GETMT_METRICS.UniqueReads).Replace(' ', [char]0x00A0)
+$GETMT_METRICS.SplitReads = ("{0:N0}" -f $GETMT_METRICS.SplitReads).Replace(' ', [char]0x00A0)
+$GETMT_METRICS.DuplicateReads = ("{0:N0}" -f $GETMT_METRICS.DuplicateReads).Replace(' ', [char]0x00A0)
+
+$warningsHtml = ""
+if ($WARNINGS.Count -gt 0) {
+    $warningItems = $WARNINGS | ForEach-Object { "<li>$_</li>" } -join "`n      "
+    $warningsHtml = @"
+  <div class=""section"">
+    <div class=""section-title warning"">Warnings</div>
+    <ul>
+      $warningItems
+    </ul>
+  </div>
+"@
 }
 
 # Generate HTML
@@ -375,6 +412,8 @@ $html = @"
     <div class="run-id">Run: $RUN_ID</div>
   </div>
 
+  $warningsHtml
+
   <!-- Dorado Basecalling Section -->
   <div class="section">
     <div class="section-title">Dorado Basecalling</div>
@@ -386,7 +425,7 @@ $html = @"
       <div class="metric-box">
         <div class="metric-label">Reads Filtered</div>
         <div class="metric-value">$($DORADO_METRICS.FilteredReads)</div>
-        <div class="metric-subtext">({0:F3}% filtered)</div>
+        <div class="metric-subtext">($filteringPercentDisplay filtered)</div>
       </div>
       <div class="metric-box">
         <div class="metric-label">Duration</div>
@@ -431,9 +470,9 @@ $html = @"
         <div class="metric-label">Reads Aligned to chrM</div>
         <div class="metric-value success">$($GETMT_METRICS.AlignedReads)</div>
         <div class="progress-bar">
-          <div class="progress-fill" style="width: {0:F1}%"></div>
+          <div class="progress-fill" style="width: $chrMPercentDisplay"></div>
         </div>
-        <div class="metric-subtext">({0:F3}% of all reads)</div>
+        <div class="metric-subtext">($chrMPercentDisplay of all reads)</div>
       </div>
       <div class="metric-box">
         <div class="metric-label">Unique Parent IDs</div>
@@ -451,9 +490,9 @@ $html = @"
         <div class="metric-label">chrM Pod5 File</div>
         <div class="metric-value">$($GETMT_METRICS.Pod5Size)</div>
         <div class="progress-bar">
-          <div class="progress-fill" style="width: {0:F2}%"></div>
+          <div class="progress-fill" style="width: $chrMPod5PercentDisplay"></div>
         </div>
-        <div class="metric-subtext">($($GETMT_METRICS.Pod5Batches) batches, {0:F2}% of total Pod5)</div>
+        <div class="metric-subtext">($($GETMT_METRICS.Pod5Batches) batches, $chrMPod5PercentDisplay of total Pod5)</div>
       </div>
     </div>
   </div>
@@ -487,15 +526,6 @@ $html = @"
 </body>
 </html>
 "@
-
-# Replace placeholders with actual values
-$filteringPercentStr = "{0:F3}" -f $filteringPercent
-$chrMPercentStr = "{0:F1}" -f $chrMPercent
-$chrMPod5PercentStr = "{0:F2}" -f $chrMPod5Percent
-$html = $html.Replace("{0:F3}%", "$filteringPercentStr%")
-$html = $html.Replace("{0:F1}%", "$chrMPercentStr%")
-$html = $html.Replace("{0:F3}% of all reads", "$chrMPercentStr% of all reads")
-$html = $html.Replace("{0:F2}% of total Pod5", "$chrMPod5PercentStr% of total Pod5")
 
 # Save HTML report
 $html | Out-File -FilePath $REPORT_FILE -Encoding UTF8 -Force
