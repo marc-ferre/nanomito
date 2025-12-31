@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.5] - 2025-12-31
+
+### Fixed
+
+- HTML report generation showing duplicate metrics across all reports
+- Percentage calculations for chrM Pod5 and filtering rates computed incorrectly
+- Dorado basecalling stats now parsed from last occurrence instead of first
+- Total Pod5 size now calculated before computing chrM percentage
+- Percentages computed before formatting numbers to strings
+- Number formatting now uses non-breaking spaces for better HTML rendering
+- Added warnings section to reports for missing logs or files
+- Guard against null BAM size sums
+
 ## [2.2.4] - 2025-12-31
 
 ### Added
