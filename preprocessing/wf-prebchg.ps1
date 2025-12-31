@@ -237,25 +237,29 @@ function Test-PathExists {
     return $true
 }
 
-# Cleanup leftover Dorado temp directories and files in the run folder
+# Cleanup leftover Dorado temp directories and files
 function Remove-DoradoTempDirs {
     param(
         [string]$BasePath
     )
-    if (-not (Test-Path $BasePath -PathType Container)) {
-        return
-    }
+    
     # Match both specific and generic temp patterns created by Dorado
     $patterns = @(".temp_dorado_model*", ".tmp_pod5*", ".temp*", ".tmp*")
-    foreach ($pattern in $patterns) {
-        $tempItems = Get-ChildItem -Path $BasePath -Filter $pattern -ErrorAction SilentlyContinue
-        foreach ($item in $tempItems) {
-            try {
-                Write-Log "Removing leftover temp item: $($item.FullName)" -Level "INFO"
-                Remove-Item -Path $item.FullName -Recurse -Force -ErrorAction Stop
-            }
-            catch {
-                Write-Log "Could not remove temp item $($item.FullName): $($_.Exception.Message)" -Level "WARNING"
+    
+    # Clean both run directory and current working directory
+    $pathsToClean = @($BasePath, (Get-Location).Path) | Where-Object { Test-Path $_ -PathType Container }
+    
+    foreach ($cleanPath in $pathsToClean) {
+        foreach ($pattern in $patterns) {
+            $tempItems = Get-ChildItem -Path $cleanPath -Filter $pattern -ErrorAction SilentlyContinue
+            foreach ($item in $tempItems) {
+                try {
+                    Write-Log "Removing leftover temp item: $($item.FullName)" -Level "INFO"
+                    Remove-Item -Path $item.FullName -Recurse -Force -ErrorAction Stop
+                }
+                catch {
+                    Write-Log "Could not remove temp item $($item.FullName): $($_.Exception.Message)" -Level "WARNING"
+                }
             }
         }
     }
