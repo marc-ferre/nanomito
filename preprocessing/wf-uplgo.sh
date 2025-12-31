@@ -47,38 +47,34 @@ trap cleanup_ssh_agent EXIT
 setup_ssh() {
     echo "[INFO] Setting up SSH authentication..."
     
-    # Try to reuse existing SSH agent socket if available
-    # This persists across WSL sessions if keychain is set up
-    for socket in /tmp/ssh-*/agent.*; do
-        if [[ -S "$socket" ]]; then
-            export SSH_AUTH_SOCK="$socket"
-            echo "[INFO] Found existing SSH agent socket: $socket"
-            # Test if it works
-            if ssh-add -l > /dev/null 2>&1; then
-                echo "[OK] Using existing SSH agent"
-                return 0
-            fi
-            break
-        fi
-    done
-    
     # Start SSH agent if not already running
     if ! pgrep -u "$USER" ssh-agent > /dev/null 2>/dev/null; then
-        echo "[INFO] Starting new SSH agent..."
+        echo "[INFO] Starting SSH agent..."
         eval "$(ssh-agent -s)"
         SSH_AGENT_STARTED=1
+    else
+        # Agent is running - try to connect to it
+        if [[ -z "${SSH_AUTH_SOCK:-}" ]]; then
+            # Find the agent socket
+            export SSH_AUTH_SOCK=$(find /tmp/ssh-* -name "agent.*" 2>/dev/null | head -n 1)
+            if [[ -n "$SSH_AUTH_SOCK" ]]; then
+                echo "[INFO] Connected to existing SSH agent"
+            fi
+        fi
     fi
     
-    # Try to add the SSH key (will prompt for passphrase)
+    # Check if key is already loaded in agent
+    if ssh-add -l > /dev/null 2>&1; then
+        echo "[OK] SSH key already loaded in agent"
+        return 0
+    fi
+    
+    # Add the SSH key to agent (will prompt for passphrase)
     echo "[INFO] Adding SSH key to agent..."
-    # Try passphrase-protected key first, then fall back to passphrase-less key
-    if ssh-add /home/mferre/.ssh/id_rsa_np > /dev/null 2>&1; then
-        echo "[OK] SSH key added successfully (passphrase-less)"
-    elif ssh-add /home/mferre/.ssh/id_rsa > /dev/null 2>&1; then
+    if ssh-add /home/mferre/.ssh/id_rsa > /dev/null 2>&1; then
         echo "[OK] SSH key added successfully"
     else
-        echo "[WARNING] Could not add SSH key to agent"
-        echo "[INFO] SSH will prompt for passphrase during rsync connection"
+        echo "[WARNING] Could not add SSH key - SSH may prompt for passphrase"
     fi
 }
 
