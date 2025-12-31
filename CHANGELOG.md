@@ -7,13 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4] - 2025-12-31
+
 ### Added
+- HTML report generator for preprocessing workflow with comprehensive metrics
+- Progress bar visualization for chrM Pod5 percentage
+- Percentage of total Pod5 files in chrM Pod5 File metric
+- Total Pod5 Files size metric to mitochondrial extraction section
+- Automatic cleanup of Dorado temp directories in finally block
+- Dorado log copying to pod5_chrM directory with proper naming
 - HTML report archiving with SHA256 checksum verification in `wf-finalize.sh`
 - Preservation of directory structure when archiving per-sample HTML reports
 - Automated report integrity validation using checksums
 
+### Changed
+- Removed email functionality and integrated report generation into pipeline workflow
+- Report filename format from report.<RUN_ID>.html to report-<RUN_ID>.html
+- Preprocessing versions now derived from git
+
 ### Fixed
-- Reports not being archived to `/projects/nanomito/<RUN_ID>/processing` (now archived after generation by `wf-finalize.sh`)
+- Dorado temp file cleanup from both run directory and current working directory
+- Emoji characters replaced with ASCII text to fix string encoding issues
+- Comprehensive temp directory cleanup patterns (both .temp* and .tmp*)
+- Dorado log search in multiple locations including BAM directory
+- SSH-add syntax error in conditional statement
+- Detection and reporting of upload failures
+- Native PowerShell command error handling with temp file capture for Dorado
+- NANOMITO_DIR support in submit_nanomito.sh with suppressed submit script logs
+- Reports not being archived to `/projects/nanomito/<RUN_ID>/processing`
 - Missing per-sample reports in archive (now preserves nested directory structure)
 
 ## [2.1.3] - 2025-12-29
