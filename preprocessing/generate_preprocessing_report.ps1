@@ -285,9 +285,9 @@ $html = @"
     align-items: center;
   }
   .section-title::before {
-    content: '*';
-    margin-right: 10px;
-    font-size: 12px;
+    content: '';
+    margin-right: 0;
+    font-size: 0;
   }
   .metric-grid {
     display: grid;
