@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.4] - 2025-12-31
 
 ### Added
+
 - HTML report generator for preprocessing workflow with comprehensive metrics
 - Progress bar visualization for chrM Pod5 percentage
 - Percentage of total Pod5 files in chrM Pod5 File metric
@@ -21,11 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automated report integrity validation using checksums
 
 ### Changed
+
 - Removed email functionality and integrated report generation into pipeline workflow
 - Report filename format from report.<RUN_ID>.html to report-<RUN_ID>.html
 - Preprocessing versions now derived from git
 
 ### Fixed
+
 - Dorado temp file cleanup from both run directory and current working directory
 - Emoji characters replaced with ASCII text to fix string encoding issues
 - Comprehensive temp directory cleanup patterns (both .temp* and .tmp*)
