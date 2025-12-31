@@ -285,7 +285,7 @@ $html = @"
     align-items: center;
   }
   .section-title::before {
-    content: '\u25C6';
+    content: '*';
     margin-right: 10px;
     font-size: 12px;
   }
