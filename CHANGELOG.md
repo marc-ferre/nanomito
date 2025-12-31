@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Dorado temp file cleanup from both run directory and current working directory
 - Emoji characters replaced with ASCII text to fix string encoding issues
-- Comprehensive temp directory cleanup patterns (both .temp* and .tmp*)
+- Comprehensive temp directory cleanup patterns (both `.temp*` and `.tmp*`)
 - Dorado log search in multiple locations including BAM directory
 - SSH-add syntax error in conditional statement
 - Detection and reporting of upload failures
