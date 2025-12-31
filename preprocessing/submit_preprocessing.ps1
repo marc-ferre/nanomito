@@ -356,6 +356,17 @@ try {
         }
     }
     
+    # Generate preprocessing report BEFORE upload so it is included in rsync
+    Write-ColorMessage "`n[INFO] Generating preprocessing report..." "Cyan"
+    try {
+        $reportScript = Join-Path $PSScriptRoot "generate_preprocessing_report.ps1"
+        & $reportScript -RunDirectory $RunDirectory
+        Write-ColorMessage "[SUCCESS] Preprocessing report generated" "Green"
+    }
+    catch {
+        Write-ColorMessage "[WARNING] Failed to generate report: $($_.Exception.Message)" "Yellow"
+    }
+
     if (-not $SkipUpload) {
         $CurrentStep++
         Write-StepHeader "Upload to HPC Cluster" $CurrentStep $TotalSteps
@@ -365,17 +376,6 @@ try {
         else {
             Write-ColorMessage "[WARNING] HPC upload failed but pipeline will continue" "Yellow"
         }
-    }
-    
-    # Generate preprocessing report
-    Write-ColorMessage "`n[INFO] Generating preprocessing report..." "Cyan"
-    try {
-        $reportScript = Join-Path $PSScriptRoot "generate_preprocessing_report.ps1"
-        & $reportScript -RunDirectory $RunDirectory
-        Write-ColorMessage "[SUCCESS] Preprocessing report generated" "Green"
-    }
-    catch {
-        Write-ColorMessage "[WARNING] Failed to generate report: $($_.Exception.Message)" "Yellow"
     }
     
     # Final summary
