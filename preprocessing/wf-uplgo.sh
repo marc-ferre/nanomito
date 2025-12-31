@@ -47,26 +47,25 @@ trap cleanup_ssh_agent EXIT
 setup_ssh() {
     echo "[INFO] Setting up SSH authentication..."
     
-    # Start SSH agent if not already running
-    if ! pgrep -u "$USER" ssh-agent > /dev/null 2>/dev/null; then
-        echo "[INFO] Starting SSH agent..."
-        eval "$(ssh-agent -s)"
-        SSH_AGENT_STARTED=1
-    else
-        # Agent is running - try to connect to it
-        if [[ -z "${SSH_AUTH_SOCK:-}" ]]; then
-            # Find the agent socket
-            export SSH_AUTH_SOCK=$(find /tmp/ssh-* -name "agent.*" 2>/dev/null | head -n 1)
-            if [[ -n "$SSH_AUTH_SOCK" ]]; then
-                echo "[INFO] Connected to existing SSH agent"
-            fi
+    # Use a fixed socket location for persistence across sessions
+    export SSH_AUTH_SOCK="/tmp/ssh-agent.sock"
+    
+    # Check if agent socket exists and is responsive
+    if [[ -S "$SSH_AUTH_SOCK" ]]; then
+        echo "[INFO] Found existing SSH agent socket"
+        # Test if it's alive
+        if ssh-add -l > /dev/null 2>&1; then
+            echo "[OK] SSH agent is alive and key is loaded"
+            return 0
         fi
     fi
     
-    # Check if key is already loaded in agent
-    if ssh-add -l > /dev/null 2>&1; then
-        echo "[OK] SSH key already loaded in agent"
-        return 0
+    # Start SSH agent with fixed socket path
+    if ! pgrep -u "$USER" ssh-agent > /dev/null 2>/dev/null; then
+        echo "[INFO] Starting SSH agent..."
+        rm -f "$SSH_AUTH_SOCK"
+        ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null
+        SSH_AGENT_STARTED=1
     fi
     
     # Add the SSH key to agent (will prompt for passphrase)
