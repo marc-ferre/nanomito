@@ -371,7 +371,7 @@ $html = @"
 <body>
 <div class="container">
   <div class="header">
-    <h1>🧬 Preprocessing Report</h1>
+    <h1>[PREPROCESSING] Nanopore Preprocessing Report</h1>
     <div class="run-id">Run: $RUN_ID</div>
   </div>
 
