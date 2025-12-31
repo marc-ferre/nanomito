@@ -285,7 +285,7 @@ $html = @"
     align-items: center;
   }
   .section-title::before {
-    content: '◆';
+    content: '*';
     margin-right: 10px;
     font-size: 12px;
   }
@@ -463,17 +463,17 @@ $html = @"
     <div class="section-title">Output Files</div>
     <div style="margin-top: 10px;">
       <div class="file-summary">
-        <div class="file-name">📊 BAM Files</div>
+        <div class="file-name">BAM Files</div>
         <div class="metric-value">$BAM_COUNT files</div>
         <div class="file-size">Total size: $BAM_SIZE_STR</div>
       </div>
       <div class="file-summary">
-        <div class="file-name">📦 chrM Pod5</div>
+        <div class="file-name">chrM Pod5</div>
         <div class="metric-value">$RUN_ID.chrM.pod5</div>
         <div class="file-size">Size: $($GETMT_METRICS.Pod5Size)</div>
       </div>
       <div class="file-summary">
-        <div class="file-name">📋 Logs</div>
+        <div class="file-name">Logs</div>
         <div class="metric-value">pod5_chrM/</div>
         <div class="file-size">$RUN_ID.wf-prebchg.log<br/>$RUN_ID.wf-getmt.log</div>
       </div>
