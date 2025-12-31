@@ -41,7 +41,20 @@ if (-not (Test-Path $POD5_CHR_DIR -PathType Container)) {
 }
 
 # Parse Dorado log
-$DORADO_LOG = Join-Path $POD5_CHR_DIR "$RUN_ID.wf-prebchg.log"
+$DORADO_LOG = $null
+$possibleLogPaths = @(
+    (Join-Path $BAM_DIR "dorado_run.log"),
+    (Join-Path $POD5_CHR_DIR "$RUN_ID.wf-prebchg.log"),
+    (Join-Path $RunDirectory "dorado_run.log")
+)
+
+foreach ($logPath in $possibleLogPaths) {
+    if (Test-Path $logPath -PathType Leaf) {
+        $DORADO_LOG = $logPath
+        break
+    }
+}
+
 $DORADO_METRICS = @{
     BasecalledReads = 0
     FilteredReads = 0
@@ -53,7 +66,7 @@ $DORADO_METRICS = @{
     SamplesPerSecond = "N/A"
 }
 
-if (Test-Path $DORADO_LOG -PathType Leaf) {
+if ($DORADO_LOG -and (Test-Path $DORADO_LOG -PathType Leaf)) {
     $content = Get-Content $DORADO_LOG -Raw
     
     # Extract basecalled reads
