@@ -615,8 +615,13 @@ fi
 
 check_file "$BALDUR_VCF_FILE"
 
-VARIANT_COUNT=$(grep -cv '^#' "$BALDUR_VCF_FILE")
+# grep exits with code 1 when no variants; allow 0 variants without failing the workflow
+VARIANT_COUNT=$(grep -cv '^#' "$BALDUR_VCF_FILE" || true)
+VARIANT_COUNT=${VARIANT_COUNT:-0}
 log_success "Variants called: $VARIANT_COUNT"
+if [ "$VARIANT_COUNT" -eq 0 ]; then
+	log_warning "No variants found; downstream annotation/haplogroup outputs will be empty"
+fi
 
 conda activate "$ANNOTMT_ENV"
 
