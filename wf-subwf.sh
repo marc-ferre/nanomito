@@ -254,13 +254,36 @@ if [ "$PROCESS_ALL" = false ]; then
 	if [ -f "$SAMPLESHEET_FILE" ]; then
 		log_info "Reading sample sheet: $SAMPLESHEET_FILE"
 		
-		# Extract barcodes and aliases from sample sheet (skip header)
-		# Expected columns: experiment_id,kit,flow_cell_id,alias,barcode
-		BARCODES=$(tail -n +2 "$SAMPLESHEET_FILE" | cut -d, -f5 | sort -u)
-		ALIASES=$(tail -n +2 "$SAMPLESHEET_FILE" | cut -d, -f4 | sort -u)
+		# Read CSV header to find barcode and alias column indices dynamically
+		IFS=, read -ra HEADER < "$SAMPLESHEET_FILE"
+		BARCODE_COL=-1
+		ALIAS_COL=-1
+		for i in "${!HEADER[@]}"; do
+			if [ "${HEADER[$i]}" = "barcode" ]; then
+				BARCODE_COL=$((i + 1))  # awk uses 1-based indexing
+			elif [ "${HEADER[$i]}" = "alias" ]; then
+				ALIAS_COL=$((i + 1))
+			fi
+		done
+		
+		# Extract barcodes and aliases using discovered column indices
+		BARCODES=""
+		ALIASES=""
+		if [ "$BARCODE_COL" -gt 0 ]; then
+			BARCODES=$(tail -n +2 "$SAMPLESHEET_FILE" | cut -d, -f"$BARCODE_COL" | grep -v '^$' | sort -u)
+			log_info "Found barcode column at index $BARCODE_COL"
+		else
+			log_warning "No 'barcode' column found in sample sheet"
+		fi
+		if [ "$ALIAS_COL" -gt 0 ]; then
+			ALIASES=$(tail -n +2 "$SAMPLESHEET_FILE" | cut -d, -f"$ALIAS_COL" | grep -v '^$' | sort -u)
+			log_info "Found alias column at index $ALIAS_COL"
+		else
+			log_warning "No 'alias' column found in sample sheet"
+		fi
 		
 		# Combine barcodes and aliases into expected samples list
-		EXPECTED_SAMPLES=$(echo -e "${BARCODES}\n${ALIASES}" | sort -u | tr '\n' ',')
+		EXPECTED_SAMPLES=$(echo -e "${BARCODES}\n${ALIASES}" | grep -v '^$' | sort -u | tr '\n' ',')
 		EXPECTED_SAMPLES="${EXPECTED_SAMPLES%,}"  # Remove trailing comma
 		
 		if [ -n "$EXPECTED_SAMPLES" ]; then
