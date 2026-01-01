@@ -911,7 +911,7 @@ count_vcf_variants() {
     echo "N/A"
     return
   fi
-  grep -cv "^#" "$vcf_file" 2>/dev/null || echo 0
+  awk '!/^#/ {c++} END{print c+0}' "$vcf_file"
 }
 
 count_vcf_pass_variants() {
@@ -920,7 +920,7 @@ count_vcf_pass_variants() {
     echo "N/A"
     return
   fi
-  grep -v "^#" "$vcf_file" | awk '$7=="PASS"' | wc -l | tr -d ' '
+  awk '!/^#/ && $7=="PASS" {c++} END{print c+0}' "$vcf_file"
 }
 
 extract_json_value() {
