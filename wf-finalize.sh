@@ -1004,12 +1004,12 @@ append_html "  </div>"
 append_html "</div>"
 
 # --- 0. PRE-FLIGHT CHECK (non-blocking) -----------------------------------
-# Note: Use local variable to avoid overwriting SCRIPT_DIR which is needed for tool paths
-local_script_dir="$(cd "$(dirname "$0")" && pwd)"
-CHECK_SCRIPT="$local_script_dir/tools/check_run_ready.sh"
+# Note: Use a dedicated variable to avoid overwriting SCRIPT_DIR which is needed for tool paths
+CHECK_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CHECK_SCRIPT="$CHECK_SCRIPT_DIR/tools/check_run_ready.sh"
 if [ ! -x "$CHECK_SCRIPT" ]; then
   # Try parent directory layout if script is in repo root
-  [ -x "$local_script_dir/../tools/check_run_ready.sh" ] && CHECK_SCRIPT="$local_script_dir/../tools/check_run_ready.sh"
+  [ -x "$CHECK_SCRIPT_DIR/../tools/check_run_ready.sh" ] && CHECK_SCRIPT="$CHECK_SCRIPT_DIR/../tools/check_run_ready.sh"
 fi
 if [ -x "$CHECK_SCRIPT" ]; then
   append_section "PRE-FLIGHT CHECK"
