@@ -448,10 +448,10 @@ log_info "Files to compress: $FASTQ_UNCOMPRESSED"
 # Parallel compression if possible
 if [ "$PARALLEL_AVAILABLE" = true ] && command -v parallel &> /dev/null && [ -n "${SLURM_CPUS_PER_TASK:-}" ] && [ "$FASTQ_UNCOMPRESSED" -gt 0 ]; then
     log_info "Using GNU parallel with $SLURM_CPUS_PER_TASK CPUs"
-    find "$FASTQ_DIR" -name "*.fastq" -type f | parallel -j "$SLURM_CPUS_PER_TASK" gzip
+    find "$FASTQ_DIR" -name "*.fastq" -type f | parallel -j "$SLURM_CPUS_PER_TASK" gzip --force
 elif [ "$FASTQ_UNCOMPRESSED" -gt 0 ]; then
     log_info "Using standard gzip (serial)"
-    gzip "$FASTQ_DIR"/*.fastq
+    gzip --force "$FASTQ_DIR"/*.fastq
 else
     log_warning "No .fastq files to compress"
 fi
