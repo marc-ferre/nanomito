@@ -210,8 +210,8 @@ export_run() {
         local sample_id
         sample_id=$(basename "$sample_dir")
         
-        # Skip barcode directories (from bchg step)
-        if [[ "$sample_id" =~ ^(pass_)?barcode[0-9]+ ]]; then
+        # Skip unclassified only; keep barcode directories (they contain sample outputs)
+        if [ "$sample_id" = "unclassified" ]; then
             continue
         fi
         
