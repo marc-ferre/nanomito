@@ -1288,6 +1288,11 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
         append_html "    </div>"
       fi
       append_html "  </div>"
+    else
+      append_html "  <div style=\"margin: 10px 0; padding: 10px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;\">"
+      append_html "    <strong>⚠️ Haplogroup unavailable</strong>"
+      append_html "    <p style=\"margin: 5px 0 0 0; color: #856404;\">No haplocheck entry found (possible empty VCF or skipped analysis).</p>"
+      append_html "  </div>"
     fi
   fi
   
@@ -1308,6 +1313,14 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     append_html "      <span class=\"metric-value success\">$pass_variants</span>"
     append_html "    </div>"
     append_html "  </div>"
+
+    # Highlight empty variant sets to make downstream emptiness explicit
+    if [ "$total_variants" = "0" ]; then
+      append_html "  <div style=\"margin: 10px 0; padding: 10px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;\">"
+      append_html "    <strong>⚠️ No variants detected</strong>"
+      append_html "    <p style=\"margin: 5px 0 0 0; color: #856404;\">VCF is empty; annotation tables and haplogroup call may be absent.</p>"
+      append_html "  </div>"
+    fi
   fi
   
   # Display deletions from Baldur
