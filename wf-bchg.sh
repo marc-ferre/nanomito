@@ -5,7 +5,7 @@
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=6
 #SBATCH --mem=32G
-#SBATCH --time=01:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output=processing/slurm-%x.%j.out
 #SBATCH --error=processing/slurm-%x.%j.err
 # Author: Marc FERRE <marc.ferre@univ-angers.fr>
