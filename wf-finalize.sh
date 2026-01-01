@@ -52,6 +52,7 @@ done
 log_info() { echo "[INFO] $(date '+%H:%M:%S') - $1"; }
 log_ok()   { echo "[OK]   $(date '+%H:%M:%S') - $1"; }
 log_err()  { echo "[ERROR] $(date '+%H:%M:%S') - $1" >&2; }
+log_warning() { echo "[WARN] $(date '+%H:%M:%S') - $1"; }
 
 cleanup() {
   local ec=$?
