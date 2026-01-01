@@ -94,6 +94,7 @@ ONLY_SAMPLES=""
 PROCESS_ALL=false
 EXPORT_RESULTS=false
 EXPORT_NAME=""
+SAMPLE_SHEET=""
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -131,6 +132,10 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--export-name)
 			EXPORT_NAME="$2"
+			shift 2
+			;;
+		--sample-sheet)
+			SAMPLE_SHEET="$2"
 			shift 2
 			;;
 		--all)
@@ -250,7 +255,12 @@ fi
 # Extract expected samples from sample sheet if available
 EXPECTED_SAMPLES=""
 if [ "$PROCESS_ALL" = false ]; then
-	SAMPLESHEET_FILE=$(find "$RUN_DIR" -maxdepth 2 -type f -name 'sample_sheet_*.csv' | head -1)
+	if [ -n "$SAMPLE_SHEET" ]; then
+		SAMPLESHEET_FILE="$SAMPLE_SHEET"
+	else
+		SAMPLESHEET_FILE=$(find "$RUN_DIR" -maxdepth 3 -type f -iname 'sample_sheet*.csv' | head -1)
+	fi
+
 	if [ -f "$SAMPLESHEET_FILE" ]; then
 		log_info "Reading sample sheet: $SAMPLESHEET_FILE"
 		
