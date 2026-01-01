@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: CECILL-2.1
 # wf-finalize.sh - Generate final email summary for completed Nanomito runs
 # Author: Marc FERRE <marc.ferre@univ-angers.fr>
+#SBATCH --time=01:00:00
 #
 # This script is intended to be submitted by wf-subwf.sh as a final step,
 # with a dependency on all jobs launched for the run. It compiles metrics,

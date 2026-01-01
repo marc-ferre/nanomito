@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: CECILL-2.1
 #SBATCH --job-name=export
-#SBATCH --time=00:15:00
+#SBATCH --time=00:30:00
 #SBATCH --mail-type=FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_80
 # Author: Marc FERRE <marc.ferre@univ-angers.fr>
 
