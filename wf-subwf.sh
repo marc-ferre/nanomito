@@ -574,18 +574,62 @@ if [ -n "$JOBID_LIST" ]; then
 		fi
 	fi
 elif [ "$SAMPLES_COUNT" -eq 0 ]; then
-	# No samples were processed - submit finalize immediately to send notification
-	log_info "Submitting notification job (no analysis performed)"
+	# No samples were processed - still archive and send notification
+	log_info "No samples processed - archiving basecalling output and sending notification"
+	
+	# Submit archiving job (unless --skip-archiving is set)
+	if [ "$SKIP_ARCHIVING" = false ]; then
+		ARCHIVING_DIR="${PROJECTS_DIR}/$RUN_ID"
+		ARCHIVE_OUT="$PROCESS_DIR/slurm-$RUN_ID.archive.out"
+		
+		ARCHIVE_JOBID=$(sbatch --parsable \
+			--export=ALL \
+			--chdir="$RUN_DIR" \
+			--job-name="a${RUN_ID: -7}" \
+			--output="$ARCHIVE_OUT" \
+			"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
+		
+		if [ -n "$ARCHIVE_JOBID" ]; then
+			log_success "Submitted archiving job $ARCHIVE_JOBID"
+			log_info "  Output: $ARCHIVE_OUT"
+			log_info "  Destination: $ARCHIVING_DIR"
+			
+			# Finalize depends on archiving
+			FINAL_DEP_STR="afterok:$ARCHIVE_JOBID"
+		else
+			log_error "Failed to submit archiving job"
+			FINAL_DEP_STR=""
+		fi
+	else
+		log_info "Skipping archiving (--skip-archiving mode)"
+		FINAL_DEP_STR=""
+	fi
+	
+	# Submit notification job
 	FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
-	FINAL_JOBID=$(sbatch --parsable \
-		--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
-		--chdir="$RUN_DIR" \
-		--job-name="f${RUN_ID: -7}" \
-		--output="$FINAL_OUT" \
-		"$SCRIPT_DIR/wf-finalize.sh")
+	if [ -n "$FINAL_DEP_STR" ]; then
+		FINAL_JOBID=$(sbatch --parsable \
+			--dependency="$FINAL_DEP_STR" \
+			--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+			--chdir="$RUN_DIR" \
+			--job-name="f${RUN_ID: -7}" \
+			--output="$FINAL_OUT" \
+			"$SCRIPT_DIR/wf-finalize.sh")
+	else
+		FINAL_JOBID=$(sbatch --parsable \
+			--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+			--chdir="$RUN_DIR" \
+			--job-name="f${RUN_ID: -7}" \
+			--output="$FINAL_OUT" \
+			"$SCRIPT_DIR/wf-finalize.sh")
+	fi
 
 	if [ -n "$FINAL_JOBID" ]; then
-		log_success "Submitted notification job $FINAL_JOBID"
+		if [ -n "$FINAL_DEP_STR" ]; then
+			log_success "Submitted notification job $FINAL_JOBID (depends on archiving)"
+		else
+			log_success "Submitted notification job $FINAL_JOBID"
+		fi
 		log_info "  Output: $FINAL_OUT"
 	else
 		log_error "Failed to submit notification job"
