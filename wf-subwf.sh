@@ -436,6 +436,11 @@ if [ $SKIPPED_COUNT -gt 0 ]; then
 	log_warning "$SKIPPED_COUNT sample(s) skipped (not in sample sheet):$SKIPPED_SAMPLES"
 fi
 
+# Special case: if no samples were processed, still send a notification
+if [ "$SAMPLES_COUNT" -eq 0 ]; then
+	log_warning "No samples processed - will send notification report anyway"
+fi
+
 echo ""
 echo "========== Job Management =========="
 log_info "To cancel all submitted jobs:"
@@ -475,6 +480,7 @@ log_info "Check detailed logs in processing/ directory"
 echo "=========================================="
 
 # Submit archiving and final notification jobs that depend on all submitted jobs
+# Or, if no jobs were submitted (no samples matched), submit finalize anyway for notification
 if [ -n "$JOBID_LIST" ]; then
 	# Normalize spaces and build dependency list
 	DEP_IDS=$(echo "$JOBID_LIST" | xargs)
@@ -531,6 +537,24 @@ if [ -n "$JOBID_LIST" ]; then
 	else
 		log_error "Failed to submit final notification job"
 	fi
+elif [ "$SAMPLES_COUNT" -eq 0 ]; then
+	# No samples were processed - submit finalize immediately to send notification
+	log_info "Submitting notification job (no analysis performed)"
+	FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
+	FINAL_JOBID=$(sbatch --parsable \
+		--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+		--chdir="$RUN_DIR" \
+		--job-name="f${RUN_ID: -7}" \
+		--output="$FINAL_OUT" \
+		"$SCRIPT_DIR/wf-finalize.sh")
+
+	if [ -n "$FINAL_JOBID" ]; then
+		log_success "Submitted notification job $FINAL_JOBID"
+		log_info "  Output: $FINAL_OUT"
+	else
+		log_error "Failed to submit notification job"
+	fi
+fi
 
 	# Submit export job (optional) after finalization
 	if [ "$EXPORT_RESULTS" = true ]; then
