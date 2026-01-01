@@ -270,13 +270,13 @@ if [ "$PROCESS_ALL" = false ]; then
 		BARCODES=""
 		ALIASES=""
 		if [ "$BARCODE_COL" -gt 0 ]; then
-			BARCODES=$(tail -n +2 "$SAMPLESHEET_FILE" | cut -d, -f"$BARCODE_COL" | grep -v '^$' | sort -u)
+			BARCODES=$(tail -n +2 "$SAMPLESHEET_FILE" | awk -F, -v c="$BARCODE_COL" 'NF>=c && $c!="" {print $c}' | sort -u)
 			log_info "Found barcode column at index $BARCODE_COL"
 		else
 			log_warning "No 'barcode' column found in sample sheet"
 		fi
 		if [ "$ALIAS_COL" -gt 0 ]; then
-			ALIASES=$(tail -n +2 "$SAMPLESHEET_FILE" | cut -d, -f"$ALIAS_COL" | grep -v '^$' | sort -u)
+			ALIASES=$(tail -n +2 "$SAMPLESHEET_FILE" | awk -F, -v c="$ALIAS_COL" 'NF>=c && $c!="" {print $c}' | sort -u)
 			log_info "Found alias column at index $ALIAS_COL"
 		else
 			log_warning "No 'alias' column found in sample sheet"
