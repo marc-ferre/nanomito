@@ -537,24 +537,6 @@ if [ -n "$JOBID_LIST" ]; then
 	else
 		log_error "Failed to submit final notification job"
 	fi
-elif [ "$SAMPLES_COUNT" -eq 0 ]; then
-	# No samples were processed - submit finalize immediately to send notification
-	log_info "Submitting notification job (no analysis performed)"
-	FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
-	FINAL_JOBID=$(sbatch --parsable \
-		--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
-		--chdir="$RUN_DIR" \
-		--job-name="f${RUN_ID: -7}" \
-		--output="$FINAL_OUT" \
-		"$SCRIPT_DIR/wf-finalize.sh")
-
-	if [ -n "$FINAL_JOBID" ]; then
-		log_success "Submitted notification job $FINAL_JOBID"
-		log_info "  Output: $FINAL_OUT"
-	else
-		log_error "Failed to submit notification job"
-	fi
-fi
 
 	# Submit export job (optional) after finalization
 	if [ "$EXPORT_RESULTS" = true ]; then
@@ -590,5 +572,22 @@ fi
 		else
 			log_error "Failed to submit export job"
 		fi
+	fi
+elif [ "$SAMPLES_COUNT" -eq 0 ]; then
+	# No samples were processed - submit finalize immediately to send notification
+	log_info "Submitting notification job (no analysis performed)"
+	FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
+	FINAL_JOBID=$(sbatch --parsable \
+		--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+		--chdir="$RUN_DIR" \
+		--job-name="f${RUN_ID: -7}" \
+		--output="$FINAL_OUT" \
+		"$SCRIPT_DIR/wf-finalize.sh")
+
+	if [ -n "$FINAL_JOBID" ]; then
+		log_success "Submitted notification job $FINAL_JOBID"
+		log_info "  Output: $FINAL_OUT"
+	else
+		log_error "Failed to submit notification job"
 	fi
 fi
