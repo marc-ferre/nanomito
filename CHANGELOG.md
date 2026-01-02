@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.8] - 2026-01-02
+
+### Security
+
+- Removed personal configuration files from entire Git history
+- Cleaned all hardcoded personal paths from scripts
+- Repository now fully anonymized for public release
+
+### Changed
+
+- Replace /home/mferre paths with generic placeholders or $HOME variable
+- Replace Windows user-specific paths with generic examples
+- Documentation cleanup: removed redundant notable commits section
+
+### Infrastructure
+
+- Git history rewritten (force push applied)
+- All tags and releases updated with clean history
+
 ## [2.2.7] - 2026-01-02
 
 ### Fixed
