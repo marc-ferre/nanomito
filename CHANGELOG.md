@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.7] - 2026-01-02
+
+### Fixed
+
+- CSV parsing now handles Windows CRLF line endings correctly in sample sheets
+- Barcode and alias column detection failing when CSV files use Windows format
+- Strip carriage return characters from CSV headers and data values
+- Affects wf-bchg.sh and wf-subwf.sh workflows
+
 ## [2.2.6] - 2026-01-02
 
 ### Fixed
