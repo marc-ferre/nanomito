@@ -303,8 +303,8 @@ log_step "5/7: SAMPLE SHEET VALIDATION"
 STEP_START=$(date +%s)
 log_info "Validating sample sheet format"
 
-# Read CSV header to get column names
-IFS=, read -ra HEADER < "$SAMPLESHEET_FILE"
+# Read CSV header to get column names (handle both Unix and Windows line endings)
+IFS=, read -ra HEADER < <(head -n 1 "$SAMPLESHEET_FILE" | tr -d '\r')
 log_info "Sample sheet columns: ${HEADER[*]}"
 
 # Check required columns (per Dorado spec)
@@ -470,7 +470,7 @@ declare -A BARCODE_ALIAS
 if [ -f "$SAMPLESHEET_FILE" ] && [ "$BARCODE_COL" -ge 0 ] && [ "$ALIAS_COL" -ge 0 ]; then
 	log_info "Reading sample sheet for barcode→alias mapping"
 	
-	# Read CSV dynamically using column indices
+	# Read CSV dynamically using column indices (handle both Unix and Windows line endings)
 	# Use || [[ -n "$COLS" ]] to handle last line without newline
 	while IFS=, read -ra COLS || [[ -n "${COLS[*]}" ]]; do
 		# Skip header line
@@ -485,7 +485,8 @@ if [ -f "$SAMPLESHEET_FILE" ] && [ "$BARCODE_COL" -ge 0 ] && [ "$ALIAS_COL" -ge 
 		# Skip empty lines
 		[[ -z "$BARCODE" ]] && continue
 		
-		# Store mapping: barcode -> alias
+		# Store mapping: barcode -> alias (strip any trailing \r from alias)
+		ALIAS="${ALIAS%$'\r'}"
 		BARCODE_ALIAS["$BARCODE"]="$ALIAS"
 		log_info "Mapped $BARCODE → $ALIAS"
 	done < "$SAMPLESHEET_FILE"

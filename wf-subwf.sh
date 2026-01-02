@@ -264,8 +264,8 @@ if [ "$PROCESS_ALL" = false ]; then
 	if [ -f "$SAMPLESHEET_FILE" ]; then
 		log_info "Reading sample sheet: $SAMPLESHEET_FILE"
 		
-		# Read CSV header to find barcode and alias column indices dynamically
-		IFS=, read -ra HEADER < "$SAMPLESHEET_FILE"
+		# Read CSV header to find barcode and alias column indices dynamically (handle both Unix and Windows line endings)
+		IFS=, read -ra HEADER < <(head -n 1 "$SAMPLESHEET_FILE" | tr -d '\r')
 		BARCODE_COL=-1
 		ALIAS_COL=-1
 		for i in "${!HEADER[@]}"; do
@@ -276,17 +276,17 @@ if [ "$PROCESS_ALL" = false ]; then
 			fi
 		done
 		
-		# Extract barcodes and aliases using discovered column indices
+		# Extract barcodes and aliases using discovered column indices (strip \r from values)
 		BARCODES=""
 		ALIASES=""
 		if [ "$BARCODE_COL" -gt 0 ]; then
-			BARCODES=$(tail -n +2 "$SAMPLESHEET_FILE" | awk -F, -v c="$BARCODE_COL" 'NF>=c && $c!="" {print $c}' | sort -u)
+			BARCODES=$(tail -n +2 "$SAMPLESHEET_FILE" | tr -d '\r' | awk -F, -v c="$BARCODE_COL" 'NF>=c && $c!="" {print $c}' | sort -u)
 			log_info "Found barcode column at index $BARCODE_COL"
 		else
 			log_warning "No 'barcode' column found in sample sheet"
 		fi
 		if [ "$ALIAS_COL" -gt 0 ]; then
-			ALIASES=$(tail -n +2 "$SAMPLESHEET_FILE" | awk -F, -v c="$ALIAS_COL" 'NF>=c && $c!="" {print $c}' | sort -u)
+			ALIASES=$(tail -n +2 "$SAMPLESHEET_FILE" | tr -d '\r' | awk -F, -v c="$ALIAS_COL" 'NF>=c && $c!="" {print $c}' | sort -u)
 			log_info "Found alias column at index $ALIAS_COL"
 		else
 			log_warning "No 'alias' column found in sample sheet"
