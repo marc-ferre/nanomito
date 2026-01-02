@@ -427,16 +427,22 @@ function Invoke-DoradoBasecaller {
                 Write-Log "Error copying log file: $($_.Exception.Message)" -Level "WARNING"
             }
 
-            # Also copy log to pod5_chrM directory if it will be created
+            # Also copy log to pod5_chrM directory (create if necessary)
             try {
                 $pod5ChrMDir = Join-Path $RunDirectory "pod5_chrM"
-                if (Test-Path $pod5ChrMDir -PathType Container) {
-                    $pod5ChrMLogName = "$(Split-Path $RunDirectory -Leaf).wf-prebchg.log"
-                    $pod5ChrMLogDest = Join-Path $pod5ChrMDir $pod5ChrMLogName
-                    if (Test-Path $LogPath) {
-                        Write-Log "Copying log file to pod5_chrM: $pod5ChrMLogDest" -Level "INFO"
-                        Copy-Item -Path $LogPath -Destination $pod5ChrMLogDest -Force
-                    }
+                $pod5ChrMLogName = "$(Split-Path $RunDirectory -Leaf).wf-prebchg.log"
+                $pod5ChrMLogDest = Join-Path $pod5ChrMDir $pod5ChrMLogName
+                
+                # Create pod5_chrM directory if it doesn't exist
+                if (-not (Test-Path $pod5ChrMDir -PathType Container)) {
+                    Write-Log "Creating pod5_chrM directory: $pod5ChrMDir" -Level "INFO"
+                    New-Item -Path $pod5ChrMDir -ItemType Directory -Force | Out-Null
+                }
+                
+                if (Test-Path $LogPath) {
+                    Write-Log "Copying log file to pod5_chrM: $pod5ChrMLogDest" -Level "INFO"
+                    Copy-Item -Path $LogPath -Destination $pod5ChrMLogDest -Force
+                    Write-Log "Log file copied successfully to pod5_chrM" -Level "SUCCESS"
                 }
             }
             catch {
