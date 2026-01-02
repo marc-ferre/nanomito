@@ -1,7 +1,5 @@
 # Nanomito
 
-> **⚠️ Important Notice (2026-01-02):** Git history was rewritten in v2.2.8 to remove sensitive data. If you cloned before this date, please see [MIGRATION.md](MIGRATION.md) for update instructions.
-
 Comprehensive SLURM workflows for full-length single-molecule sequencing of mitochondrial DNA using Oxford Nanopore Technology.
 
 ## Overview
