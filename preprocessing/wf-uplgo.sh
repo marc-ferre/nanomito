@@ -70,7 +70,7 @@ setup_ssh() {
     
     # Add the SSH key to agent (will prompt for passphrase)
     echo "[INFO] Adding SSH key to agent..."
-    if ssh-add /home/mferre/.ssh/id_rsa > /dev/null 2>&1; then
+    if ssh-add "$HOME/.ssh/id_rsa" > /dev/null 2>&1; then
         echo "[OK] SSH key added successfully"
     else
         echo "[WARNING] Could not add SSH key - SSH may prompt for passphrase"

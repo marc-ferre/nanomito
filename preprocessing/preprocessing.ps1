@@ -77,13 +77,13 @@ $Script:ReferencePath = "C:\data\reference\Homo_sapiens-hg38-GRCh38.p14.mmi"
 # ============================================================================
 
 # Path to Dorado basecalling script (preprocessing before basecalling)
-$Script:DoradoScript = "C:\Users\mferre\nanomito\preprocessing\wf-prebchg.ps1"
+$Script:DoradoScript = "C:\Users\your_username\nanomito\preprocessing\wf-prebchg.ps1"
 
 # Path to mitochondrial extraction script (WSL)
-$Script:MitochondrialScript = "C:\Users\mferre\nanomito\preprocessing\wf-getmt.sh"
+$Script:MitochondrialScript = "C:\Users\your_username\nanomito\preprocessing\wf-getmt.sh"
 
 # Path to HPC upload script (WSL)
-$Script:UploadScript = "C:\Users\mferre\nanomito\preprocessing\wf-uplgo.sh"
+$Script:UploadScript = "C:\Users\your_username\nanomito\preprocessing\wf-uplgo.sh"
 
 # ============================================================================
 # LOGGING
