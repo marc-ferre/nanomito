@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: CECILL-2.1
 # wf-finalize.sh - Generate final email summary for completed Nanomito runs
 # Author: Marc FERRE <marc.ferre@univ-angers.fr>
+#SBATCH --time=01:00:00
 #
 # This script is intended to be submitted by wf-subwf.sh as a final step,
 # with a dependency on all jobs launched for the run. It compiles metrics,
@@ -51,6 +52,7 @@ done
 log_info() { echo "[INFO] $(date '+%H:%M:%S') - $1"; }
 log_ok()   { echo "[OK]   $(date '+%H:%M:%S') - $1"; }
 log_err()  { echo "[ERROR] $(date '+%H:%M:%S') - $1" >&2; }
+log_warning() { echo "[WARN] $(date '+%H:%M:%S') - $1"; }
 
 cleanup() {
   local ec=$?
@@ -909,7 +911,7 @@ count_vcf_variants() {
     echo "N/A"
     return
   fi
-  grep -cv "^#" "$vcf_file" 2>/dev/null || echo 0
+  awk '!/^#/ {c++} END{print c+0}' "$vcf_file"
 }
 
 count_vcf_pass_variants() {
@@ -918,7 +920,7 @@ count_vcf_pass_variants() {
     echo "N/A"
     return
   fi
-  grep -v "^#" "$vcf_file" | awk '$7=="PASS"' | wc -l | tr -d ' '
+  awk '!/^#/ && $7=="PASS" {c++} END{print c+0}' "$vcf_file"
 }
 
 extract_json_value() {
@@ -1003,12 +1005,12 @@ append_html "  </div>"
 append_html "</div>"
 
 # --- 0. PRE-FLIGHT CHECK (non-blocking) -----------------------------------
-# Note: Use local variable to avoid overwriting SCRIPT_DIR which is needed for tool paths
-local_script_dir="$(cd "$(dirname "$0")" && pwd)"
-CHECK_SCRIPT="$local_script_dir/tools/check_run_ready.sh"
+# Note: Use a dedicated variable to avoid overwriting SCRIPT_DIR which is needed for tool paths
+CHECK_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CHECK_SCRIPT="$CHECK_SCRIPT_DIR/tools/check_run_ready.sh"
 if [ ! -x "$CHECK_SCRIPT" ]; then
   # Try parent directory layout if script is in repo root
-  [ -x "$local_script_dir/../tools/check_run_ready.sh" ] && CHECK_SCRIPT="$local_script_dir/../tools/check_run_ready.sh"
+  [ -x "$CHECK_SCRIPT_DIR/../tools/check_run_ready.sh" ] && CHECK_SCRIPT="$CHECK_SCRIPT_DIR/../tools/check_run_ready.sh"
 fi
 if [ -x "$CHECK_SCRIPT" ]; then
   append_section "PRE-FLIGHT CHECK"
@@ -1287,6 +1289,11 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
         append_html "    </div>"
       fi
       append_html "  </div>"
+    else
+      append_html "  <div style=\"margin: 10px 0; padding: 10px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;\">"
+      append_html "    <strong>⚠️ Haplogroup unavailable</strong>"
+      append_html "    <p style=\"margin: 5px 0 0 0; color: #856404;\">No haplocheck entry found (possible empty VCF or skipped analysis).</p>"
+      append_html "  </div>"
     fi
   fi
   
@@ -1307,6 +1314,14 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     append_html "      <span class=\"metric-value success\">$pass_variants</span>"
     append_html "    </div>"
     append_html "  </div>"
+
+    # Highlight empty variant sets to make downstream emptiness explicit
+    if [ "$total_variants" = "0" ]; then
+      append_html "  <div style=\"margin: 10px 0; padding: 10px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;\">"
+      append_html "    <strong>⚠️ No variants detected</strong>"
+      append_html "    <p style=\"margin: 5px 0 0 0; color: #856404;\">VCF is empty; annotation tables and haplogroup call may be absent.</p>"
+      append_html "  </div>"
+    fi
   fi
   
   # Display deletions from Baldur

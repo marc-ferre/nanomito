@@ -94,6 +94,7 @@ ONLY_SAMPLES=""
 PROCESS_ALL=false
 EXPORT_RESULTS=false
 EXPORT_NAME=""
+SAMPLE_SHEET=""
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
@@ -131,6 +132,10 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--export-name)
 			EXPORT_NAME="$2"
+			shift 2
+			;;
+		--sample-sheet)
+			SAMPLE_SHEET="$2"
 			shift 2
 			;;
 		--all)
@@ -250,17 +255,45 @@ fi
 # Extract expected samples from sample sheet if available
 EXPECTED_SAMPLES=""
 if [ "$PROCESS_ALL" = false ]; then
-	SAMPLESHEET_FILE=$(find "$RUN_DIR" -maxdepth 2 -type f -name 'sample_sheet_*.csv' | head -1)
+	if [ -n "$SAMPLE_SHEET" ]; then
+		SAMPLESHEET_FILE="$SAMPLE_SHEET"
+	else
+		SAMPLESHEET_FILE=$(find "$RUN_DIR" -maxdepth 3 -type f -iname 'sample_sheet*.csv' | head -1)
+	fi
+
 	if [ -f "$SAMPLESHEET_FILE" ]; then
 		log_info "Reading sample sheet: $SAMPLESHEET_FILE"
 		
-		# Extract barcodes and aliases from sample sheet (skip header)
-		# Expected columns: experiment_id,kit,flow_cell_id,alias,barcode
-		BARCODES=$(tail -n +2 "$SAMPLESHEET_FILE" | cut -d, -f5 | sort -u)
-		ALIASES=$(tail -n +2 "$SAMPLESHEET_FILE" | cut -d, -f4 | sort -u)
+		# Read CSV header to find barcode and alias column indices dynamically
+		IFS=, read -ra HEADER < "$SAMPLESHEET_FILE"
+		BARCODE_COL=-1
+		ALIAS_COL=-1
+		for i in "${!HEADER[@]}"; do
+			if [ "${HEADER[$i]}" = "barcode" ]; then
+				BARCODE_COL=$((i + 1))  # awk uses 1-based indexing
+			elif [ "${HEADER[$i]}" = "alias" ]; then
+				ALIAS_COL=$((i + 1))
+			fi
+		done
+		
+		# Extract barcodes and aliases using discovered column indices
+		BARCODES=""
+		ALIASES=""
+		if [ "$BARCODE_COL" -gt 0 ]; then
+			BARCODES=$(tail -n +2 "$SAMPLESHEET_FILE" | awk -F, -v c="$BARCODE_COL" 'NF>=c && $c!="" {print $c}' | sort -u)
+			log_info "Found barcode column at index $BARCODE_COL"
+		else
+			log_warning "No 'barcode' column found in sample sheet"
+		fi
+		if [ "$ALIAS_COL" -gt 0 ]; then
+			ALIASES=$(tail -n +2 "$SAMPLESHEET_FILE" | awk -F, -v c="$ALIAS_COL" 'NF>=c && $c!="" {print $c}' | sort -u)
+			log_info "Found alias column at index $ALIAS_COL"
+		else
+			log_warning "No 'alias' column found in sample sheet"
+		fi
 		
 		# Combine barcodes and aliases into expected samples list
-		EXPECTED_SAMPLES=$(echo -e "${BARCODES}\n${ALIASES}" | sort -u | tr '\n' ',')
+		EXPECTED_SAMPLES=$(echo -e "${BARCODES}\n${ALIASES}" | grep -v '^$' | sort -u | tr '\n' ',')
 		EXPECTED_SAMPLES="${EXPECTED_SAMPLES%,}"  # Remove trailing comma
 		
 		if [ -n "$EXPECTED_SAMPLES" ]; then
@@ -436,6 +469,11 @@ if [ $SKIPPED_COUNT -gt 0 ]; then
 	log_warning "$SKIPPED_COUNT sample(s) skipped (not in sample sheet):$SKIPPED_SAMPLES"
 fi
 
+# Special case: if no samples were processed, still send a notification
+if [ "$SAMPLES_COUNT" -eq 0 ]; then
+	log_warning "No samples processed - will send notification report anyway"
+fi
+
 echo ""
 echo "========== Job Management =========="
 log_info "To cancel all submitted jobs:"
@@ -475,6 +513,7 @@ log_info "Check detailed logs in processing/ directory"
 echo "=========================================="
 
 # Submit archiving and final notification jobs that depend on all submitted jobs
+# Or, if no jobs were submitted (no samples matched), submit finalize anyway for notification
 if [ -n "$JOBID_LIST" ]; then
 	# Normalize spaces and build dependency list
 	DEP_IDS=$(echo "$JOBID_LIST" | xargs)
@@ -566,5 +605,66 @@ if [ -n "$JOBID_LIST" ]; then
 		else
 			log_error "Failed to submit export job"
 		fi
+	fi
+elif [ "$SAMPLES_COUNT" -eq 0 ]; then
+	# No samples were processed - still archive and send notification
+	log_info "No samples processed - archiving basecalling output and sending notification"
+	
+	# Submit archiving job (unless --skip-archiving is set)
+	if [ "$SKIP_ARCHIVING" = false ]; then
+		ARCHIVING_DIR="${PROJECTS_DIR}/$RUN_ID"
+		ARCHIVE_OUT="$PROCESS_DIR/slurm-$RUN_ID.archive.out"
+		
+		ARCHIVE_JOBID=$(sbatch --parsable \
+			--export=ALL \
+			--chdir="$RUN_DIR" \
+			--job-name="a${RUN_ID: -7}" \
+			--output="$ARCHIVE_OUT" \
+			"$SCRIPT_DIR/wf-archiving.sh" "$RUN_DIR" "$ARCHIVING_DIR")
+		
+		if [ -n "$ARCHIVE_JOBID" ]; then
+			log_success "Submitted archiving job $ARCHIVE_JOBID"
+			log_info "  Output: $ARCHIVE_OUT"
+			log_info "  Destination: $ARCHIVING_DIR"
+			
+			# Finalize depends on archiving
+			FINAL_DEP_STR="afterok:$ARCHIVE_JOBID"
+		else
+			log_error "Failed to submit archiving job"
+			FINAL_DEP_STR=""
+		fi
+	else
+		log_info "Skipping archiving (--skip-archiving mode)"
+		FINAL_DEP_STR=""
+	fi
+	
+	# Submit notification job
+	FINAL_OUT="$PROCESS_DIR/slurm-$RUN_ID.final.out"
+	if [ -n "$FINAL_DEP_STR" ]; then
+		FINAL_JOBID=$(sbatch --parsable \
+			--dependency="$FINAL_DEP_STR" \
+			--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+			--chdir="$RUN_DIR" \
+			--job-name="f${RUN_ID: -7}" \
+			--output="$FINAL_OUT" \
+			"$SCRIPT_DIR/wf-finalize.sh")
+	else
+		FINAL_JOBID=$(sbatch --parsable \
+			--export=ALL,NANOMITO_DIR="$SCRIPT_DIR" \
+			--chdir="$RUN_DIR" \
+			--job-name="f${RUN_ID: -7}" \
+			--output="$FINAL_OUT" \
+			"$SCRIPT_DIR/wf-finalize.sh")
+	fi
+
+	if [ -n "$FINAL_JOBID" ]; then
+		if [ -n "$FINAL_DEP_STR" ]; then
+			log_success "Submitted notification job $FINAL_JOBID (depends on archiving)"
+		else
+			log_success "Submitted notification job $FINAL_JOBID"
+		fi
+		log_info "  Output: $FINAL_OUT"
+	else
+		log_error "Failed to submit notification job"
 	fi
 fi

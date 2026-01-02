@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --constraint=avx2
 #SBATCH --mem=32G
-#SBATCH --time=02:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output=processing/slurm-%x.%j.out
 #SBATCH --error=processing/slurm-%x.%j.err
 #SBATCH --mail-type=FAIL,INVALID_DEPEND,REQUEUE,STAGE_OUT,TIME_LIMIT_90
@@ -171,7 +171,8 @@ HPLCHK_PREFIX="$OUT_DIR/$SAMPLE_ID-haplocheck"
 # Files
 ANNOTMT_TSV_FILE="$OUT_DIR/$SAMPLE_ID.ann.tsv"
 ANNOTMT_VCF_FILE="$OUT_DIR/$SAMPLE_ID.ann.vcf"
-BALDUR_VCF_FILE="$VARCALL_DIR/$BALDUR_PREFIX.vcf.gz"
+BALDUR_VCF_FILE_GZ="$VARCALL_DIR/$BALDUR_PREFIX.vcf.gz"
+BALDUR_VCF_FILE="$VARCALL_DIR/$BALDUR_PREFIX.vcf"
 BAM_FILE="$SELECT_DIR/$SAMPLE_ID.bam"
 CHRM_ONLY_FILE="$SELECT_DIR/${DEMULT_PREFIX}_res.match_chrM_only.txt"
 CUT_FILE="${CUT_FILE:-/path/to/cut.txt}"  # Define in nanomito.config
@@ -600,15 +601,27 @@ log_step "7/7: VARIANT ANNOTATION & HAPLOGROUP"
 STEP_START=$(date +%s)
 
 cd "$VARCALL_DIR" || exit
+
+# Accept either compressed or uncompressed Baldur VCF
+if [ -f "$BALDUR_VCF_FILE_GZ" ]; then
+	log_info "Decompressing VCF file..."
+	gunzip -f "$BALDUR_VCF_FILE_GZ"
+elif [ -f "$BALDUR_VCF_FILE" ]; then
+	log_info "Using uncompressed VCF file"
+else
+	log_error "Baldur VCF not found (.vcf or .vcf.gz)"
+	exit 1
+fi
+
 check_file "$BALDUR_VCF_FILE"
 
-log_info "Decompressing VCF file..."
-gunzip -f "$BALDUR_VCF_FILE"
-BALDUR_VCF_FILE=$(basename "$BALDUR_VCF_FILE" .gz)
-check_file "$BALDUR_VCF_FILE"
-
-VARIANT_COUNT=$(grep -cv '^#' "$BALDUR_VCF_FILE")
+# grep exits with code 1 when no variants; allow 0 variants without failing the workflow
+VARIANT_COUNT=$(grep -cv '^#' "$BALDUR_VCF_FILE" || true)
+VARIANT_COUNT=${VARIANT_COUNT:-0}
 log_success "Variants called: $VARIANT_COUNT"
+if [ "$VARIANT_COUNT" -eq 0 ]; then
+	log_warning "No variants found; downstream annotation/haplogroup outputs will be empty"
+fi
 
 conda activate "$ANNOTMT_ENV"
 
