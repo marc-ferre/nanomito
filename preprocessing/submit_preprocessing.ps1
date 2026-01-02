@@ -204,7 +204,7 @@ function Invoke-MitochondrialExtraction {
     }
     
     try {
-        $result = wsl bash "$WslMitochondrialScript" "$WslRunDir"
+        wsl bash "$WslMitochondrialScript" "$WslRunDir" | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Write-ColorMessage "[SUCCESS] Mitochondrial extraction completed" "Green"
             return $true
