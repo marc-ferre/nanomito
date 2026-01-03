@@ -293,7 +293,7 @@ if [ "$PROCESS_ALL" = false ]; then
 		fi
 		
 		# Combine barcodes and aliases into expected samples list
-		EXPECTED_SAMPLES=$(echo -e "${BARCODES}\n${ALIASES}" | grep -v '^$' | sort -u | tr '\n' ',')
+		EXPECTED_SAMPLES=$(echo -e "${BARCODES}\n${ALIASES}" | grep -v '^$' | sort -u | tr '\n' ',' || true)
 		EXPECTED_SAMPLES="${EXPECTED_SAMPLES%,}"  # Remove trailing comma
 		
 		if [ -n "$EXPECTED_SAMPLES" ]; then
