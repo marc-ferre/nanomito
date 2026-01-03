@@ -304,6 +304,10 @@ if [ "$PROCESS_ALL" = false ]; then
 				ONLY_SAMPLES="$EXPECTED_SAMPLES"
 				log_info "Filtering samples based on sample sheet (use --all to process all directories)"
 			fi
+		else
+			log_warning "Sample sheet contains no barcode or alias columns"
+			log_info "No barcoding mode detected - will process all sample directories"
+			log_info "Expected sample directory: $RUN_ID (named after the run)"
 		fi
 	else
 		log_warning "No sample sheet found, processing all sample directories"

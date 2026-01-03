@@ -268,35 +268,51 @@ fi
 
 log_step "4/6: DEMULTIPLEXING"
 STEP_START=$(date +%s)
-log_info "Starting demultiplexing..."
-DEMUX_DIR="$BAM_DIR/demux"
-mkdir -p "$DEMUX_DIR"
 
-if $DORADO_BIN demux \
-	--kit-name $KIT \
-	--output-dir "$DEMUX_DIR" \
-	"$BASECALL_BAM"; then
+if [ "$NO_BARCODING" = true ]; then
+	log_info "Skipping Dorado demultiplexing (no barcoding detected)"
+	log_info "Using basecalls.bam directly for conversion"
+	
+	# Create demux directory and move basecalls.bam there for consistent workflow
+	DEMUX_DIR="$BAM_DIR/demux"
+	mkdir -p "$DEMUX_DIR"
+	mv "$BASECALL_BAM" "$DEMUX_DIR/$RUN_ID.bam"
+	log_success "Basecalls prepared for conversion (no demultiplexing needed)"
+	
 	STEP_END=$(date +%s)
 	STEP_RUNTIME=$((STEP_END - STEP_START))
-	log_success "Demultiplexing completed successfully"
-	log_info "Demultiplexing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
-	
-	# Count demuxed BAM files
-	DEMUX_BAM_COUNT=$(find "$DEMUX_DIR" -name "*.bam" -type f | wc -l)
-	log_info "Demuxed BAM files: $DEMUX_BAM_COUNT"
-	
-	# Only clean up basecalls.bam if demux created files
-	if [ "$DEMUX_BAM_COUNT" -gt 0 ]; then
-		log_info "Cleaning up basecalls.bam..."
-		rm -f "$BASECALL_BAM"
-		log_success "Removed basecalls.bam"
-	else
-		log_warning "No demuxed files created, keeping basecalls.bam for inspection"
-	fi
+	log_info "Skip duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
 else
-	log_error "Demultiplexing failed with exit code $?"
-	log_warning "Keeping basecalls.bam for inspection"
-	exit 1
+	log_info "Starting demultiplexing..."
+	DEMUX_DIR="$BAM_DIR/demux"
+	mkdir -p "$DEMUX_DIR"
+	
+	if $DORADO_BIN demux \
+		--kit-name $KIT \
+		--output-dir "$DEMUX_DIR" \
+		"$BASECALL_BAM"; then
+		STEP_END=$(date +%s)
+		STEP_RUNTIME=$((STEP_END - STEP_START))
+		log_success "Demultiplexing completed successfully"
+		log_info "Demultiplexing duration: $(printf '%02d:%02d:%02d' $((STEP_RUNTIME/3600)) $((STEP_RUNTIME%3600/60)) $((STEP_RUNTIME%60)))"
+		
+		# Count demuxed BAM files
+		DEMUX_BAM_COUNT=$(find "$DEMUX_DIR" -name "*.bam" -type f | wc -l)
+		log_info "Demuxed BAM files: $DEMUX_BAM_COUNT"
+		
+		# Only clean up basecalls.bam if demux created files
+		if [ "$DEMUX_BAM_COUNT" -gt 0 ]; then
+			log_info "Cleaning up basecalls.bam..."
+			rm -f "$BASECALL_BAM"
+			log_success "Removed basecalls.bam"
+		else
+			log_warning "No demuxed files created, keeping basecalls.bam for inspection"
+		fi
+	else
+		log_error "Demultiplexing failed with exit code $?"
+		log_warning "Keeping basecalls.bam for inspection"
+		exit 1
+	fi
 fi
 
 log_step "5/7: SAMPLE SHEET VALIDATION"
@@ -343,11 +359,19 @@ for i in "${!HEADER[@]}"; do
     fi
 done
 
+# Detect if barcoding is used
+NO_BARCODING=false
 if [ "$BARCODE_COL" -eq -1 ]; then
     log_warning "No 'barcode' column found - barcode aliasing will not be available"
+    NO_BARCODING=true
 fi
 if [ "$ALIAS_COL" -eq -1 ]; then
     log_warning "No 'alias' column found - barcode aliasing will not be available"
+fi
+
+if [ "$NO_BARCODING" = true ]; then
+    log_info "Run mode: NO BARCODING detected - will skip Dorado demultiplexing"
+    log_info "All reads will be placed in a single sample directory named: $RUN_ID"
 fi
 
 STEP_END=$(date +%s)
@@ -500,38 +524,58 @@ fi
 
 cd "$FASTQ_DIR" || exit
 SAMPLE_DIRS=0
-for FILE in *.fastq.gz; do
-	[[ -e "$FILE" ]] || break  # handle the case of no *.fastq.gz files
-	
-	# Extract barcode from filename (e.g., FBA90544_pass_barcode10_bc54a4f9_00000000_0.fastq.gz)
-	BARCODE=""
-	if [[ "$FILE" =~ barcode([0-9]+) ]]; then
-		BARCODE="barcode${BASH_REMATCH[1]}"
-	elif [[ "$FILE" =~ unclassified ]]; then
-		BARCODE="unclassified"
-	fi
-	
-	# Determine directory name: use alias if available, otherwise use barcode name
-	if [ -n "$BARCODE" ] && [ -n "${BARCODE_ALIAS[$BARCODE]:-}" ]; then
-		DIR="${BARCODE_ALIAS[$BARCODE]}"
-		log_info "Using alias for $BARCODE: $DIR"
-	elif [[ "$FILE" =~ unclassified ]]; then
-		DIR="unclassified"
-		log_info "Using barcode name for unclassified: $DIR"
-	elif [ -n "$BARCODE" ]; then
-		DIR="$BARCODE"
-		log_info "No alias found, using barcode name: $DIR"
-	else
-		# Ultimate fallback: extract from filename
-		DIR=${FILE#*_}
-		DIR=${DIR%%.*}
-		log_warning "Could not extract barcode from $FILE, using default: $DIR"
-	fi
-	
+
+# Special handling for no-barcoding runs
+if [ "$NO_BARCODING" = true ]; then
+	log_info "No barcoding mode: organizing all files into single sample directory"
+	DIR="$RUN_ID"
 	mkdir -p "$DIR"
-	mv "$FILE" "$FASTQ_DIR"/"$DIR"/"$FILE"
-	((SAMPLE_DIRS++)) || true
-done
+	
+	for FILE in *.fastq.gz; do
+		[[ -e "$FILE" ]] || break  # handle the case of no *.fastq.gz files
+		mv "$FILE" "$FASTQ_DIR"/"$DIR"/"$FILE"
+		((SAMPLE_DIRS++)) || true
+	done
+	
+	if [ "$SAMPLE_DIRS" -gt 0 ]; then
+		log_success "All $SAMPLE_DIRS file(s) organized into: $DIR"
+		SAMPLE_DIRS=1  # Count as 1 sample directory
+	fi
+else
+	# Standard barcoding workflow
+	for FILE in *.fastq.gz; do
+		[[ -e "$FILE" ]] || break  # handle the case of no *.fastq.gz files
+		
+		# Extract barcode from filename (e.g., FBA90544_pass_barcode10_bc54a4f9_00000000_0.fastq.gz)
+		BARCODE=""
+		if [[ "$FILE" =~ barcode([0-9]+) ]]; then
+			BARCODE="barcode${BASH_REMATCH[1]}"
+		elif [[ "$FILE" =~ unclassified ]]; then
+			BARCODE="unclassified"
+		fi
+		
+		# Determine directory name: use alias if available, otherwise use barcode name
+		if [ -n "$BARCODE" ] && [ -n "${BARCODE_ALIAS[$BARCODE]:-}" ]; then
+			DIR="${BARCODE_ALIAS[$BARCODE]}"
+			log_info "Using alias for $BARCODE: $DIR"
+		elif [[ "$FILE" =~ unclassified ]]; then
+			DIR="unclassified"
+			log_info "Using barcode name for unclassified: $DIR"
+		elif [ -n "$BARCODE" ]; then
+			DIR="$BARCODE"
+			log_info "No alias found, using barcode name: $DIR"
+		else
+			# Ultimate fallback: extract from filename
+			DIR=${FILE#*_}
+			DIR=${DIR%%.*}
+			log_warning "Could not extract barcode from $FILE, using default: $DIR"
+		fi
+		
+		mkdir -p "$DIR"
+		mv "$FILE" "$FASTQ_DIR"/"$DIR"/"$FILE"
+		((SAMPLE_DIRS++)) || true
+	done
+fi
 
 STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
