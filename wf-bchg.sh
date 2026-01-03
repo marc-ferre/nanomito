@@ -225,6 +225,66 @@ echo "============= Sample Sheet ============="
 column -s, -t < "$SAMPLESHEET_FILE"
 echo "========================================"
 
+# Parse sample sheet to detect barcoding mode
+log_info "Analyzing sample sheet format..."
+
+# Read CSV header to get column names (handle both Unix and Windows line endings)
+IFS=, read -ra HEADER < <(head -n 1 "$SAMPLESHEET_FILE" | tr -d '\r')
+log_info "Sample sheet columns: ${HEADER[*]}"
+
+# Check required columns (per Dorado spec)
+REQUIRED_COLS=("kit" "experiment_id")
+MISSING_COLS=()
+for col in "${REQUIRED_COLS[@]}"; do
+    if ! printf '%s\n' "${HEADER[@]}" | grep -qx "$col"; then
+        MISSING_COLS+=("$col")
+    fi
+done
+
+# Check at least one of flow_cell_id or position_id is present
+if ! printf '%s\n' "${HEADER[@]}" | grep -qx "flow_cell_id" && \
+   ! printf '%s\n' "${HEADER[@]}" | grep -qx "position_id"; then
+    MISSING_COLS+=("flow_cell_id OR position_id")
+fi
+
+if [ ${#MISSING_COLS[@]} -gt 0 ]; then
+    log_error "Missing required columns: ${MISSING_COLS[*]}"
+    log_error "Dorado requires: kit, experiment_id, and (flow_cell_id OR position_id)"
+    exit 128
+fi
+
+log_success "Sample sheet contains all required columns"
+
+# Find column indices for barcode and alias (if present)
+BARCODE_COL=-1
+ALIAS_COL=-1
+for i in "${!HEADER[@]}"; do
+    if [ "${HEADER[$i]}" = "barcode" ]; then
+        BARCODE_COL=$i
+        log_info "Found 'barcode' column at index $BARCODE_COL"
+    elif [ "${HEADER[$i]}" = "alias" ]; then
+        ALIAS_COL=$i
+        log_info "Found 'alias' column at index $ALIAS_COL"
+    fi
+done
+
+# Detect if barcoding is used
+NO_BARCODING=false
+if [ "$BARCODE_COL" -eq -1 ]; then
+    log_warning "No 'barcode' column found in sample sheet"
+    NO_BARCODING=true
+fi
+if [ "$ALIAS_COL" -eq -1 ]; then
+    log_warning "No 'alias' column found in sample sheet"
+fi
+
+if [ "$NO_BARCODING" = true ]; then
+    log_info "Run mode: NO BARCODING detected - will skip Dorado demultiplexing"
+    log_info "All reads will be placed in a single sample directory named: $RUN_ID"
+else
+    log_info "Run mode: BARCODING detected - will perform Dorado demultiplexing"
+fi
+
 mkdir -p "$FASTQ_DIR"
 check_dir "$FASTQ_DIR"
 
@@ -317,62 +377,8 @@ fi
 
 log_step "5/7: SAMPLE SHEET VALIDATION"
 STEP_START=$(date +%s)
-log_info "Validating sample sheet format"
-
-# Read CSV header to get column names (handle both Unix and Windows line endings)
-IFS=, read -ra HEADER < <(head -n 1 "$SAMPLESHEET_FILE" | tr -d '\r')
-log_info "Sample sheet columns: ${HEADER[*]}"
-
-# Check required columns (per Dorado spec)
-REQUIRED_COLS=("kit" "experiment_id")
-MISSING_COLS=()
-for col in "${REQUIRED_COLS[@]}"; do
-    if ! printf '%s\n' "${HEADER[@]}" | grep -qx "$col"; then
-        MISSING_COLS+=("$col")
-    fi
-done
-
-# Check at least one of flow_cell_id or position_id is present
-if ! printf '%s\n' "${HEADER[@]}" | grep -qx "flow_cell_id" && \
-   ! printf '%s\n' "${HEADER[@]}" | grep -qx "position_id"; then
-    MISSING_COLS+=("flow_cell_id OR position_id")
-fi
-
-if [ ${#MISSING_COLS[@]} -gt 0 ]; then
-    log_error "Missing required columns: ${MISSING_COLS[*]}"
-    log_error "Dorado requires: kit, experiment_id, and (flow_cell_id OR position_id)"
-    exit 128
-fi
-
-log_success "Sample sheet contains all required columns"
-
-# Find column indices for barcode and alias (if present)
-BARCODE_COL=-1
-ALIAS_COL=-1
-for i in "${!HEADER[@]}"; do
-    if [ "${HEADER[$i]}" = "barcode" ]; then
-        BARCODE_COL=$i
-        log_info "Found 'barcode' column at index $BARCODE_COL"
-    elif [ "${HEADER[$i]}" = "alias" ]; then
-        ALIAS_COL=$i
-        log_info "Found 'alias' column at index $ALIAS_COL"
-    fi
-done
-
-# Detect if barcoding is used
-NO_BARCODING=false
-if [ "$BARCODE_COL" -eq -1 ]; then
-    log_warning "No 'barcode' column found - barcode aliasing will not be available"
-    NO_BARCODING=true
-fi
-if [ "$ALIAS_COL" -eq -1 ]; then
-    log_warning "No 'alias' column found - barcode aliasing will not be available"
-fi
-
-if [ "$NO_BARCODING" = true ]; then
-    log_info "Run mode: NO BARCODING detected - will skip Dorado demultiplexing"
-    log_info "All reads will be placed in a single sample directory named: $RUN_ID"
-fi
+log_info "Sample sheet already validated and barcoding mode detected"
+log_info "Proceeding to BAM to FASTQ conversion"
 
 STEP_END=$(date +%s)
 STEP_RUNTIME=$((STEP_END - STEP_START))
