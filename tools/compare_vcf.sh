@@ -69,32 +69,52 @@ annotate_vcf() {
     local output_vcf="$2"
     local tmp_vcf1="${output_vcf}.tmp1"
     local tmp_vcf2="${output_vcf}.tmp2"
+    local tmp_vcf3="${output_vcf}.tmp3"
 
     _log INFO "Annotating VCF file: '$input_vcf'"
 
     # Check input file
     check_file "$input_vcf" "Input VCF"
 
-    # Annotate with MITOMAP Disease
-    if ! java -jar "$SNPSIFT_BIN" annotate -v "$ANN_MITOMAP_DISEASE" "$input_vcf" > "$tmp_vcf1"; then
+    # Annotate with MITOMAP Disease (with MitoMap_ prefix)
+    if ! java -jar "$SNPSIFT_BIN" annotate -v -name MitoMap_ "$ANN_MITOMAP_DISEASE" "$input_vcf" > "$tmp_vcf1"; then
         handle_error "Failed to annotate with MITOMAP Disease"
     fi
 
-    # Annotate with MITOMAP Polymorphisms
-    if ! java -jar "$SNPSIFT_BIN" annotate -v "$ANN_MITOMAP_POLYMORPHISMS" "$tmp_vcf1" > "$tmp_vcf2"; then
+    # Annotate with MITOMAP Polymorphisms (with MitoMap_ prefix)
+    if ! java -jar "$SNPSIFT_BIN" annotate -v -name MitoMap_ "$ANN_MITOMAP_POLYMORPHISMS" "$tmp_vcf1" > "$tmp_vcf2"; then
         rm -f "$tmp_vcf1"
         handle_error "Failed to annotate with MITOMAP Polymorphisms"
     fi
 
-    # Annotate with gnomAD
-    if ! java -jar "$SNPSIFT_BIN" annotate -v "$ANN_GNOMAD" "$tmp_vcf2" > "$output_vcf"; then
+    # Annotate with gnomAD (with gnomAD_ prefix)
+    if ! java -jar "$SNPSIFT_BIN" annotate -v -name gnomAD_ "$ANN_GNOMAD" "$tmp_vcf2" > "$tmp_vcf3"; then
         rm -f "$tmp_vcf1" "$tmp_vcf2"
         handle_error "Failed to annotate with gnomAD"
     fi
 
+    # Add AF tag from HPL for haplocheck compatibility (Illumina VCF may not have HPL, so skip if missing)
+    _log INFO "Adding AF tag from sample data..."
+    {
+        grep '^##' "$tmp_vcf3"
+        echo '##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency from sample for haplocheck">'
+        grep '^#CHROM' "$tmp_vcf3"
+        grep -v '^#' "$tmp_vcf3" | awk -F'\t' 'BEGIN{OFS="\t"} {
+            # Try to extract AF from FORMAT field (HPL for Nanopore, or AF for Illumina)
+            split($9,fmt_fields,":"); split($10,sample_vals,":");
+            af_value=".";
+            for (i=1; i<=length(fmt_fields); i++) {
+                if (fmt_fields[i]=="HPL") af_value=sample_vals[i];
+                else if (fmt_fields[i]=="AF" && af_value==".") af_value=sample_vals[i];
+            }
+            if ($8 == ".") $8="AF="af_value; else $8="AF="af_value";"$8;
+            print
+        }'
+    } > "$output_vcf"
+
     # Cleanup temporary files
-    rm -f "$tmp_vcf1" "$tmp_vcf2"
-    _log INFO "Annotation completed: '$output_vcf'"
+    rm -f "$tmp_vcf1" "$tmp_vcf2" "$tmp_vcf3"
+    _log INFO "Annotation completed with prefixes and AF tag: '$output_vcf'"
 }
 
 check_dependencies() {
@@ -723,10 +743,10 @@ export_vcf_to_tsv_Illumina() {
     _log INFO "Exporting VCF to TSV (Illumina): '$input_vcf' -> '$output_tsv'"
 
     # Add header to the TSV file
-    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tQUAL\tDP" > "$output_tsv"
+    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAF\tMitoMap_AC\tMitoMap_AF\tMitoMap_Disease\tMitoMap_DiseaseStatus\tMitoMap_HGFL\tMitoMap_PubmedIDs\tMitoMap_aachange\tMitoMap_heteroplasmy\tMitoMap_homoplasmy\tgnomAD_mitotip_trna_prediction\tgnomAD_mitotip_score\tgnomAD_AC_het\tgnomAD_AC_hom\tgnomAD_AF_het\tgnomAD_AF_hom\tgnomAD_AN\tgnomAD_filters\tgnomAD_hap_defining_variant\tgnomAD_max_hl\tgnomAD_pon_ml_probability_of_pathogenicity\tgnomAD_pon_mt_trna_prediction\tFILTER\tQUAL\tDP" > "$output_tsv"
 
     # Convert VCF to TSV using bcftools query
-    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %AF]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t%QUAL\t[ %DP]\n' "$input_vcf" >> "$output_tsv"
+    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %AF]\t%AF\t%MitoMap_AC\t%MitoMap_AF\t%MitoMap_Disease\t%MitoMap_DiseaseStatus\t%MitoMap_HGFL\t%MitoMap_PubmedIDs\t%MitoMap_aachange\t%MitoMap_heteroplasmy\t%MitoMap_homoplasmy\t%gnomAD_mitotip_trna_prediction\t%gnomAD_mitotip_score\t%gnomAD_AC_het\t%gnomAD_AC_hom\t%gnomAD_AF_het\t%gnomAD_AF_hom\t%gnomAD_AN\t%gnomAD_filters\t%gnomAD_hap_defining_variant\t%gnomAD_max_hl\t%gnomAD_pon_ml_probability_of_pathogenicity\t%gnomAD_pon_mt_trna_prediction\t%FILTER\t%QUAL\t[ %DP]\n' "$input_vcf" >> "$output_tsv"
 
     _log INFO "TSV file generated: '$output_tsv'"
 }
@@ -738,10 +758,10 @@ export_vcf_to_tsv_Nanopore() {
     _log INFO "Exporting VCF to TSV (Nanopore): '$input_vcf' -> '$output_tsv'"
 
     # Add header to the TSV file
-    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAC\tAF\tDisease\tDiseaseStatus\tHGFL\tPubmedIDs\taachange\theteroplasmy\thomoplasmy\tmitotip_trna_prediction\tmitotip_score\tAC_het\tAC_hom\tAF_het\tAF_hom\tAN\tfilters\thap_defining_variant\tmax_hl\tpon_ml_probability_of_pathogenicity\tpon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP\tEND\tSVLEN" > "$output_tsv"
+    echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAF\tMitoMap_AC\tMitoMap_AF\tMitoMap_Disease\tMitoMap_DiseaseStatus\tMitoMap_HGFL\tMitoMap_PubmedIDs\tMitoMap_aachange\tMitoMap_heteroplasmy\tMitoMap_homoplasmy\tgnomAD_mitotip_trna_prediction\tgnomAD_mitotip_score\tgnomAD_AC_het\tgnomAD_AC_hom\tgnomAD_AF_het\tgnomAD_AF_hom\tgnomAD_AN\tgnomAD_filters\tgnomAD_hap_defining_variant\tgnomAD_max_hl\tgnomAD_pon_ml_probability_of_pathogenicity\tgnomAD_pon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP\tEND\tSVLEN" > "$output_tsv"
 
     # Convert VCF to TSV using bcftools query
-    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\t%INFO/END\t%INFO/SVLEN\n' "$input_vcf" >> "$output_tsv"
+    bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AF\t%MitoMap_AC\t%MitoMap_AF\t%MitoMap_Disease\t%MitoMap_DiseaseStatus\t%MitoMap_HGFL\t%MitoMap_PubmedIDs\t%MitoMap_aachange\t%MitoMap_heteroplasmy\t%MitoMap_homoplasmy\t%gnomAD_mitotip_trna_prediction\t%gnomAD_mitotip_score\t%gnomAD_AC_het\t%gnomAD_AC_hom\t%gnomAD_AF_het\t%gnomAD_AF_hom\t%gnomAD_AN\t%gnomAD_filters\t%gnomAD_hap_defining_variant\t%gnomAD_max_hl\t%gnomAD_pon_ml_probability_of_pathogenicity\t%gnomAD_pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\t%INFO/END\t%INFO/SVLEN\n' "$input_vcf" >> "$output_tsv"
 
     # Modify ALT for deletions
     awk 'BEGIN{FS=OFS="\t"} NR>1 && $5 == "<DEL>" { $5 = "<DEL:END=" $(NF-1) ";SVLEN=" $NF ">" } { print }' "$output_tsv" > "${output_tsv}.tmp" && mv "${output_tsv}.tmp" "$output_tsv"

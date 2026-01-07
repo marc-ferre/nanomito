@@ -631,32 +631,75 @@ log_info "Starting variant annotation..."
 VCF_TMP1="$ANNOTMT_VCF_FILE.tmp"
 VCF_TMP2="$ANNOTMT_VCF_FILE.1.tmp"
 
-# MITOMAP Disease
+# MITOMAP Disease (with MitoMap_ prefix)
 log_info "Annotating with MITOMAP disease database..."
-SnpSift annotate -v \
+SnpSift annotate -v -name MitoMap_ \
 	"$ANN_MITOMAP_DISEASE" \
 	"$BALDUR_VCF_FILE" \
 	> "$VCF_TMP2"
 mv "$VCF_TMP2" "$VCF_TMP1"
 
-# MITOMAP Polymorphisms	
+# MITOMAP Polymorphisms (with MitoMap_ prefix)	
 log_info "Annotating with MITOMAP polymorphisms database..."
-SnpSift annotate -v \
+SnpSift annotate -v -name MitoMap_ \
 	"$ANN_MITOMAP_POLYMORPHISMS" \
 	"$VCF_TMP1" \
 	> "$VCF_TMP2"
 mv "$VCF_TMP2" "$VCF_TMP1"
 
-# GnomAD including MitoTIP
+# GnomAD including MitoTIP (with gnomAD_ prefix)
 log_info "Annotating with gnomAD database (includes MitoTIP)..."
-SnpSift annotate -v \
+SnpSift annotate -v -name gnomAD_ \
 	"$ANN_GNOMAD" \
 	"$VCF_TMP1" \
-	> "$ANNOTMT_VCF_FILE"
+	> "$VCF_TMP2"
+mv "$VCF_TMP2" "$VCF_TMP1"
+
+# Add AF tag from HPL for haplocheck compatibility
+log_info "Adding AF tag from HPL field for haplocheck..."
+{
+	grep '^##' "$VCF_TMP1"
+	echo '##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency from sample HPL for haplocheck">'
+	grep '^#CHROM' "$VCF_TMP1"
+	grep -v '^#' "$VCF_TMP1" | awk -F'\t' 'BEGIN{OFS="\t"} {
+		# Find HPL position in FORMAT field
+		split($9, fmt, ":")
+		hpl_idx = 0
+		for (i=1; i<=length(fmt); i++) {
+			if (fmt[i] == "HPL") {
+				hpl_idx = i
+				break
+			}
+		}
+		
+		if (hpl_idx > 0) {
+			split($10, vals, ":")
+			hpl_value = vals[hpl_idx]
+			
+			# Handle multi-allelic: take max value
+			if (hpl_value ~ /,/) {
+				split(hpl_value, hpl_arr, ",")
+				max_hpl = hpl_arr[1]
+				for (i=2; i<=length(hpl_arr); i++) {
+					if (hpl_arr[i]+0 > max_hpl+0) max_hpl = hpl_arr[i]
+				}
+				hpl_value = max_hpl
+			}
+			
+			# Add AF tag to INFO field
+			if ($8 == ".") {
+				$8 = "AF=" hpl_value
+			} else {
+				$8 = "AF=" hpl_value ";" $8
+			}
+		}
+		print
+	}'
+} > "$ANNOTMT_VCF_FILE"
 check_file "$ANNOTMT_VCF_FILE"
 
-rm -f "$VCF_TMP1"
-log_success "Variant annotation completed"
+rm -f "$VCF_TMP1" "$VCF_TMP2"
+log_success "Variant annotation completed (with prefixes and AF tag)"
 
 #
 # Export to TSV
@@ -669,27 +712,28 @@ log_success "Variant annotation completed"
 # REF:REF
 # ALT:ALT
 # Heteroplasmy:HPL
-# MitoMap_GenBank_allele_count:AC
-# MitoMap_GenBank_allele_freq:AF
-# MitoMap_Disease:Disease
-# MitoMap_DiseaseStatus:DiseaseStatus
-# MitoMap_Haplogroups_with_high_variant_frequency:HGFL
-# MitoMap_PubmedIDs:PubmedIDs
-# MitoMap_aachange:aachange
-# MitoMap_heteroplasmy:heteroplasmy
-# MitoMap_homoplasmy:homoplasmy
-# MitoTIP_Interporetation:mitotip_trna_prediction
-# MitoTIP_Score:mitotip_score
-# gnomAD_WG_AlleleCount_heteroplasmic:AC_het
-# gnomAD_WG_AlleleCount_homoplasmic:AC_hom
-# gnomAD_WG_AlleleFreq_heteroplasmic:AF_het
-# gnomAD_WG_AlleleFreq_homoplasmic:AF_hom
-# gnomAD_WG_total_AlleleNumber:AN
-# gnomAD_WG_filters:filters
-# gnomAD_WG_hap_defining_variant:hap_defining_variant
-# gnomAD_WG_max_hl:max_hl
-# gnomAD_WG_pon_ml_probability_of_pathogenicity:pon_ml_probability_of_pathogenicity
-# gnomAD_WG_pon_mt_trna_prediction:pon_mt_trna_prediction
+# AF (sample):AF
+# MitoMap_GenBank_allele_count:MitoMap_AC
+# MitoMap_GenBank_allele_freq:MitoMap_AF
+# MitoMap_Disease:MitoMap_Disease
+# MitoMap_DiseaseStatus:MitoMap_DiseaseStatus
+# MitoMap_Haplogroups_with_high_variant_frequency:MitoMap_HGFL
+# MitoMap_PubmedIDs:MitoMap_PubmedIDs
+# MitoMap_aachange:MitoMap_aachange
+# MitoMap_heteroplasmy:MitoMap_heteroplasmy
+# MitoMap_homoplasmy:MitoMap_homoplasmy
+# MitoTIP_Interporetation:gnomAD_mitotip_trna_prediction
+# MitoTIP_Score:gnomAD_mitotip_score
+# gnomAD_WG_AlleleCount_heteroplasmic:gnomAD_AC_het
+# gnomAD_WG_AlleleCount_homoplasmic:gnomAD_AC_hom
+# gnomAD_WG_AlleleFreq_heteroplasmic:gnomAD_AF_het
+# gnomAD_WG_AlleleFreq_homoplasmic:gnomAD_AF_hom
+# gnomAD_WG_total_AlleleNumber:gnomAD_AN
+# gnomAD_WG_filters:gnomAD_filters
+# gnomAD_WG_hap_defining_variant:gnomAD_hap_defining_variant
+# gnomAD_WG_max_hl:gnomAD_max_hl
+# gnomAD_WG_pon_ml_probability_of_pathogenicity:gnomAD_pon_ml_probability_of_pathogenicity
+# gnomAD_WG_pon_mt_trna_prediction:gnomAD_pon_mt_trna_prediction
 # FILTER:FILTER
 # SAMPLE_ADF:ADF
 # SAMPLE_ADR:ADR
@@ -697,8 +741,8 @@ log_success "Variant annotation completed"
 # DP:DP
 log_info "bcftools version: $(bcftools --version | head -n1)"
 log_info "Exporting annotations to TSV..."
-echo 'CHROM	POS	ID	REF	ALT	HPL	AC	AF	Disease	DiseaseStatus	HGFL	PubmedIDs	aachange	heteroplasmy	homoplasmy	mitotip_trna_prediction	mitotip_score	AC_het	AC_hom	AF_het	AF_hom	AN	filters	hap_defining_variant	max_hl	pon_ml_probability_of_pathogenicity	pon_mt_trna_prediction	FILTER	ADF	ADR	QUAL	DP' > "$ANNOTMT_TSV_FILE"
-bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AC\t%AF\t%Disease\t%DiseaseStatus\t%HGFL\t%PubmedIDs\t%aachange\t%heteroplasmy\t%homoplasmy\t%mitotip_trna_prediction\t%mitotip_score\t%AC_het\t%AC_hom\t%AF_het\t%AF_hom\t%AN\t%filters\t%hap_defining_variant\t%max_hl\t%pon_ml_probability_of_pathogenicity\t%pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$ANNOTMT_VCF_FILE" >> "$ANNOTMT_TSV_FILE"
+echo 'CHROM	POS	ID	REF	ALT	HPL	AF	MitoMap_AC	MitoMap_AF	MitoMap_Disease	MitoMap_DiseaseStatus	MitoMap_HGFL	MitoMap_PubmedIDs	MitoMap_aachange	MitoMap_heteroplasmy	MitoMap_homoplasmy	gnomAD_mitotip_trna_prediction	gnomAD_mitotip_score	gnomAD_AC_het	gnomAD_AC_hom	gnomAD_AF_het	gnomAD_AF_hom	gnomAD_AN	gnomAD_filters	gnomAD_hap_defining_variant	gnomAD_max_hl	gnomAD_pon_ml_probability_of_pathogenicity	gnomAD_pon_mt_trna_prediction	FILTER	ADF	ADR	QUAL	DP' > "$ANNOTMT_TSV_FILE"
+bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AF\t%MitoMap_AC\t%MitoMap_AF\t%MitoMap_Disease\t%MitoMap_DiseaseStatus\t%MitoMap_HGFL\t%MitoMap_PubmedIDs\t%MitoMap_aachange\t%MitoMap_heteroplasmy\t%MitoMap_homoplasmy\t%gnomAD_mitotip_trna_prediction\t%gnomAD_mitotip_score\t%gnomAD_AC_het\t%gnomAD_AC_hom\t%gnomAD_AF_het\t%gnomAD_AF_hom\t%gnomAD_AN\t%gnomAD_filters\t%gnomAD_hap_defining_variant\t%gnomAD_max_hl\t%gnomAD_pon_ml_probability_of_pathogenicity\t%gnomAD_pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$ANNOTMT_VCF_FILE" >> "$ANNOTMT_TSV_FILE"
 check_file "$ANNOTMT_TSV_FILE"
 log_success "TSV file created"
 
