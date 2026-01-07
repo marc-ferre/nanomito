@@ -65,7 +65,7 @@ Pour les sites multi-alléliques, la valeur maximale de HPL est utilisée.
 
 ### Extraction de HPL vers AF
 
-Le script awk suivant est utilisé pour créer le tag AF :
+Exemple awk (utilisé dans le workflow) pour créer le tag AF à partir du champ FORMAT/HPL. Il préfixe le champ INFO en ajoutant AF au début et gère les sites multi-alléliques en prenant la valeur maximale.
 
 ```bash
 awk '
@@ -86,20 +86,21 @@ BEGIN {OFS="\t"}
         hpl_value = vals[hpl_idx]
         
         # Handle multi-allelic: take max value
-        if (hpl_value ~ /,/) {
-            split(hpl_value, hpl_arr, ",")
-            max_hpl = hpl_arr[1]
-            for (i=2; i<=length(hpl_arr); i++) {
-                if (hpl_arr[i] > max_hpl) max_hpl = hpl_arr[i]
+        if (index(hpl_value, ",") > 0) {
+            n = split(hpl_value, hpl_arr, ",")
+            max_hpl = hpl_arr[1] + 0
+            for (i=2; i<=n; i++) {
+                v = hpl_arr[i] + 0
+                if (v > max_hpl) max_hpl = v
             }
             hpl_value = max_hpl
         }
         
-        # Add AF tag to INFO field
-        if ($8 == ".") {
+        # Prepend AF tag to INFO field
+        if ($8 == "." || $8 == "") {
             $8 = "AF=" hpl_value
         } else {
-            $8 = $8 ";AF=" hpl_value
+            $8 = "AF=" hpl_value ";" $8
         }
     }
     print
@@ -144,6 +145,8 @@ cd /Users/marcferre/Documents/Recherche/Projets/Nanomito/GitHub/nanomito/tools
 - Les nouveaux noms sont `MitoMap_AC`, `MitoMap_AF`, `MitoMap_Disease`, `gnomAD_AC_het`, etc.
 - La colonne `HPL` reste inchangée (format Nanopore)
 - Une nouvelle colonne `AF` est créée dans INFO (pour haplocheck)
+
+Note: Dans le workflow mis à jour, les tags des bases de données sont préfixés (`MitoMap_*`, `gnomAD_*`) donc il n’y a plus de conflit sur `AF` provenant des annotations. Le script standalone `fix_vcf_for_haplocheck.sh` gère le cas d’un VCF déjà annoté sans préfixes en renommant `INFO/AF` existant en `INFO/AF_gnomAD` et en ajoutant un nouveau `INFO/AF` dérivé de l’échantillon.
 
 ## Prochaines étapes
 
