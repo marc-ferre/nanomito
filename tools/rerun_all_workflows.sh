@@ -151,6 +151,7 @@ submit_one() {
   else
     append_summary "DRY_RUN" "$run_dir" "$args_str"
   fi
+  return 0
 }
 
 count_total=0
@@ -164,13 +165,16 @@ for run_dir in "$ROOT"/$PATTERN/; do
   ((count_total++))
   if $ONLY_NEED; then
     if needs_rerun "$run_dir"; then
-      submit_one "$run_dir" && ((count_submitted++))
+      submit_one "$run_dir"
+      ((count_submitted++))
     else
-      echo "[SKIP] $run_dir (semble déjà à jour)"; ((count_skipped++))
+      echo "[SKIP] $run_dir (semble déjà à jour)"
+      ((count_skipped++))
       append_summary "SKIPPED_UP_TO_DATE" "$run_dir" "--only-needing ${PATTERN:+--pattern $PATTERN}"
     fi
   else
-    submit_one "$run_dir" && ((count_submitted++))
+    submit_one "$run_dir"
+    ((count_submitted++))
   fi
   sleep "$SLEEP_SEC"
 done
