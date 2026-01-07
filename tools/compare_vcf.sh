@@ -555,36 +555,36 @@ d
 tsv_to_html() {
     local tsv_file="$1"
     local coloring="$2"  # "disease" or "none"
-    
+
     if [[ ! -f "$tsv_file" ]]; then
         echo "<p>File not found: $tsv_file</p>"
         return
     fi
-    
+
     local html="<table>"
     local line_num=0
-    
-    while IFS=$'\t' read -r line; do
+    local header_line
+    local num_cols=0
+
+    while IFS= read -r line; do
         line_num=$((line_num + 1))
-        
+
         if [[ $line_num -eq 1 ]]; then
-            # Header row
+            # Header row (préserver toutes les colonnes)
+            header_line="$line"
+            num_cols=$(awk -F'\t' '{print NF}' <<< "$header_line")
             html+="<thead><tr>"
-            IFS=$'\t' read -ra headers <<< "$line"
-            for header in "${headers[@]}"; do
-                # Remove quotes
+            for ((i=1; i<=num_cols; i++)); do
+                local header
+                header=$(printf "%s" "$header_line" | cut -f "$i")
                 header="${header//\"/}"
                 html+="<th>${header}</th>"
             done
             html+="</tr></thead><tbody>"
         else
-            # Data row - check for disease status
-            IFS=$'\t' read -ra fields <<< "$line"
+            # Data row - classification (optionnel)
             local row_class=""
             if [[ "$coloring" == "disease" ]]; then
-                # Check for DiseaseStatus values in TSV columns
-                # DiseaseStatus may contain multiple comma-separated tags
-                # e.g. "Cfrm-[P],Cfrm-[LP]" — accept P/LP/B followed by comma, tab or EOL
                 if echo "$line" | grep -qE '\tCfrm-\[P\](,|\t|$)'; then
                     row_class=' class="pathogenic"'
                 elif echo "$line" | grep -qE '\tCfrm-\[LP\](,|\t|$)'; then
@@ -593,25 +593,29 @@ tsv_to_html() {
                     row_class=' class="benign"'
                 fi
             fi
-            if [[ "${fields[4]}" =~ ^"<DEL" ]]; then
+
+            # Détection deletion via ALT (colonne 5)
+            local alt_field
+            alt_field=$(printf "%s" "$line" | cut -f 5)
+            if [[ "$alt_field" =~ ^"<DEL" ]]; then
                 row_class=' class="deletion"'$row_class
             fi
-            
+
             html+="<tr${row_class}>"
-            local col=0
-            for field in "${fields[@]}"; do
+            for ((i=1; i<=num_cols; i++)); do
+                local field
+                field=$(printf "%s" "$line" | cut -f "$i")
                 # Remove quotes and escape HTML
                 field="${field//\"/}"
                 field="${field//&/&amp;}"
                 field="${field//</&lt;}"
                 field="${field//>/&gt;}"
                 html+="<td>${field}</td>"
-                ((col++))
             done
             html+="</tr>"
         fi
     done < "$tsv_file"
-    
+
     html+="</tbody></table>"
     echo "$html"
 }
