@@ -162,19 +162,19 @@ count_skipped=0
 shopt -s nullglob
 for run_dir in "$ROOT"/$PATTERN/; do
   [[ -d "$run_dir" ]] || continue
-  ((count_total++))
+  ((count_total++)) || true
   if $ONLY_NEED; then
     if needs_rerun "$run_dir"; then
       submit_one "$run_dir"
-      ((count_submitted++))
+      ((count_submitted++)) || true
     else
       echo "[SKIP] $run_dir (semble déjà à jour)"
-      ((count_skipped++))
+      ((count_skipped++)) || true
       append_summary "SKIPPED_UP_TO_DATE" "$run_dir" "--only-needing ${PATTERN:+--pattern $PATTERN}"
     fi
   else
     submit_one "$run_dir"
-    ((count_submitted++))
+    ((count_submitted++)) || true
   fi
   sleep "$SLEEP_SEC"
 done
