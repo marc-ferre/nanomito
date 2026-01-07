@@ -83,23 +83,33 @@ needs_rerun() {
   local run_dir="$1"
   # Cherche un VCF annoté Nanopore pour inspection
   local vcf
-  vcf=$(find "$run_dir" -maxdepth 3 \( -name "*.ann.vcf" -o -name "*.ann.vcf.gz" \) -print -quit 2>/dev/null || true)
+  vcf=$(find "$run_dir" -maxdepth 3 -type f \( -name "*.ann.vcf" -o -name "*.ann.vcf.gz" \) -print -quit 2>/dev/null || true)
   if [[ -z "$vcf" ]]; then
     # Pas de VCF trouvé → on considère qu'une relance est utile
     return 0
   fi
   # Lecture 200 premières lignes (header + début) selon compression
-  local head_content
+  local head_content=""
   if [[ "$vcf" == *.gz ]]; then
-    head_content=$(zcat "$vcf" 2>/dev/null | head -n 200 || true)
+    head_content=$(zcat "$vcf" 2>/dev/null | head -n 200 2>/dev/null || true)
   else
     head_content=$(head -n 200 "$vcf" 2>/dev/null || true)
   fi
+  if [[ -z "$head_content" ]]; then
+    # Pas pu lire le VCF → on relance pour être sûr
+    return 0
+  fi
   # Vérifie présence du header INFO/AF (nouveau champ)
-  echo "$head_content" | grep -qE '^##INFO=<ID=AF,.*Description="Allele Frequency from sample for haplocheck"' || return 0
+  if ! echo "$head_content" | grep -qE '^##INFO=<ID=AF,.*Description="Allele Frequency from sample for haplocheck"'; then
+    return 0
+  fi
   # Vérifie présence des préfixes d'annotations
-  echo "$head_content" | grep -q 'MitoMap_' || return 0
-  echo "$head_content" | grep -q 'gnomAD_' || return 0
+  if ! echo "$head_content" | grep -q 'MitoMap_'; then
+    return 0
+  fi
+  if ! echo "$head_content" | grep -q 'gnomAD_'; then
+    return 0
+  fi
   # Tout semble à jour → pas besoin de relancer
   return 1
 }
