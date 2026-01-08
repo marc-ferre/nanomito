@@ -661,6 +661,18 @@ log_info "Adding AF to FORMAT field from HPL for haplocheck..."
 awk -f "$SCRIPT_DIR/tools/inject_af_to_format.awk" "$VCF_TMP1" > "$ANNOTMT_VCF_FILE"
 check_file "$ANNOTMT_VCF_FILE"
 
+# Ensure AF FORMAT header exists (fallback via bcftools annotate)
+if ! grep -q '^##FORMAT=<ID=AF' "$ANNOTMT_VCF_FILE"; then
+	log_warning "AF FORMAT header missing; injecting via bcftools annotate"
+	AF_HEADER_FILE="$OUT_DIR/.af.format.header.txt"
+	echo '##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele Frequency from sample data">' > "$AF_HEADER_FILE"
+	bcftools annotate -h "$AF_HEADER_FILE" "$ANNOTMT_VCF_FILE" -O v -o "$ANNOTMT_VCF_FILE.tmp"
+	check_file "$ANNOTMT_VCF_FILE.tmp"
+	mv "$ANNOTMT_VCF_FILE.tmp" "$ANNOTMT_VCF_FILE"
+	rm -f "$AF_HEADER_FILE"
+	log_success "Injected AF FORMAT header via bcftools"
+fi
+
 rm -f "$VCF_TMP1" "$VCF_TMP2"
 log_success "Variant annotation completed (with prefixes and AF in FORMAT)"
 
