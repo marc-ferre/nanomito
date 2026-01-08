@@ -722,8 +722,14 @@ check_file "$ANNOTMT_TSV_FILE"
 log_success "TSV file created"
 
 echo ""
+log_info "Filtering VCF to SNVs only for haplocheck (removes structural variants)..."
+ANNOTMT_SNVS_VCF="${ANNOTMT_VCF_FILE%.vcf}.snvs.vcf"
+bcftools view -V indels,mnps,ref,bnd,other "$ANNOTMT_VCF_FILE" -o "$ANNOTMT_SNVS_VCF"
+check_file "$ANNOTMT_SNVS_VCF"
+log_success "SNV-only VCF created"
+
 log_info "Determining haplogroups with haplocheck..."
-haplocheck --raw --out "$HPLCHK_PREFIX" "$ANNOTMT_VCF_FILE"
+haplocheck --raw --out "$HPLCHK_PREFIX" "$ANNOTMT_SNVS_VCF"
 check_file "$HPLCHK_RAW_FILE"
 
 # Extract haplogroup from results (column 10 = Major Haplogroup)
