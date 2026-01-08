@@ -613,9 +613,9 @@ generate_sample_html_report() {
       $(
         tmp_haplo=$(mktemp)
         if [ -f "$haplo_summary" ]; then
-          # Extract header and sample line, remove quotes
+          # Extract header and sample line, remove quotes (handling double quotes from haplocheck)
           awk -v s="$sample" -F'\t' 'NR==1 {print; next} $1=="\"" s "\"" || $1==s {print}' "$haplo_summary" \
-          | sed 's/"//g' > "$tmp_haplo"
+          | sed 's/""\+/"/g; s/^"//; s/"$//; s/"\t"/\t/g' > "$tmp_haplo"
           if [ -s "$tmp_haplo" ]; then
             tsv_to_html_table "$tmp_haplo" ""
           else
@@ -1630,6 +1630,24 @@ else
     log_err "Failed to send email with mailer (exit $rc)."
   fi
   log_info "Email body saved to: $EMAIL_BODY_FILE"
+fi
+
+# Cleanup temporary summary TSV files
+log_info "Cleaning up temporary summary files..."
+CLEANUP_COUNT=0
+for tsv_file in "$PROCESS_DIR/demult_summary.$RUN_ID.tsv" \
+                "$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv" \
+                "$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"; do
+  if [ -f "$tsv_file" ]; then
+    rm -f "$tsv_file"
+    CLEANUP_COUNT=$((CLEANUP_COUNT + 1))
+    log_info "  Removed: $(basename "$tsv_file")"
+  fi
+done
+if [ $CLEANUP_COUNT -gt 0 ]; then
+  log_ok "Cleaned up $CLEANUP_COUNT summary file(s)"
+else
+  log_info "No summary files to clean up"
 fi
 
 if [ "$REPORTS_ONLY" = "true" ]; then
