@@ -655,51 +655,14 @@ SnpSift annotate -v -name gnomAD_ \
 	> "$VCF_TMP2"
 mv "$VCF_TMP2" "$VCF_TMP1"
 
-# Add AF tag from HPL for haplocheck compatibility
-log_info "Adding AF tag from HPL field for haplocheck..."
-{
-	grep '^##' "$VCF_TMP1"
-	echo '##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency from sample HPL for haplocheck">'
-	grep '^#CHROM' "$VCF_TMP1"
-	grep -v '^#' "$VCF_TMP1" | awk -F'\t' 'BEGIN{OFS="\t"} {
-		# Find HPL position in FORMAT field
-		split($9, fmt, ":")
-		hpl_idx = 0
-		for (i=1; i<=length(fmt); i++) {
-			if (fmt[i] == "HPL") {
-				hpl_idx = i
-				break
-			}
-		}
-		
-		if (hpl_idx > 0) {
-			split($10, vals, ":")
-			hpl_value = vals[hpl_idx]
-			
-			# Handle multi-allelic: take max value
-			if (hpl_value ~ /,/) {
-				split(hpl_value, hpl_arr, ",")
-				max_hpl = hpl_arr[1]
-				for (i=2; i<=length(hpl_arr); i++) {
-					if (hpl_arr[i]+0 > max_hpl+0) max_hpl = hpl_arr[i]
-				}
-				hpl_value = max_hpl
-			}
-			
-			# Add AF tag to INFO field
-			if ($8 == ".") {
-				$8 = "AF=" hpl_value
-			} else {
-				$8 = "AF=" hpl_value ";" $8
-			}
-		}
-		print
-	}'
-} > "$ANNOTMT_VCF_FILE"
+# Add AF tag to FORMAT field from HPL for haplocheck compatibility
+# AF must be in FORMAT (sample columns), not INFO, for haplocheck to detect heteroplasmy
+log_info "Adding AF to FORMAT field from HPL for haplocheck..."
+awk -f "$SCRIPT_DIR/tools/inject_af_to_format.awk" "$VCF_TMP1" > "$ANNOTMT_VCF_FILE"
 check_file "$ANNOTMT_VCF_FILE"
 
 rm -f "$VCF_TMP1" "$VCF_TMP2"
-log_success "Variant annotation completed (with prefixes and AF tag)"
+log_success "Variant annotation completed (with prefixes and AF in FORMAT)"
 
 #
 # Export to TSV
@@ -742,7 +705,7 @@ log_success "Variant annotation completed (with prefixes and AF tag)"
 log_info "bcftools version: $(bcftools --version | head -n1)"
 log_info "Exporting annotations to TSV..."
 echo 'CHROM	POS	ID	REF	ALT	HPL	AF	MitoMap_AC	MitoMap_AF	MitoMap_Disease	MitoMap_DiseaseStatus	MitoMap_HGFL	MitoMap_PubmedIDs	MitoMap_aachange	MitoMap_heteroplasmy	MitoMap_homoplasmy	gnomAD_mitotip_trna_prediction	gnomAD_mitotip_score	gnomAD_AC_het	gnomAD_AC_hom	gnomAD_AF_het	gnomAD_AF_hom	gnomAD_AN	gnomAD_filters	gnomAD_hap_defining_variant	gnomAD_max_hl	gnomAD_pon_ml_probability_of_pathogenicity	gnomAD_pon_mt_trna_prediction	FILTER	ADF	ADR	QUAL	DP' > "$ANNOTMT_TSV_FILE"
-bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AF\t%MitoMap_AC\t%MitoMap_AF\t%MitoMap_Disease\t%MitoMap_DiseaseStatus\t%MitoMap_HGFL\t%MitoMap_PubmedIDs\t%MitoMap_aachange\t%MitoMap_heteroplasmy\t%MitoMap_homoplasmy\t%gnomAD_mitotip_trna_prediction\t%gnomAD_mitotip_score\t%gnomAD_AC_het\t%gnomAD_AC_hom\t%gnomAD_AF_het\t%gnomAD_AF_hom\t%gnomAD_AN\t%gnomAD_filters\t%gnomAD_hap_defining_variant\t%gnomAD_max_hl\t%gnomAD_pon_ml_probability_of_pathogenicity\t%gnomAD_pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$ANNOTMT_VCF_FILE" >> "$ANNOTMT_TSV_FILE"
+bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t[ %AF]\t%MitoMap_AC\t%MitoMap_AF\t%MitoMap_Disease\t%MitoMap_DiseaseStatus\t%MitoMap_HGFL\t%MitoMap_PubmedIDs\t%MitoMap_aachange\t%MitoMap_heteroplasmy\t%MitoMap_homoplasmy\t%gnomAD_mitotip_trna_prediction\t%gnomAD_mitotip_score\t%gnomAD_AC_het\t%gnomAD_AC_hom\t%gnomAD_AF_het\t%gnomAD_AF_hom\t%gnomAD_AN\t%gnomAD_filters\t%gnomAD_hap_defining_variant\t%gnomAD_max_hl\t%gnomAD_pon_ml_probability_of_pathogenicity\t%gnomAD_pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$ANNOTMT_VCF_FILE" >> "$ANNOTMT_TSV_FILE"
 check_file "$ANNOTMT_TSV_FILE"
 log_success "TSV file created"
 
