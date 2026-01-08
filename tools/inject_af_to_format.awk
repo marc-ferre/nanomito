@@ -26,7 +26,7 @@ BEGIN {
 # Add AF to FORMAT header if not present, right before #CHROM line
 /^#CHROM/ {
     # Only add AF header if it doesn't already exist
-    if (!has_af_header) {
+    if (has_af_header == 0) {
         print af_header_line
     }
     print
