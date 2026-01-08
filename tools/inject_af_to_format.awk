@@ -11,26 +11,26 @@ BEGIN {
     OFS = "\t"
     has_af_header = 0
     af_header_line = "##FORMAT=<ID=AF,Number=A,Type=Float,Description=\"Allele Frequency from sample data\">"
+    header_buffer = ""
 }
 
-# Process header lines
+# Accumulate header lines until #CHROM
 /^##/ {
-    # Check if AF header already exists
-        if ($0 ~ /^##FORMAT=<ID=AF/) {
+    if ($0 ~ /^##FORMAT=<ID=AF/) {
         has_af_header = 1
     }
-    print
+    if (header_buffer == "") header_buffer = $0; else header_buffer = header_buffer "\n" $0
     next
 }
 
-# Add AF to FORMAT header if not present, right before #CHROM line
+# On #CHROM, flush header with AF if missing, then print #CHROM
 /^#CHROM/ {
-    # Debug: print to stderr to verify this block is reached
-    print "DEBUG: #CHROM line found, has_af_header=" has_af_header > "/dev/stderr"
-    # Only add AF header if it doesn't already exist
     if (has_af_header == 0) {
-        print "DEBUG: Adding AF header" > "/dev/stderr"
-        print af_header_line
+        header_buffer = header_buffer "\n" af_header_line
+    }
+    if (header_buffer != "") {
+        print header_buffer
+        header_buffer = ""
     }
     print
     next
