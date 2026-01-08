@@ -1655,24 +1655,6 @@ else
   log_info "Email body saved to: $EMAIL_BODY_FILE"
 fi
 
-# Cleanup temporary summary TSV files
-log_info "Cleaning up temporary summary files..."
-CLEANUP_COUNT=0
-for tsv_file in "$PROCESS_DIR/demult_summary.$RUN_ID.tsv" \
-                "$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv" \
-                "$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"; do
-  if [ -f "$tsv_file" ]; then
-    rm -f "$tsv_file"
-    CLEANUP_COUNT=$((CLEANUP_COUNT + 1))
-    log_info "  Removed: $(basename "$tsv_file")"
-  fi
-done
-if [ $CLEANUP_COUNT -gt 0 ]; then
-  log_ok "Cleaned up $CLEANUP_COUNT summary file(s)"
-else
-  log_info "No summary files to clean up"
-fi
-
 if [ "$REPORTS_ONLY" = "true" ]; then
   log_ok "Reports-only mode: Global report generated at $EMAIL_BODY_FILE"
 else
