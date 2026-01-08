@@ -16,7 +16,7 @@ BEGIN {
 # Process header lines
 /^##/ {
     # Check if AF header already exists
-    if (/^##FORMAT=<ID=AF/) {
+        if ($0 ~ /^##FORMAT=<ID=AF/) {
         has_af_header = 1
     }
     print
