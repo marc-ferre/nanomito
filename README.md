@@ -24,6 +24,25 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 - 📄 **Per-sample HTML reports** - Interactive individual reports with variants filtering and disease coloring
 - ✅ **Robust error handling** - Comprehensive logging and error recovery mechanisms
 
+### Troubleshooting: Haplocheck (Nanopore VCFs)
+
+- Symptom: haplocheck reports zero heteroplasmies or fails on specific samples.
+- Causes:
+  - `AF` present only in INFO instead of FORMAT (haplocheck expects per-sample `AF` in FORMAT).
+  - Structural variants (indels/deletions) introduce variable FORMAT fields that break parsing.
+- Fixes implemented in the pipeline:
+  - Injection of `AF` into FORMAT from `HPL` (per-sample), with header added when missing.
+  - Filtering for haplocheck input to PASS SNVs only (`bcftools view -f PASS -V indels,mnps,ref,bnd,other`).
+  - Robust parsing of haplocheck outputs in HTML reports (handles quotes and line breaks).
+- Batch re-run helper: use [tools/rerun_all_workflows.sh](tools/rerun_all_workflows.sh) with `--only-needing` to selectively reprocess runs:
+
+```bash
+tools/rerun_all_workflows.sh /path/to/runs --only-needing --dry-run
+tools/rerun_all_workflows.sh /path/to/runs --only-needing
+```
+
+See details in [tools/HAPLOCHECK_FIX_NOTES.md](tools/HAPLOCHECK_FIX_NOTES.md).
+
 ## Workflow Architecture
 
 ```text

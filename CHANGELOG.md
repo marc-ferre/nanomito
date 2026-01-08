@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.9] - 2026-01-08
+
+### Added
+
+- Troubleshooting documentation for haplocheck behavior with Nanopore VCFs in README
+
+### Fixed
+
+- Haplocheck heteroplasmy detection by injecting `AF` into FORMAT from `HPL`
+- Haplocheck failures on structural variants by filtering to PASS SNVs only
+- HTML report haplocheck table parsing (handles quotes and unexpected newlines)
+
+### Tools
+
+- Added `tools/rerun_all_workflows.sh` to batch re-run workflows across runs, with `--only-needing` detection
+
 ## [2.2.8] - 2026-01-02
 
 ### Security

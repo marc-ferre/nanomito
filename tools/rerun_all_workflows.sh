@@ -145,8 +145,7 @@ submit_one() {
   args_str="${args[*]}"
   echo "[CMD] $SUBMIT_SCRIPT ${args_str} \"$run_dir\""
   if ! $DRY_RUN; then
-    # shellcheck disable=SC2086
-    "$SUBMIT_SCRIPT" ${args[@]} "$run_dir"
+    "$SUBMIT_SCRIPT" "${args[@]}" "$run_dir"
     append_summary "SUBMITTED" "$run_dir" "$args_str"
   else
     append_summary "DRY_RUN" "$run_dir" "$args_str"
