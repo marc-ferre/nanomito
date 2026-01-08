@@ -268,9 +268,27 @@ if [ ! -d "$RUN_DIR_ARG" ]; then
 fi
 
 cd "$RUN_DIR_ARG"
+RUN_DIR=$(pwd)
+
+# Auto-detect if we're in a sample subdirectory (processing/SAMPLE_ID/)
+# If so, climb back to the run root directory
+# Heuristic: if current dir has subdirs like 'select-both', 'varcall', 'processing'
+# but NOT 'fastq_pass', we're likely in a sample folder
+if [ ! -d "$RUN_DIR/fastq_pass" ] && [ -d "$RUN_DIR/processing" ] && [ -d "$RUN_DIR/select-both" ]; then
+	# We're likely in a sample folder (e.g., processing/240503_Are/)
+	# The run root should be the parent's parent (processing/..)
+	PARENT_DIR=$(dirname "$RUN_DIR")
+	GRANDPARENT_DIR=$(dirname "$PARENT_DIR")
+	
+	if [ -d "$GRANDPARENT_DIR/fastq_pass" ]; then
+		# Found the run root
+		log_info "Detected sample subdirectory; using run root: $GRANDPARENT_DIR"
+		cd "$GRANDPARENT_DIR"
+		RUN_DIR=$(pwd)
+	fi
+fi
 
 # Directories
-RUN_DIR=$(pwd)
 PROCESS_DIR="$RUN_DIR/processing"
 
 # Prefixes
