@@ -613,9 +613,32 @@ generate_sample_html_report() {
       $(
         tmp_haplo=$(mktemp)
         if [ -f "$haplo_summary" ]; then
-          # Extract header and sample line, remove quotes (handling double quotes from haplocheck)
-          awk -v s="$sample" -F'\t' 'NR==1 {print; next} $1=="\"" s "\"" || $1==s {print}' "$haplo_summary" \
-          | sed 's/""\+/"/g; s/^"//; s/"$//; s/"\t"/\t/g' > "$tmp_haplo"
+          # Extract header and sample line
+          # Fix: haplocheck has a newline in header after "Major Heteroplasmy Level"
+          # Join lines, then remove quotes properly
+          awk -v s="$sample" -F'\t' '
+            NR==1 {
+              # Read header (may span 2 lines due to haplocheck bug)
+              hdr=$0
+              if (getline > 0 && $0 !~ /^"[^"]+"\t/) {
+                # Second line is continuation of header
+                hdr = hdr $0
+              } else {
+                # Second line is data, save it for later
+                saved_line = $0
+              }
+              # Clean header: remove all quotes
+              gsub(/"/, "", hdr)
+              print hdr
+              if (saved_line) print saved_line
+              next
+            }
+            # For data lines, match sample and print
+            $1 == "\"" s "\"" || $1 == s {
+              gsub(/"/, "", $0)
+              print
+            }
+          ' "$haplo_summary" > "$tmp_haplo"
           if [ -s "$tmp_haplo" ]; then
             tsv_to_html_table "$tmp_haplo" ""
           else
