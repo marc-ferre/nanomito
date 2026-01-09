@@ -712,9 +712,22 @@ log_info "Generating haplocheck-specific VCF (PASS SNVs with AF in FORMAT)..."
 HAPLO_VCF_FILE="$HAPLO_DIR/$SAMPLE_ID.haplo.vcf"
 log_info "  - Filtering to PASS SNVs only (removes indels, structural variants, non-PASS)..."
 bcftools view -f PASS -V indels,mnps,ref,bnd,other "$ANNOTMT_VCF_FILE" | \
-  awk -f "$SCRIPT_DIR/tools/inject_af_to_format.awk" > "$HAPLO_VCF_FILE"
+  awk -f "$SCRIPT_DIR/tools/inject_af_to_format.awk" > "$HAPLO_VCF_FILE.tmp"
+check_file "$HAPLO_VCF_FILE.tmp"
+
+log_info "  - Ensuring AF FORMAT header is present..."
+if grep -q '^##FORMAT=<ID=AF,' "$HAPLO_VCF_FILE.tmp"; then
+  mv "$HAPLO_VCF_FILE.tmp" "$HAPLO_VCF_FILE"
+  log_success "AF header already present (AWK worked)"
+else
+  log_info "AF header missing, inserting via sed..."
+  sed '/^#CHROM/i\
+##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele Frequency from HPL for haplocheck compatibility">' "$HAPLO_VCF_FILE.tmp" > "$HAPLO_VCF_FILE"
+  rm -f "$HAPLO_VCF_FILE.tmp"
+  log_success "AF header inserted via sed"
+fi
 check_file "$HAPLO_VCF_FILE"
-log_success "Haplocheck-specific VCF created: $SAMPLE_ID.haplo.vcf (AWK adds AF header + data)"
+log_success "Haplocheck-specific VCF created: $SAMPLE_ID.haplo.vcf"
 
 log_info "Determining haplogroups with haplocheck..."
 haplocheck --raw --out "$HPLCHK_PREFIX" "$HAPLO_VCF_FILE"
