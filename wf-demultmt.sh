@@ -718,7 +718,7 @@ check_file "$HAPLO_VCF_FILE.tmp"
 log_info "  - Injecting AF FORMAT header via bcftools annotate..."
 AF_HEADER_FILE="$HAPLO_DIR/.af.format.header.txt"
 echo '##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele Frequency from HPL for haplocheck compatibility">' > "$AF_HEADER_FILE"
-bcftools annotate -h "$AF_HEADER_FILE" "$HAPLO_VCF_FILE.tmp" -O v -o "$HAPLO_VCF_FILE" 2>/dev/null
+bcftools annotate -h "$AF_HEADER_FILE" "$HAPLO_VCF_FILE.tmp" -O v -o "$HAPLO_VCF_FILE"
 check_file "$HAPLO_VCF_FILE"
 rm -f "$HAPLO_VCF_FILE.tmp" "$AF_HEADER_FILE"
 log_success "Haplocheck-specific VCF created: $SAMPLE_ID.haplo.vcf"
