@@ -490,8 +490,9 @@ generate_sample_html_report() {
   # Metrics
   local chrM_reads="" matching_both=""
   if [ -f "$demult_summary" ]; then
-    chrM_reads=$(awk -v s="$sample" -F'\t' '$2==s {print $5}' "$demult_summary")
-    matching_both=$(awk -v s="$sample" -F'\t' '$2==s {print $6}' "$demult_summary")
+    # Use only first matching line to avoid duplicates
+    chrM_reads=$(awk -v s="$sample" -F'\t' '$2==s {print $5; exit}' "$demult_summary")
+    matching_both=$(awk -v s="$sample" -F'\t' '$2==s {print $6; exit}' "$demult_summary")
   fi
   local total_variants pass_variants
   total_variants=$(count_vcf_variants "$ann_vcf")
@@ -506,10 +507,12 @@ generate_sample_html_report() {
     basecalled_pass_bases=$(grep -o '"basecalled_pass_bases":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
   fi
 
-  # Haplogroup status/major
+  # Haplogroup status/major from individual haplocheck file
   local contamination_status="N/A" major_haplogroup="N/A"
-  if [ -f "$haplo_summary" ]; then
-    haplocheck_line=$(awk -v s="$sample" -F'\t' '$1 == "\"" s "\"" || $1 == s {print; exit}' "$haplo_summary")
+  local haplo_raw="$sample_dir/haplo/${sample}-haplocheck.raw.txt"
+  if [ -f "$haplo_raw" ]; then
+    # Read the data line (skip header)
+    haplocheck_line=$(tail -n1 "$haplo_raw")
     if [ -n "$haplocheck_line" ]; then
       contamination_status=$(echo "$haplocheck_line" | awk -F'\t' '{print $2}' | tr -d '"')
       major_haplogroup=$(echo "$haplocheck_line" | awk -F'\t' '{print $10}' | tr -d '"')
@@ -670,43 +673,16 @@ generate_sample_html_report() {
     <div class="section">
       <h2>Haplogroup</h2>
       $(
-        tmp_haplo=$(mktemp)
-        if [ -f "$haplo_summary" ]; then
-          # Extract header and sample line
-          # Fix: haplocheck has a newline in header after "Major Heteroplasmy Level"
-          # Join lines, then remove quotes properly
-          awk -v s="$sample" -F'\t' '
-            NR==1 {
-              # Read header (may span 2 lines due to haplocheck bug)
-              hdr=$0
-              if (getline > 0 && $0 !~ /^"[^"]+"\t/) {
-                # Second line is continuation of header
-                hdr = hdr $0
-              } else {
-                # Second line is data, save it for later
-                saved_line = $0
-              }
-              # Clean header: remove all quotes
-              gsub(/"/, "", hdr)
-              print hdr
-              if (saved_line) print saved_line
-              next
-            }
-            # For data lines, match sample and print
-            $1 == "\"" s "\"" || $1 == s {
-              gsub(/"/, "", $0)
-              print
-            }
-          ' "$haplo_summary" > "$tmp_haplo"
-          if [ -s "$tmp_haplo" ]; then
-            tsv_to_html_table "$tmp_haplo" ""
-          else
-            echo "<p>No haplocheck data for sample.</p>"
-          fi
+        haplo_raw="$sample_dir/haplo/${sample}-haplocheck.raw.txt"
+        if [ -f "$haplo_raw" ]; then
+          # Create temp file with cleaned data (remove quotes)
+          tmp_haplo=$(mktemp)
+          sed 's/"//g' "$haplo_raw" > "$tmp_haplo"
+          tsv_to_html_table "$tmp_haplo" ""
+          rm -f "$tmp_haplo"
         else
-          echo "<p>No haplocheck summary found.</p>"
+          echo "<p>Haplocheck file not found: ${sample}-haplocheck.raw.txt</p>"
         fi
-        rm -f "$tmp_haplo"
       )
     </div>
     <div class="section">
