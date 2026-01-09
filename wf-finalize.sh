@@ -681,10 +681,10 @@ generate_sample_html_report() {
           tmp_haplo=$(mktemp)
           sed 's/"//g' "$haplo_raw" > "$tmp_haplo"
           # Strict TSV to HTML rendering via Python (CSV with tab delimiter)
-          python3 - << 'PY'
-import html, csv
+          python3 - "$tmp_haplo" << 'PY'
+import html, csv, sys
 from pathlib import Path
-p = Path(r"$tmp_haplo")
+p = Path(sys.argv[1])
 rows = []
 with p.open(newline='') as f:
     rows = list(csv.reader(f, delimiter='\t'))
