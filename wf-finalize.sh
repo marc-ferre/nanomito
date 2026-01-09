@@ -680,22 +680,23 @@ generate_sample_html_report() {
           # Create temp file with quotes removed (preserve tabs)
           tmp_haplo=$(mktemp)
           sed 's/"//g' "$haplo_raw" > "$tmp_haplo"
-          # Strict TSV to HTML rendering with awk (FS=tab)
-          {
-            echo "<table>"
-            # Header with tab-only split and HTML escaping
-            awk 'BEGIN{FS="\t"; RS="\n"}
-                 function esc(x){gsub(/&/,"\\&amp;",x); gsub(/</,"\\&lt;",x); gsub(/>/,"\\&gt;",x); return x}
-                 NR==1{printf "<thead><tr>"; for(i=1;i<=NF;i++){printf "<th>%s</th>", esc($i)}; print "</tr></thead>"; next}
-                 NR>1{printf "<tbody>"; print ""; exit}
-            ' "$tmp_haplo"
-            # Body rows
-            awk 'BEGIN{FS="\t"}
-                 function esc(x){gsub(/&/,"\\&amp;",x); gsub(/</,"\\&lt;",x); gsub(/>/,"\\&gt;",x); return x}
-                 NR>1{printf "<tr>"; for(i=1;i<=NF;i++){printf "<td>%s</td>", esc($i)}; print "</tr>"}
-                 END{print "</tbody></table>"}
-            ' "$tmp_haplo"
-          }
+          # Strict TSV to HTML rendering via Python (CSV with tab delimiter)
+          python3 - << 'PY'
+import html, csv
+from pathlib import Path
+p = Path(r"$tmp_haplo")
+rows = []
+with p.open(newline='') as f:
+    rows = list(csv.reader(f, delimiter='\t'))
+print('<table>')
+if rows:
+    print('<thead><tr>' + ''.join(f'<th>{html.escape(h)}</th>' for h in rows[0]) + '</tr></thead>')
+    print('<tbody>')
+    for r in rows[1:]:
+        print('<tr>' + ''.join(f'<td>{html.escape(c)}</td>' for c in r) + '</tr>')
+    print('</tbody>')
+print('</table>')
+PY
           rm -f "$tmp_haplo"
         else
           echo "<p>Haplocheck file not found: ${sample}-haplocheck.raw.txt</p>"
