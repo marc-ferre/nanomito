@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-01-09
+
+### Changed
+
+**Major restructuring of haplocheck workflow for better separation of concerns:**
+
+- **Separated VCF files**: main `.ann.vcf` (annotations only) vs `.haplo.vcf` (haplocheck-specific)
+- **New directory structure**: created dedicated `haplo/` subdirectory under `processing/SAMPLE_ID/` for all haplocheck-related files
+- **Clean architecture**: `.ann.vcf` now contains only MitoMap/gnomAD annotations without AF field
+- **Haplocheck-specific VCF**: `.haplo.vcf` generated with PASS SNVs only + AF in FORMAT for haplocheck compatibility
+
+### Fixed
+
+- Removed AF injection from main `.ann.vcf` file (was causing confusion and mixing concerns)
+- Updated TSV export to match new `.ann.vcf` structure (removed AF column)
+
+### Files
+
+- `wf-demultmt.sh`: creates `haplo/` directory, generates filtered `.haplo.vcf`, moves haplocheck outputs to `haplo/`
+- `HAPLOCHECK_FIX_NOTES.md`: comprehensive documentation of new architecture
+- All haplocheck files now in: `processing/SAMPLE_ID/haplo/` (`.haplo.vcf`, `-haplocheck.raw.txt`)
+- Global summary remains in: `processing/haplocheck_summary.RUN_ID.tsv`
+
 ## [2.2.9] - 2026-01-08
 
 ### Added

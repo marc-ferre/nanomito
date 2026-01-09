@@ -26,22 +26,37 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 
 ### Troubleshooting: Haplocheck (Nanopore VCFs)
 
-- Symptom: haplocheck reports zero heteroplasmies or fails on specific samples.
-- Causes:
-  - `AF` present only in INFO instead of FORMAT (haplocheck expects per-sample `AF` in FORMAT).
-  - Structural variants (indels/deletions) introduce variable FORMAT fields that break parsing.
-- Fixes implemented in the pipeline:
-  - Injection of `AF` into FORMAT from `HPL` (per-sample), with header added when missing.
-  - Filtering for haplocheck input to PASS SNVs only (`bcftools view -f PASS -V indels,mnps,ref,bnd,other`).
-  - Robust parsing of haplocheck outputs in HTML reports (handles quotes and line breaks).
-- Batch re-run helper: use [tools/rerun_all_workflows.sh](tools/rerun_all_workflows.sh) with `--only-needing` to selectively reprocess runs:
+**Issue**: Haplocheck reports zero heteroplasmies or fails on specific samples.
+
+**Root causes**:
+- `AF` must be in FORMAT field (per-sample), not INFO
+- Structural variants (indels/deletions) cause parsing errors
+
+**Current solution (v2.3.0+)**:
+
+The pipeline now maintains **two separate VCF files**:
+
+1. **`SAMPLE_ID.ann.vcf`** (main file)
+   - Complete annotations: MitoMap and gnomAD with prefixes
+   - All variants (SNVs, indels, deletions)
+   - No AF field - clean annotation file
+
+2. **`haplo/SAMPLE_ID.haplo.vcf`** (haplocheck-specific)
+   - Dedicated subdirectory: `processing/SAMPLE_ID/haplo/`
+   - Filtered: PASS SNVs only (excludes indels, structural variants)
+   - AF added to FORMAT field (extracted from HPL)
+   - Header `##FORMAT=<ID=AF,...>` injected via bcftools
+
+All haplocheck outputs are stored in the `haplo/` subdirectory for clear separation.
+
+**Batch re-run helper**: Use [tools/rerun_all_workflows.sh](tools/rerun_all_workflows.sh) to reprocess runs:
 
 ```bash
 tools/rerun_all_workflows.sh /path/to/runs --only-needing --dry-run
 tools/rerun_all_workflows.sh /path/to/runs --only-needing
 ```
 
-See details in [tools/HAPLOCHECK_FIX_NOTES.md](tools/HAPLOCHECK_FIX_NOTES.md).
+**Full details**: [tools/HAPLOCHECK_FIX_NOTES.md](tools/HAPLOCHECK_FIX_NOTES.md)
 
 ## Workflow Architecture
 

@@ -1,60 +1,113 @@
-# Correctifs haplocheck pour VCF Nanopore (état actuel)
+# Correctifs haplocheck pour VCF Nanopore
 
-## Problème identifié
+## Architecture actuelle
 
-- Haplocheck attend l'`AF` dans le champ FORMAT (par échantillon). Lorsque l'`AF` n'est présent qu'en INFO, les hétéroplasmiques ne sont pas détectés correctement.
-- Certains variants structuraux (indels, délétions) génèrent des champs FORMAT variables qui font échouer le parseur Java de haplocheck.
+Le workflow nanomito génère désormais deux types de VCF:
 
-## Solutions en place
+1. **`SAMPLE_ID.ann.vcf`** (fichier principal)
+   - Annotations complètes MitoMap et gnomAD (avec préfixes `MitoMap_` et `gnomAD_`)
+   - Tous les variants (SNVs, indels, délétions)
+   - Pas de champ `AF` en FORMAT
+   - Export TSV correspondant: `SAMPLE_ID.ann.tsv`
 
-- Injection de `AF` dans FORMAT depuis `HPL` via un script awk dédié.
-- Ajout du header FORMAT/AF si manquant (fallback bcftools annotate).
-- Filtrage des variants pour haplocheck: SNVs avec statut PASS uniquement, excluant indels/mnps/ref/bnd/other.
-- Correction du parsing des sorties haplocheck dans le rapport HTML (gestion des guillemets et des retours ligne inattendus).
+2. **`haplo/SAMPLE_ID.haplo.vcf`** (spécifique haplocheck)
+   - Sous-répertoire dédié: `processing/SAMPLE_ID/haplo/`
+   - Filtré: PASS SNVs uniquement (exclut indels, mnps, ref, bnd, other)
+   - Champ `AF` ajouté en FORMAT (extrait depuis `HPL`)
+   - Header `##FORMAT=<ID=AF,...>` injecté via bcftools
+   - Utilisé uniquement par haplocheck
+
+## Problème résolu
+
+Haplocheck requiert l'`AF` dans le champ FORMAT (per-sample) pour détecter correctement les hétéroplasmies. Les variants structuraux (indels, délétions) causaient des erreurs de parsing dans haplocheck.
+
+## Solutions implémentées
+
+### Séparation des VCF
+
+- Le fichier `.ann.vcf` principal reste intact (pas d'`AF`)
+- Un VCF dédié `.haplo.vcf` est créé dans `haplo/` pour haplocheck uniquement
+
+### Pipeline haplocheck
+
+1. Filtrage: `bcftools view -f PASS -V indels,mnps,ref,bnd,other` du fichier `.ann.vcf`
+2. Injection `AF`: script AWK extrait `HPL` → `AF` en FORMAT
+3. Header: `bcftools annotate` ajoute `##FORMAT=<ID=AF,...>`
+4. Exécution: `haplocheck --raw --out haplo/SAMPLE_ID-haplocheck haplo/SAMPLE_ID.haplo.vcf`
+
+### Organisation des fichiers
+
+```
+processing/SAMPLE_ID/
+├── SAMPLE_ID.ann.vcf              # VCF principal avec annotations MitoMap/gnomAD
+├── SAMPLE_ID.ann.tsv              # Export TSV
+└── haplo/                         # Répertoire haplocheck
+    ├── SAMPLE_ID.haplo.vcf        # VCF filtré avec AF pour haplocheck
+    └── SAMPLE_ID-haplocheck.raw.txt  # Résultats haplocheck
+```
+
+Le fichier de synthèse global `haplocheck_summary.RUN_ID.tsv` reste dans `processing/`.
 
 ## Fichiers concernés
 
-- [wf-demultmt.sh](wf-demultmt.sh): étape d'annotation et préparation VCF; injection `AF` en FORMAT; filtrage des SNVs PASS avant haplocheck.
-- [tools/inject_af_to_format.awk](tools/inject_af_to_format.awk): logique d'extraction `HPL` → `AF` FORMAT, avec support multi-allélique.
-- [wf-finalize.sh](wf-finalize.sh): robustesse du parsing des tableaux haplocheck pour le rapport HTML.
-- [tools/rerun_all_workflows.sh](tools/rerun_all_workflows.sh): relance batch optionnelle pour réappliquer les correctifs sur des runs existants.
+- [wf-demultmt.sh](../wf-demultmt.sh): création du répertoire `haplo/`, génération du VCF haplocheck, exécution haplocheck
+- [tools/inject_af_to_format.awk](inject_af_to_format.awk): extraction `HPL` → `AF` FORMAT avec support multi-allélique
+- [wf-finalize.sh](../wf-finalize.sh): parsing robuste des tableaux haplocheck dans les rapports HTML
 
 ## Détails techniques
 
 ### Injection `HPL` → `AF` (FORMAT)
 
-Principe: trouver l'index `HPL` dans `FORMAT`, extraire la valeur par échantillon, choisir la valeur maximale en cas multi-allélique, puis ajouter `AF` à FORMAT et aux colonnes échantillon.
+Le script AWK:
+1. Trouve l'index `HPL` dans le champ FORMAT
+2. Extrait la valeur `HPL` pour chaque échantillon
+3. En cas multi-allélique, prend la valeur maximale
+4. Ajoute `AF` au champ FORMAT et aux colonnes échantillon
+5. Ajoute le header `##FORMAT=<ID=AF,...>` si absent
 
-Remarque: le workflow ajoute le header FORMAT `AF` si absent pour assurer la conformité VCF.
+Ensuite, `bcftools annotate -h` force l'ajout du header (sécurité).
 
-### Filtrage avant haplocheck
+### Filtrage pour haplocheck
 
-- Conservation des variants `-f PASS` et exclusion des types non-SNV (`-V indels,mnps,ref,bnd,other`).
-- Objectif: éviter les FORMAT variables des SV qui provoquent des erreurs de parse.
+```bash
+bcftools view -f PASS -V indels,mnps,ref,bnd,other
+```
+
+- Conserve uniquement les variants SNV avec statut PASS
+- Évite les erreurs de parsing dues aux variants structuraux
+- Réduit la taille du VCF pour améliorer les performances
 
 ## Résultats validés (échantillons de test)
 
-- Are: haplogroupe H5a6; contamination détectée ~1.8%; 8 homoplasmies / 4 hétéroplasmiques.
-- Imb: haplogroupe U3b; aucune contamination; 22 homoplasmies / 2 hétéroplasmiques.
-- Ker: haplogroupe U4b1b1a; aucune contamination; 28 homoplasmies / 0 hétéroplasmiques.
-
-## Notes de compatibilité
-
-- Les exports TSV et HTML restent compatibles; la colonne `AF` est désormais en FORMAT pour haplocheck.
-- Aucune hypothèse sur des préfixes d'annotations n'est requise ici; les champs utilisés restent ceux du pipeline courant.
+| Sample | Haplogroupe | Contamination | Homoplasmies | Hétéroplasmies |
+|--------|-------------|---------------|--------------|----------------|
+| Are | H5a6 | ~1.8% | 8 | 4 |
+| Imb | U3b | Aucune | 22 | 2 |
+| Ker | U4b1b1a | Aucune | 28 | 0 |
 
 ## Tests et relance
 
-Pour relancer des runs avec les correctifs:
+Pour relancer des runs avec la nouvelle architecture:
 
 ```bash
+# Dry-run pour vérifier les runs nécessitant un retraitement
 tools/rerun_all_workflows.sh /chemin/vers/racine_runs --only-needing --dry-run
+
+# Relance effective
 tools/rerun_all_workflows.sh /chemin/vers/racine_runs --only-needing
 ```
 
-Pour vérifier un VCF annoté (extraits et headers), utiliser directement `bcftools` et inspection manuelle.
+Pour vérifier un VCF haplocheck:
+
+```bash
+# Vérifier le header AF
+bcftools view -h processing/SAMPLE_ID/haplo/SAMPLE_ID.haplo.vcf | grep "^##FORMAT=<ID=AF"
+
+# Vérifier les valeurs AF dans FORMAT
+bcftools view processing/SAMPLE_ID/haplo/SAMPLE_ID.haplo.vcf | grep -v "^#" | head -5
+```
 
 ## Historique
 
-- Problème initial: échec haplocheck et hétéroplasmiques non détectés lorsque `AF` n'était qu'en INFO.
-- Correctifs: `AF` injecté en FORMAT; filtrage SNVs PASS; parsing rapport HTML durci.
+- **v2.2.x**: Tentatives d'injection `AF` dans le fichier `.ann.vcf` principal
+- **v2.3.0**: Restructuration avec séparation claire `.ann.vcf` vs `.haplo.vcf` dans sous-répertoire dédié

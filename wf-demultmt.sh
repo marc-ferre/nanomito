@@ -130,6 +130,7 @@ PROCESS_DIR="$RUN_DIR/processing"
 OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 VARCALL_DIR="$OUT_DIR/varcall"
+HAPLO_DIR="$OUT_DIR/haplo"
 
 # ============================================================================
 # LOGGING FUNCTIONS
@@ -166,7 +167,7 @@ log_warning() {
 # Pre/Sufixes
 BALDUR_PREFIX="$SAMPLE_ID.baldur"
 DEMULT_PREFIX="$SAMPLE_ID.ont_demult"
-HPLCHK_PREFIX="$OUT_DIR/$SAMPLE_ID-haplocheck"
+HPLCHK_PREFIX="$HAPLO_DIR/$SAMPLE_ID-haplocheck"
 
 # Files
 ANNOTMT_TSV_FILE="$OUT_DIR/$SAMPLE_ID.ann.tsv"
@@ -652,27 +653,11 @@ log_info "Annotating with gnomAD database (includes MitoTIP)..."
 SnpSift annotate -v -name gnomAD_ \
 	"$ANN_GNOMAD" \
 	"$VCF_TMP1" \
-	> "$VCF_TMP2"
-mv "$VCF_TMP2" "$VCF_TMP1"
-
-# Add AF tag to FORMAT field from HPL for haplocheck compatibility
-# AF must be in FORMAT (sample columns), not INFO, for haplocheck to detect heteroplasmy
-log_info "Adding AF to FORMAT field from HPL for haplocheck..."
-awk -f "$SCRIPT_DIR/tools/inject_af_to_format.awk" "$VCF_TMP1" > "$ANNOTMT_VCF_FILE"
+	> "$ANNOTMT_VCF_FILE"
 check_file "$ANNOTMT_VCF_FILE"
 
-# Always inject AF FORMAT header via bcftools annotate (ensures compliance even if awk missed it)
-log_info "Injecting AF FORMAT header via bcftools annotate..."
-AF_HEADER_FILE="$OUT_DIR/.af.format.header.txt"
-echo '##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele Frequency from sample data">' > "$AF_HEADER_FILE"
-bcftools annotate -h "$AF_HEADER_FILE" "$ANNOTMT_VCF_FILE" -O v -o "$ANNOTMT_VCF_FILE.tmp" 2>/dev/null
-check_file "$ANNOTMT_VCF_FILE.tmp"
-mv "$ANNOTMT_VCF_FILE.tmp" "$ANNOTMT_VCF_FILE"
-rm -f "$AF_HEADER_FILE"
-log_success "AF FORMAT header injected via bcftools"
-
 rm -f "$VCF_TMP1" "$VCF_TMP2"
-log_success "Variant annotation completed (with prefixes and AF in FORMAT + header)"
+log_success "Variant annotation completed (with MitoMap_ and gnomAD_ prefixes)"
 
 #
 # Export to TSV
@@ -685,7 +670,6 @@ log_success "Variant annotation completed (with prefixes and AF in FORMAT + head
 # REF:REF
 # ALT:ALT
 # Heteroplasmy:HPL
-# AF (sample):AF
 # MitoMap_GenBank_allele_count:MitoMap_AC
 # MitoMap_GenBank_allele_freq:MitoMap_AF
 # MitoMap_Disease:MitoMap_Disease
@@ -714,20 +698,33 @@ log_success "Variant annotation completed (with prefixes and AF in FORMAT + head
 # DP:DP
 log_info "bcftools version: $(bcftools --version | head -n1)"
 log_info "Exporting annotations to TSV..."
-echo 'CHROM	POS	ID	REF	ALT	HPL	AF	MitoMap_AC	MitoMap_AF	MitoMap_Disease	MitoMap_DiseaseStatus	MitoMap_HGFL	MitoMap_PubmedIDs	MitoMap_aachange	MitoMap_heteroplasmy	MitoMap_homoplasmy	gnomAD_mitotip_trna_prediction	gnomAD_mitotip_score	gnomAD_AC_het	gnomAD_AC_hom	gnomAD_AF_het	gnomAD_AF_hom	gnomAD_AN	gnomAD_filters	gnomAD_hap_defining_variant	gnomAD_max_hl	gnomAD_pon_ml_probability_of_pathogenicity	gnomAD_pon_mt_trna_prediction	FILTER	ADF	ADR	QUAL	DP' > "$ANNOTMT_TSV_FILE"
-bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t[ %AF]\t%MitoMap_AC\t%MitoMap_AF\t%MitoMap_Disease\t%MitoMap_DiseaseStatus\t%MitoMap_HGFL\t%MitoMap_PubmedIDs\t%MitoMap_aachange\t%MitoMap_heteroplasmy\t%MitoMap_homoplasmy\t%gnomAD_mitotip_trna_prediction\t%gnomAD_mitotip_score\t%gnomAD_AC_het\t%gnomAD_AC_hom\t%gnomAD_AF_het\t%gnomAD_AF_hom\t%gnomAD_AN\t%gnomAD_filters\t%gnomAD_hap_defining_variant\t%gnomAD_max_hl\t%gnomAD_pon_ml_probability_of_pathogenicity\t%gnomAD_pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$ANNOTMT_VCF_FILE" >> "$ANNOTMT_TSV_FILE"
+echo 'CHROM	POS	ID	REF	ALT	HPL	MitoMap_AC	MitoMap_AF	MitoMap_Disease	MitoMap_DiseaseStatus	MitoMap_HGFL	MitoMap_PubmedIDs	MitoMap_aachange	MitoMap_heteroplasmy	MitoMap_homoplasmy	gnomAD_mitotip_trna_prediction	gnomAD_mitotip_score	gnomAD_AC_het	gnomAD_AC_hom	gnomAD_AF_het	gnomAD_AF_hom	gnomAD_AN	gnomAD_filters	gnomAD_hap_defining_variant	gnomAD_max_hl	gnomAD_pon_ml_probability_of_pathogenicity	gnomAD_pon_mt_trna_prediction	FILTER	ADF	ADR	QUAL	DP' > "$ANNOTMT_TSV_FILE"
+bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%MitoMap_AC\t%MitoMap_AF\t%MitoMap_Disease\t%MitoMap_DiseaseStatus\t%MitoMap_HGFL\t%MitoMap_PubmedIDs\t%MitoMap_aachange\t%MitoMap_heteroplasmy\t%MitoMap_homoplasmy\t%gnomAD_mitotip_trna_prediction\t%gnomAD_mitotip_score\t%gnomAD_AC_het\t%gnomAD_AC_hom\t%gnomAD_AF_het\t%gnomAD_AF_hom\t%gnomAD_AN\t%gnomAD_filters\t%gnomAD_hap_defining_variant\t%gnomAD_max_hl\t%gnomAD_pon_ml_probability_of_pathogenicity\t%gnomAD_pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\n' "$ANNOTMT_VCF_FILE" >> "$ANNOTMT_TSV_FILE"
 check_file "$ANNOTMT_TSV_FILE"
 log_success "TSV file created"
 
 echo ""
-log_info "Filtering VCF to PASS SNVs only for haplocheck (removes structural variants and non-PASS)..."
-ANNOTMT_SNVS_VCF="${ANNOTMT_VCF_FILE%.vcf}.snvs.vcf"
-bcftools view -f PASS -V indels,mnps,ref,bnd,other "$ANNOTMT_VCF_FILE" -o "$ANNOTMT_SNVS_VCF"
-check_file "$ANNOTMT_SNVS_VCF"
-log_success "PASS SNV-only VCF created"
+log_info "Creating haplocheck directory..."
+ensure_dir "$HAPLO_DIR"
+
+# Generate haplocheck-specific VCF: PASS SNVs only with AF in FORMAT
+log_info "Generating haplocheck-specific VCF (PASS SNVs with AF in FORMAT)..."
+HAPLO_VCF_FILE="$HAPLO_DIR/$SAMPLE_ID.haplo.vcf"
+log_info "  - Filtering to PASS SNVs only (removes indels, structural variants, non-PASS)..."
+bcftools view -f PASS -V indels,mnps,ref,bnd,other "$ANNOTMT_VCF_FILE" | \
+  awk -f "$SCRIPT_DIR/tools/inject_af_to_format.awk" > "$HAPLO_VCF_FILE.tmp"
+check_file "$HAPLO_VCF_FILE.tmp"
+
+log_info "  - Injecting AF FORMAT header via bcftools annotate..."
+AF_HEADER_FILE="$HAPLO_DIR/.af.format.header.txt"
+echo '##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele Frequency from HPL for haplocheck compatibility">' > "$AF_HEADER_FILE"
+bcftools annotate -h "$AF_HEADER_FILE" "$HAPLO_VCF_FILE.tmp" -O v -o "$HAPLO_VCF_FILE" 2>/dev/null
+check_file "$HAPLO_VCF_FILE"
+rm -f "$HAPLO_VCF_FILE.tmp" "$AF_HEADER_FILE"
+log_success "Haplocheck-specific VCF created: $SAMPLE_ID.haplo.vcf"
 
 log_info "Determining haplogroups with haplocheck..."
-haplocheck --raw --out "$HPLCHK_PREFIX" "$ANNOTMT_SNVS_VCF"
+haplocheck --raw --out "$HPLCHK_PREFIX" "$HAPLO_VCF_FILE"
 check_file "$HPLCHK_RAW_FILE"
 
 # Extract haplogroup from results (column 10 = Major Haplogroup)
