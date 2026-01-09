@@ -675,12 +675,9 @@ generate_sample_html_report() {
       $(
         haplo_raw="$sample_dir/haplo/${sample}-haplocheck.raw.txt"
         if [ -f "$haplo_raw" ]; then
-          # Create temp file with cleaned data
-          # Replace spaces with hyphens inside quotes: "Major Heteroplasmy Level" → "Major-Heteroplasmy-Level"
+          # Create temp file with quotes removed from column names
           tmp_haplo=$(mktemp)
-          sed 's/"[^"]*"/\n&\n/g' "$haplo_raw" | sed 's/ /-/g; s/\n//g' > "$tmp_haplo"
-          # Remove quotes for table display
-          sed -i 's/"//g' "$tmp_haplo"
+          sed 's/"//g' "$haplo_raw" > "$tmp_haplo"
           tsv_to_html_table "$tmp_haplo" ""
           rm -f "$tmp_haplo"
         else
