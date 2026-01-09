@@ -712,16 +712,9 @@ log_info "Generating haplocheck-specific VCF (PASS SNVs with AF in FORMAT)..."
 HAPLO_VCF_FILE="$HAPLO_DIR/$SAMPLE_ID.haplo.vcf"
 log_info "  - Filtering to PASS SNVs only (removes indels, structural variants, non-PASS)..."
 bcftools view -f PASS -V indels,mnps,ref,bnd,other "$ANNOTMT_VCF_FILE" | \
-  awk -f "$SCRIPT_DIR/tools/inject_af_to_format.awk" > "$HAPLO_VCF_FILE.tmp"
-check_file "$HAPLO_VCF_FILE.tmp"
-
-log_info "  - Injecting AF FORMAT header via bcftools annotate..."
-AF_HEADER_FILE="$HAPLO_DIR/.af.format.header.txt"
-echo '##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele Frequency from HPL for haplocheck compatibility">' > "$AF_HEADER_FILE"
-bcftools annotate -h "$AF_HEADER_FILE" "$HAPLO_VCF_FILE.tmp" -O v -o "$HAPLO_VCF_FILE"
+  awk -f "$SCRIPT_DIR/tools/inject_af_to_format.awk" > "$HAPLO_VCF_FILE"
 check_file "$HAPLO_VCF_FILE"
-rm -f "$HAPLO_VCF_FILE.tmp" "$AF_HEADER_FILE"
-log_success "Haplocheck-specific VCF created: $SAMPLE_ID.haplo.vcf"
+log_success "Haplocheck-specific VCF created: $SAMPLE_ID.haplo.vcf (AWK adds AF header + data)"
 
 log_info "Determining haplogroups with haplocheck..."
 haplocheck --raw --out "$HPLCHK_PREFIX" "$HAPLO_VCF_FILE"
