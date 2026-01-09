@@ -738,7 +738,10 @@ HAPLOGROUP=$(tail -n1 "$HPLCHK_RAW_FILE" | cut -f10)
 log_success "Haplogroup detected: $HAPLOGROUP"
 
 # Preserve all haplocheck-generated files in haplo directory
-log_info "Preserving haplocheck results: $(ls -1 "$HAPLO_DIR"/$SAMPLE_ID-haplocheck.* 2>/dev/null | xargs -n1 basename | tr '\n' ' ')"
+haplofiles=$(find "$HAPLO_DIR" -maxdepth 1 -name "$SAMPLE_ID-haplocheck.*" -printf '%f\n' 2>/dev/null | tr '\n' ' ')
+if [ -n "$haplofiles" ]; then
+  log_info "Preserving haplocheck results: $haplofiles"
+fi
 
 if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
 	cp "$HPLCHK_RAW_FILE" "$HPLCHK_SUMMARY_FILE"

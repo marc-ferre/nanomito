@@ -360,7 +360,8 @@ tsv_to_html_table() {
   fi
   
   # Enrich TSV: add END;SVLEN to <DEL> in ALT column from VCF
-  local enriched_tsv=$(mktemp)
+  local enriched_tsv
+  enriched_tsv=$(mktemp)
   if [ -n "$vcf_file" ] && [ -f "$vcf_file" ]; then
     python3 - "$tsv_file" "$vcf_file" "$enriched_tsv" << 'PYEND'
 import sys, re
