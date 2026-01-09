@@ -359,6 +359,31 @@ tsv_to_html_table() {
     return 0
   fi
   
+  # Enrich TSV: add END;SVLEN to <DEL> in ALT column from VCF
+  local enriched_tsv=$(mktemp)
+  if [ -n "$vcf_file" ] && [ -f "$vcf_file" ]; then
+    awk -v vcf="$vcf_file" -F'\t' 'NR==1 {print; next} 
+    {
+      # Find ALT column (5th column, 0-indexed = 4)
+      alt_col=5
+      if ($alt_col ~ /^<DEL>/) {
+        # Extract POS from this TSV line to find matching VCF line
+        pos=$2
+        # Search VCF for matching POS with DEL and extract END, SVLEN
+        cmd="grep -m1 \"^chrM\\t" pos "\\t\" \"" vcf "\" | grep -o \"END=[^;]*;SVLEN=[^;]*\""
+        if ((cmd | getline vcf_info) > 0) {
+          gsub(/<DEL>/, "<DEL;" vcf_info ">", $alt_col)
+          close(cmd)
+        }
+      }
+      print
+    }' "$tsv_file" > "$enriched_tsv"
+  else
+    cp "$tsv_file" "$enriched_tsv"
+  fi
+  
+  tsv_file="$enriched_tsv"
+  
   # Extract VCF header descriptions if VCF provided
   local tooltips_file=""
   if [ -n "$vcf_file" ] && [ -f "$vcf_file" ]; then
@@ -472,6 +497,9 @@ EOVCF
     }
     END { print "</tbody></table>" }
   ' "${tsv_file}"
+  
+  # Clean up enriched TSV temp file
+  [ "$tsv_file" != "$1" ] && rm -f "$tsv_file"
   
   # Clean up tooltips temp file
   [ -n "$tooltips_file" ] && rm -f "$tooltips_file"
