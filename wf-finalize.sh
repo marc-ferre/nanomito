@@ -393,7 +393,7 @@ FILTER	Filter status
 EOVCF
   fi
   
-  awk -F $'\t' -v coloring="${coloring}" -v table_id="${table_id}" -v tooltips_file="${tooltips_file}" '
+  awk -v FS="\t" -v coloring="${coloring}" -v table_id="${table_id}" -v tooltips_file="${tooltips_file}" '
     function esc(x) { 
       gsub(/&/, "AMPERSAND_PLACEHOLDER", x)
       gsub(/</, "LESSTHAN_PLACEHOLDER", x)
