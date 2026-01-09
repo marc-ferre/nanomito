@@ -363,29 +363,26 @@ tsv_to_html_table() {
   local tooltips_file=""
   if [ -n "$vcf_file" ] && [ -f "$vcf_file" ]; then
     tooltips_file=$(mktemp)
-    {
-      . /local/env/envconda.sh 2>/dev/null || true
-      conda activate "$ANNOTMT_ENV" 2>/dev/null || true
-      
-      # Extract FORMAT and INFO descriptions
-      grep '^##FORMAT=<ID=' "$vcf_file" | while IFS= read -r line; do
-        id=$(echo "$line" | sed -n 's/.*ID=\([^,]*\).*/\1/p')
-        desc=$(echo "$line" | sed -n 's/.*Description="\([^"]*\)".*/\1/p')
-        echo -e "$id\t$desc"
-      done > "$tooltips_file"
-      
-      grep '^##INFO=<ID=' "$vcf_file" | while IFS= read -r line; do
-        id=$(echo "$line" | sed -n 's/.*ID=\([^,]*\).*/\1/p')
-        desc=$(echo "$line" | sed -n 's/.*Description="\([^"]*\)".*/\1/p')
-        # Prefix INFO fields that don't already have a prefix
-        if [[ ! "$id" =~ ^(MitoMap_|gnomAD_) ]]; then
-          id="INFO_$id"
-        fi
-        echo -e "$id\t$desc"
-      done >> "$tooltips_file"
-      
-      # Add basic VCF field descriptions
-      cat >> "$tooltips_file" << 'EOVCF'
+    
+    # Extract FORMAT and INFO descriptions (no conda needed, just grep/sed)
+    grep '^##FORMAT=<ID=' "$vcf_file" 2>/dev/null | while IFS= read -r line; do
+      id=$(echo "$line" | sed -n 's/.*ID=\([^,]*\).*/\1/p')
+      desc=$(echo "$line" | sed -n 's/.*Description="\([^"]*\)".*/\1/p')
+      echo -e "$id\t$desc"
+    done > "$tooltips_file"
+    
+    grep '^##INFO=<ID=' "$vcf_file" 2>/dev/null | while IFS= read -r line; do
+      id=$(echo "$line" | sed -n 's/.*ID=\([^,]*\).*/\1/p')
+      desc=$(echo "$line" | sed -n 's/.*Description="\([^"]*\)".*/\1/p')
+      # Prefix INFO fields that don't already have a prefix
+      if [[ ! "$id" =~ ^(MitoMap_|gnomAD_) ]]; then
+        id="INFO_$id"
+      fi
+      echo -e "$id\t$desc"
+    done >> "$tooltips_file"
+    
+    # Add basic VCF field descriptions
+    cat >> "$tooltips_file" << 'EOVCF'
 CHROM	Chromosome name
 POS	Position (1-based)
 ID	Variant identifier
@@ -394,7 +391,6 @@ ALT	Alternate allele(s)
 QUAL	Phred-scaled quality score
 FILTER	Filter status
 EOVCF
-    } 2>/dev/null
   fi
   
   awk -v coloring="${coloring}" -v table_id="${table_id}" -v tooltips_file="${tooltips_file}" '
