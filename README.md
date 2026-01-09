@@ -29,6 +29,7 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 **Issue**: Haplocheck reports zero heteroplasmies or fails on specific samples.
 
 **Root causes**:
+
 - `AF` must be in FORMAT field (per-sample), not INFO
 - Structural variants (indels/deletions) cause parsing errors
 

@@ -37,7 +37,7 @@ Haplocheck requiert l'`AF` dans le champ FORMAT (per-sample) pour détecter corr
 
 ### Organisation des fichiers
 
-```
+```text
 processing/SAMPLE_ID/
 ├── SAMPLE_ID.ann.vcf              # VCF principal avec annotations MitoMap/gnomAD
 ├── SAMPLE_ID.ann.tsv              # Export TSV
@@ -59,6 +59,7 @@ Le fichier de synthèse global `haplocheck_summary.RUN_ID.tsv` reste dans `proce
 ### Injection `HPL` → `AF` (FORMAT)
 
 Le script AWK:
+
 1. Trouve l'index `HPL` dans le champ FORMAT
 2. Extrait la valeur `HPL` pour chaque échantillon
 3. En cas multi-allélique, prend la valeur maximale
@@ -80,10 +81,10 @@ bcftools view -f PASS -V indels,mnps,ref,bnd,other
 ## Résultats validés (échantillons de test)
 
 | Sample | Haplogroupe | Contamination | Homoplasmies | Hétéroplasmies |
-|--------|-------------|---------------|--------------|----------------|
-| Are | H5a6 | ~1.8% | 8 | 4 |
-| Imb | U3b | Aucune | 22 | 2 |
-| Ker | U4b1b1a | Aucune | 28 | 0 |
+| ------ | ----------- | ------------- | ------------ | -------------- |
+| Are    | H5a6        | ~1.8%         | 8            | 4              |
+| Imb    | U3b         | Aucune        | 22           | 2              |
+| Ker    | U4b1b1a     | Aucune        | 28           | 0              |
 
 ## Tests et relance
 
