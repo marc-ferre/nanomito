@@ -677,10 +677,24 @@ generate_sample_html_report() {
       $(
         haplo_raw="$sample_dir/haplo/${sample}-haplocheck.raw.txt"
         if [ -f "$haplo_raw" ]; then
-          # Create temp file with quotes removed from column names
+          # Create temp file with quotes removed (preserve tabs)
           tmp_haplo=$(mktemp)
           sed 's/"//g' "$haplo_raw" > "$tmp_haplo"
-          tsv_to_html_table "$tmp_haplo" ""
+          # Strict TSV to HTML rendering to avoid any ambiguity with spaces
+          {
+            echo "<table>"
+            # Header
+            hdr=$(head -n 1 "$tmp_haplo")
+            esc_hdr=$(printf '%s' "$hdr" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
+            printf '<thead><tr><th>%s</th></tr></thead>\n' "${esc_hdr//$'\t'/</th><th>}"
+            # Body
+            echo "<tbody>"
+            tail -n +2 "$tmp_haplo" | while IFS= read -r row; do
+              esc_row=$(printf '%s' "$row" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
+              printf '<tr><td>%s</td></tr>\n' "${esc_row//$'\t'/</td><td>}"
+            done
+            echo "</tbody></table>"
+          }
           rm -f "$tmp_haplo"
         else
           echo "<p>Haplocheck file not found: ${sample}-haplocheck.raw.txt</p>"
