@@ -490,9 +490,9 @@ generate_sample_html_report() {
   # Metrics
   local chrM_reads="" matching_both=""
   if [ -f "$demult_summary" ]; then
-    # Use only first matching line to avoid duplicates
-    chrM_reads=$(awk -v s="$sample" -F'\t' '$2==s {print $5; exit}' "$demult_summary")
-    matching_both=$(awk -v s="$sample" -F'\t' '$2==s {print $6; exit}' "$demult_summary")
+    # Use last matching line to get most recent values (avoid duplicates)
+    chrM_reads=$(awk -v s="$sample" -F'\t' '$2==s {val=$5} END {print val}' "$demult_summary")
+    matching_both=$(awk -v s="$sample" -F'\t' '$2==s {val=$6} END {print val}' "$demult_summary")
   fi
   local total_variants pass_variants
   total_variants=$(count_vcf_variants "$ann_vcf")
