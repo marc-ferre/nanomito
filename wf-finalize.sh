@@ -663,7 +663,7 @@ generate_sample_html_report() {
       <div class="stats-grid">
         <div class="stat-card align"><div class="stat-label">Alignment / chrM reads</div><div class="stat-value">$(format_number "${chrM_reads:-N/A}")</div></div>
         <div class="stat-card align"><div class="stat-label">Alignment / Matching both</div><div class="stat-value">$(format_number "${matching_both:-N/A}")</div></div>
-        <div class="stat-card haplo"><div class="stat-label">Haplogroup / Status</div><div class="stat-value">$(sanitize_html "$contamination_status")</div></div>
+        <div class="stat-card haplo"><div class="stat-label">Haplogroup / Contamination</div><div class="stat-value">$(sanitize_html "$contamination_status")</div></div>
         <div class="stat-card haplo"><div class="stat-label">Haplogroup / Major</div><div class="stat-value">$(sanitize_html "$major_haplogroup")</div></div>
         <div class="stat-card variants"><div class="stat-label">Variants / Total</div><div class="stat-value">$(format_number "$total_variants")</div></div>
         <div class="stat-card variants"><div class="stat-label">Variants / PASS</div><div class="stat-value">$(format_number "$pass_variants")</div></div>
