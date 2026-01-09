@@ -352,11 +352,52 @@ tsv_to_html_table() {
   local tsv_file="$1"
   local coloring="$2" # "disease" | "none"
   local table_id="${3:-}" # optional table id
+  local vcf_file="${4:-}" # optional VCF file for tooltips
+  
   if [ ! -f "$tsv_file" ]; then
     echo "<p>File not found: $(basename "$tsv_file")</p>"
     return 0
   fi
-  awk -v coloring="${coloring}" -v table_id="${table_id}" '
+  
+  # Extract VCF header descriptions if VCF provided
+  local tooltips_file=""
+  if [ -n "$vcf_file" ] && [ -f "$vcf_file" ]; then
+    tooltips_file=$(mktemp)
+    {
+      . /local/env/envconda.sh 2>/dev/null || true
+      conda activate "$ANNOTMT_ENV" 2>/dev/null || true
+      
+      # Extract FORMAT and INFO descriptions
+      grep '^##FORMAT=<ID=' "$vcf_file" | while IFS= read -r line; do
+        id=$(echo "$line" | sed -n 's/.*ID=\([^,]*\).*/\1/p')
+        desc=$(echo "$line" | sed -n 's/.*Description="\([^"]*\)".*/\1/p')
+        echo -e "$id\t$desc"
+      done > "$tooltips_file"
+      
+      grep '^##INFO=<ID=' "$vcf_file" | while IFS= read -r line; do
+        id=$(echo "$line" | sed -n 's/.*ID=\([^,]*\).*/\1/p')
+        desc=$(echo "$line" | sed -n 's/.*Description="\([^"]*\)".*/\1/p')
+        # Prefix INFO fields that don't already have a prefix
+        if [[ ! "$id" =~ ^(MitoMap_|gnomAD_) ]]; then
+          id="INFO_$id"
+        fi
+        echo -e "$id\t$desc"
+      done >> "$tooltips_file"
+      
+      # Add basic VCF field descriptions
+      cat >> "$tooltips_file" << 'EOVCF'
+CHROM	Chromosome name
+POS	Position (1-based)
+ID	Variant identifier
+REF	Reference allele
+ALT	Alternate allele(s)
+QUAL	Phred-scaled quality score
+FILTER	Filter status
+EOVCF
+    } 2>/dev/null
+  fi
+  
+  awk -v coloring="${coloring}" -v table_id="${table_id}" -v tooltips_file="${tooltips_file}" '
     function esc(x) { 
       gsub(/&/, "AMPERSAND_PLACEHOLDER", x)
       gsub(/</, "LESSTHAN_PLACEHOLDER", x)
@@ -370,6 +411,18 @@ tsv_to_html_table() {
     function ord(c){ return index("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F !\"#$%&\047()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", c)-1 }
     BEGIN {
       filter_idx=0; alt_idx=0; end_idx=0; svlen_idx=0;
+      
+      # Load tooltips from file if provided
+      if (tooltips_file != "") {
+        while ((getline line < tooltips_file) > 0) {
+          split(line, parts, "\t")
+          if (length(parts) >= 2) {
+            tooltips[parts[1]] = parts[2]
+          }
+        }
+        close(tooltips_file)
+      }
+      
       if (table_id) {
         # Add both id and class so CSS toggles can target the table
         print "<table id=\"" table_id "\" class=\"" table_id "\">"
@@ -386,7 +439,14 @@ tsv_to_html_table() {
         if (uhdr=="ALT") alt_idx=i;
         if (uhdr=="END") end_idx=i;
         if (uhdr=="SVLEN") svlen_idx=i;
-        printf "<th>%s</th>", esc($i)
+        
+        # Add tooltip if available
+        tooltip = ""
+        if (hdr in tooltips) {
+          tooltip = " title=\"" esc(tooltips[hdr]) "\""
+        }
+        
+        printf "<th%s>%s</th>", tooltip, esc($i)
       }
       print "</tr></thead><tbody>";
       next
@@ -414,6 +474,9 @@ tsv_to_html_table() {
     }
     END { print "</tbody></table>" }
   ' "${tsv_file}"
+  
+  # Clean up tooltips temp file
+  [ -n "$tooltips_file" ] && rm -f "$tooltips_file"
 }
 
 generate_sample_html_report() {
@@ -656,25 +719,44 @@ generate_sample_html_report() {
       <label for="passOnly" class="filter-toggle"><span id="filterLabel">Show PASS only</span></label>
       $(
         if [ -f "$ann_tsv" ]; then
-          # If VCF present, regenerate TSV with END/SVLEN columns, then enrich DEL ALT
+          # Use existing TSV file directly (already has all columns including HPL)
+          # If VCF present, we can still enrich DEL ALT with END/SVLEN for display
           tmp_ann_for_html="$ann_tsv"
           if [ -f "$ann_vcf" ]; then
-            tmp_ann_for_html=$(mktemp)
-            # Regenerate TSV with END and SVLEN as last columns (like compare_vcf.sh)
-            # Must activate conda in subshell to get bcftools
-            {
-              . /local/env/envconda.sh 2>/dev/null || true
-              conda activate "$ANNOTMT_ENV" 2>/dev/null || true
-              
-              echo -e "CHROM\tPOS\tID\tREF\tALT\tHPL\tAF\tMitoMap_AC\tMitoMap_AF\tMitoMap_Disease\tMitoMap_DiseaseStatus\tMitoMap_HGFL\tMitoMap_PubmedIDs\tMitoMap_aachange\tMitoMap_heteroplasmy\tMitoMap_homoplasmy\tgnomAD_mitotip_trna_prediction\tgnomAD_mitotip_score\tgnomAD_AC_het\tgnomAD_AC_hom\tgnomAD_AF_het\tgnomAD_AF_hom\tgnomAD_AN\tgnomAD_filters\tgnomAD_hap_defining_variant\tgnomAD_max_hl\tgnomAD_pon_ml_probability_of_pathogenicity\tgnomAD_pon_mt_trna_prediction\tFILTER\tADF\tADR\tQUAL\tDP\tEND\tSVLEN" > "$tmp_ann_for_html"
-              bcftools query -f '%CHROM\t%POS\t%ID\t%REF\t%ALT\t[ %HPL]\t%AF\t%MitoMap_AC\t%MitoMap_AF\t%MitoMap_Disease\t%MitoMap_DiseaseStatus\t%MitoMap_HGFL\t%MitoMap_PubmedIDs\t%MitoMap_aachange\t%MitoMap_heteroplasmy\t%MitoMap_homoplasmy\t%gnomAD_mitotip_trna_prediction\t%gnomAD_mitotip_score\t%gnomAD_AC_het\t%gnomAD_AC_hom\t%gnomAD_AF_het\t%gnomAD_AF_hom\t%gnomAD_AN\t%gnomAD_filters\t%gnomAD_hap_defining_variant\t%gnomAD_max_hl\t%gnomAD_pon_ml_probability_of_pathogenicity\t%gnomAD_pon_mt_trna_prediction\t%FILTER\t[ %ADF]\t[ %ADR]\t%QUAL\t%DP\t%INFO/END\t%INFO/SVLEN\n' "$ann_vcf" >> "$tmp_ann_for_html" 2>/dev/null
-              # Enrich ALT for deletions using END/SVLEN columns (same as compare_vcf.sh)
+            # Check if TSV has END/SVLEN columns already (from newer workflow versions)
+            header_cols=$(head -1 "$ann_tsv" | tr '\t' '\n' | wc -l)
+            has_end_svlen=$(head -1 "$ann_tsv" | grep -cE 'END.*SVLEN' || echo "0")
+            
+            if [ "$has_end_svlen" -eq 0 ]; then
+              # Need to add END/SVLEN columns for DEL enrichment
+              tmp_ann_for_html=$(mktemp)
+              {
+                . /local/env/envconda.sh 2>/dev/null || true
+                conda activate "$ANNOTMT_ENV" 2>/dev/null || true
+                
+                # Add END and SVLEN as last columns to existing TSV header
+                head -1 "$ann_tsv" | awk '{print $0"\tEND\tSVLEN"}' > "$tmp_ann_for_html"
+                
+                # For each data line, query VCF for END/SVLEN and append
+                tail -n +2 "$ann_tsv" | while IFS=$'\t' read -r chrom pos rest; do
+                  end_val=$(bcftools query -r "$chrom:$pos" -f '%INFO/END\n' "$ann_vcf" 2>/dev/null | head -1 || echo ".")
+                  svlen_val=$(bcftools query -r "$chrom:$pos" -f '%INFO/SVLEN\n' "$ann_vcf" 2>/dev/null | head -1 || echo ".")
+                  echo -e "$chrom\t$pos\t$rest\t$end_val\t$svlen_val"
+                done >> "$tmp_ann_for_html"
+              } 2>/dev/null || {
+                # Fallback: use original TSV if bcftools fails
+                tmp_ann_for_html="$ann_tsv"
+              }
+            fi
+            
+            # Enrich ALT for deletions using END/SVLEN columns (if present)
+            if [ -f "$tmp_ann_for_html" ] && grep -q 'END' <(head -1 "$tmp_ann_for_html"); then
               awk 'BEGIN{FS=OFS="\t"} NR>1 && $5 == "<DEL>" { $5 = "<DEL:END=" $(NF-1) ";SVLEN=" $NF ">" } { print }' "$tmp_ann_for_html" > "${tmp_ann_for_html}.tmp" && mv "${tmp_ann_for_html}.tmp" "$tmp_ann_for_html"
               # Remove END/SVLEN columns before displaying (they're now in the ALT tag)
               awk 'BEGIN{FS=OFS="\t"} {NF=NF-2; print}' "$tmp_ann_for_html" > "${tmp_ann_for_html}.clean" && mv "${tmp_ann_for_html}.clean" "$tmp_ann_for_html"
-            } 2>/dev/null || true
+            fi
           fi
-          tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table"
+          tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table" "$ann_vcf"
           [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
         else
           echo "<p>Variant TSV not found: $(sanitize_html "$ann_tsv")</p>"

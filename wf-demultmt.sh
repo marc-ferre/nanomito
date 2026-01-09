@@ -738,7 +738,7 @@ HAPLOGROUP=$(tail -n1 "$HPLCHK_RAW_FILE" | cut -f10)
 log_success "Haplogroup detected: $HAPLOGROUP"
 
 log_info "Cleaning up intermediate haplocheck files..."
-rm -f "$HPLCHK_PREFIX" "$HPLCHK_PREFIX".html
+rm -f "$HPLCHK_PREFIX"
 
 if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
 	cp "$HPLCHK_RAW_FILE" "$HPLCHK_SUMMARY_FILE"
