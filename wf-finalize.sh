@@ -680,20 +680,21 @@ generate_sample_html_report() {
           # Create temp file with quotes removed (preserve tabs)
           tmp_haplo=$(mktemp)
           sed 's/"//g' "$haplo_raw" > "$tmp_haplo"
-          # Strict TSV to HTML rendering to avoid any ambiguity with spaces
+          # Strict TSV to HTML rendering with awk (FS=tab)
           {
             echo "<table>"
-            # Header
-            hdr=$(head -n 1 "$tmp_haplo")
-            esc_hdr=$(printf '%s' "$hdr" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
-            printf '<thead><tr><th>%s</th></tr></thead>\n' "${esc_hdr//$'\t'/</th><th>}"
-            # Body
-            echo "<tbody>"
-            tail -n +2 "$tmp_haplo" | while IFS= read -r row; do
-              esc_row=$(printf '%s' "$row" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
-              printf '<tr><td>%s</td></tr>\n' "${esc_row//$'\t'/</td><td>}"
-            done
-            echo "</tbody></table>"
+            # Header with tab-only split and HTML escaping
+            awk 'BEGIN{FS="\t"; RS="\n"}
+                 function esc(x){gsub(/&/,"\\&amp;",x); gsub(/</,"\\&lt;",x); gsub(/>/,"\\&gt;",x); return x}
+                 NR==1{printf "<thead><tr>"; for(i=1;i<=NF;i++){printf "<th>%s</th>", esc($i)}; print "</tr></thead>"; next}
+                 NR>1{printf "<tbody>"; print ""; exit}
+            ' "$tmp_haplo"
+            # Body rows
+            awk 'BEGIN{FS="\t"}
+                 function esc(x){gsub(/&/,"\\&amp;",x); gsub(/</,"\\&lt;",x); gsub(/>/,"\\&gt;",x); return x}
+                 NR>1{printf "<tr>"; for(i=1;i<=NF;i++){printf "<td>%s</td>", esc($i)}; print "</tr>"}
+                 END{print "</tbody></table>"}
+            ' "$tmp_haplo"
           }
           rm -f "$tmp_haplo"
         else
