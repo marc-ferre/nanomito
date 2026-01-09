@@ -362,22 +362,54 @@ tsv_to_html_table() {
   # Enrich TSV: add END;SVLEN to <DEL> in ALT column from VCF
   local enriched_tsv=$(mktemp)
   if [ -n "$vcf_file" ] && [ -f "$vcf_file" ]; then
-    awk -v vcf="$vcf_file" -F'\t' 'NR==1 {print; next} 
-    {
-      # Find ALT column (5th column, 0-indexed = 4)
-      alt_col=5
-      if ($alt_col ~ /^<DEL>/) {
-        # Extract POS from this TSV line to find matching VCF line
-        pos=$2
-        # Search VCF for matching POS with DEL and extract END, SVLEN
-        cmd="grep -m1 \"^chrM\\t" pos "\\t\" \"" vcf "\" | grep -o \"END=[^;]*;SVLEN=[^;]*\""
-        if ((cmd | getline vcf_info) > 0) {
-          gsub(/<DEL>/, "<DEL;" vcf_info ">", $alt_col)
-          close(cmd)
-        }
-      }
-      print
-    }' "$tsv_file" > "$enriched_tsv"
+    python3 - "$tsv_file" "$vcf_file" "$enriched_tsv" << 'PYEND'
+import sys, re
+tsv_path, vcf_path, out_path = sys.argv[1:4]
+
+# Load VCF variants into a dict {(CHROM, POS): (END, SVLEN)}
+vcf_dels = {}
+try:
+    with open(vcf_path) as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            fields = line.rstrip('\n').split('\t')
+            if len(fields) < 8:
+                continue
+            chrom, pos, _, ref, alt, _, _, info = fields[0:8]
+            if '<DEL>' in alt or alt.startswith('<DEL'):
+                # Extract END and SVLEN from INFO
+                end = svlen = None
+                for kv in info.split(';'):
+                    if kv.startswith('END='):
+                        end = kv.split('=')[1]
+                    elif kv.startswith('SVLEN='):
+                        svlen = kv.split('=')[1]
+                if end and svlen:
+                    vcf_dels[(chrom, pos)] = (end, svlen)
+except:
+    pass
+
+# Process TSV, enriching ALT column
+with open(tsv_path) as fin, open(out_path, 'w') as fout:
+    for line_num, line in enumerate(fin, 1):
+        row = line.rstrip('\n').split('\t')
+        
+        if line_num == 1:  # Header
+            fout.write(line)
+        else:
+            # ALT is typically column 5 (index 4), but find it
+            if len(row) > 4:
+                alt_col = 4  # Default to column 5
+                if '<DEL>' in row[alt_col] or row[alt_col].startswith('<DEL'):
+                    if len(row) > 1:
+                        chrom = 'chrM'
+                        pos = row[1] if len(row) > 1 else None
+                        if pos and (chrom, pos) in vcf_dels:
+                            end, svlen = vcf_dels[(chrom, pos)]
+                            row[alt_col] = f'<DEL;END={end};SVLEN={svlen}>'
+            fout.write('\t'.join(row) + '\n')
+PYEND
   else
     cp "$tsv_file" "$enriched_tsv"
   fi
