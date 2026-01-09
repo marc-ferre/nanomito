@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **DEL variant enrichment in HTML reports**: Deletion variants now display as `<DEL;END=NNNNN;SVLEN=NNNN>` instead of just `<DEL>` for better clarity on deletion size
+- **Haplocheck file preservation**: All haplocheck-generated files (`.raw.txt`, `.html`, etc.) now retained in `haplo/` directory
+
+### Fixed
+
+- **TSV-to-HTML rendering**: Replaced problematic awk-based tab handling with Python CSV module for bulletproof field splitting
+- **Report label**: Changed "Haplogroup / Status" to "Haplogroup / Contamination" for clarity
+
 ## [2.3.0] - 2026-01-09
 
 ### Changed
