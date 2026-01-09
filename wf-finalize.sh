@@ -675,9 +675,10 @@ generate_sample_html_report() {
       $(
         haplo_raw="$sample_dir/haplo/${sample}-haplocheck.raw.txt"
         if [ -f "$haplo_raw" ]; then
-          # Create temp file with cleaned data (remove quotes)
+          # Create temp file with cleaned data (remove quotes, replace spaces in headers with hyphens)
           tmp_haplo=$(mktemp)
-          sed 's/"//g' "$haplo_raw" > "$tmp_haplo"
+          # Remove quotes and replace spaces with hyphens in the header line only
+          sed 's/"//g' "$haplo_raw" | awk 'NR==1 {gsub(/ /, "-"); print; next} {print}' > "$tmp_haplo"
           tsv_to_html_table "$tmp_haplo" ""
           rm -f "$tmp_haplo"
         else
