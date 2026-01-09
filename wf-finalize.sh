@@ -724,8 +724,8 @@ generate_sample_html_report() {
           tmp_ann_for_html="$ann_tsv"
           if [ -f "$ann_vcf" ]; then
             # Check if TSV has END/SVLEN columns already (from newer workflow versions)
-            header_cols=$(head -1 "$ann_tsv" | tr '\t' '\n' | wc -l)
-            has_end_svlen=$(head -1 "$ann_tsv" | grep -cE 'END.*SVLEN' || echo "0")
+            has_end_svlen=$(head -1 "$ann_tsv" | grep -c 'END' || echo "0")
+            has_end_svlen=$(echo "$has_end_svlen" | tr -d '[:space:]')
             
             if [ "$has_end_svlen" -eq 0 ]; then
               # Need to add END/SVLEN columns for DEL enrichment
