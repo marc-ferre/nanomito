@@ -720,44 +720,8 @@ generate_sample_html_report() {
       $(
         if [ -f "$ann_tsv" ]; then
           # Use existing TSV file directly (already has all columns including HPL)
-          # If VCF present, we can still enrich DEL ALT with END/SVLEN for display
-          tmp_ann_for_html="$ann_tsv"
-          if [ -f "$ann_vcf" ]; then
-            # Check if TSV has END/SVLEN columns already (from newer workflow versions)
-            has_end_svlen=$(head -1 "$ann_tsv" | grep -c 'END' || echo "0")
-            has_end_svlen=$(echo "$has_end_svlen" | tr -d '[:space:]')
-            
-            if [ "$has_end_svlen" -eq 0 ]; then
-              # Need to add END/SVLEN columns for DEL enrichment
-              tmp_ann_for_html=$(mktemp)
-              {
-                . /local/env/envconda.sh 2>/dev/null || true
-                conda activate "$ANNOTMT_ENV" 2>/dev/null || true
-                
-                # Add END and SVLEN as last columns to existing TSV header
-                head -1 "$ann_tsv" | awk '{print $0"\tEND\tSVLEN"}' > "$tmp_ann_for_html"
-                
-                # For each data line, query VCF for END/SVLEN and append
-                tail -n +2 "$ann_tsv" | while IFS=$'\t' read -r chrom pos rest; do
-                  end_val=$(bcftools query -r "$chrom:$pos" -f '%INFO/END\n' "$ann_vcf" 2>/dev/null | head -1 || echo ".")
-                  svlen_val=$(bcftools query -r "$chrom:$pos" -f '%INFO/SVLEN\n' "$ann_vcf" 2>/dev/null | head -1 || echo ".")
-                  echo -e "$chrom\t$pos\t$rest\t$end_val\t$svlen_val"
-                done >> "$tmp_ann_for_html"
-              } 2>/dev/null || {
-                # Fallback: use original TSV if bcftools fails
-                tmp_ann_for_html="$ann_tsv"
-              }
-            fi
-            
-            # Enrich ALT for deletions using END/SVLEN columns (if present)
-            if [ -f "$tmp_ann_for_html" ] && grep -q 'END' <(head -1 "$tmp_ann_for_html"); then
-              awk 'BEGIN{FS=OFS="\t"} NR>1 && $5 == "<DEL>" { $5 = "<DEL:END=" $(NF-1) ";SVLEN=" $NF ">" } { print }' "$tmp_ann_for_html" > "${tmp_ann_for_html}.tmp" && mv "${tmp_ann_for_html}.tmp" "$tmp_ann_for_html"
-              # Remove END/SVLEN columns before displaying (they're now in the ALT tag)
-              awk 'BEGIN{FS=OFS="\t"} {NF=NF-2; print}' "$tmp_ann_for_html" > "${tmp_ann_for_html}.clean" && mv "${tmp_ann_for_html}.clean" "$tmp_ann_for_html"
-            fi
-          fi
-          tsv_to_html_table "$tmp_ann_for_html" "disease" "variants-table" "$ann_vcf"
-          [ "$tmp_ann_for_html" != "$ann_tsv" ] && rm -f "$tmp_ann_for_html"
+          # Note: DEL enrichment with END/SVLEN temporarily disabled to avoid compute node requirement
+          tsv_to_html_table "$ann_tsv" "disease" "variants-table" "$ann_vcf"
         else
           echo "<p>Variant TSV not found: $(sanitize_html "$ann_tsv")</p>"
         fi
