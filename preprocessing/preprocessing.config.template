@@ -8,11 +8,11 @@
 # DORADO CONFIGURATION
 # =============================================================================
 # Path to Dorado installation directory (Windows)
-DORADO_BASE_PATH='C:\path\to\dorado\installation'
+DORADO_BASE_PATH='C:\Users\mferre\bioapps'
 
 # Relative path to Dorado executable from DORADO_BASE_PATH
 # Update this when upgrading Dorado version
-DORADO_EXECUTABLE='dorado-1.3.0-win64\bin\dorado.exe'
+DORADO_EXECUTABLE='dorado-0.9.6-win64\bin\dorado.exe'
 
 # Default basecalling model (fast, hac, sup)
 DORADO_MODEL='hac'
@@ -23,14 +23,14 @@ DORADO_KIT='SQK-NBD114-24'
 # =============================================================================
 # CONDA CONFIGURATION
 # =============================================================================
-CONDA_SCRIPT='/path/to/anaconda3/etc/profile.d/conda.sh'
+CONDA_SCRIPT='/home/mferre/anaconda3/etc/profile.d/conda.sh'
 GETMT_ENV='nanomito'
 
 # =============================================================================
 # PYTHON SCRIPTS (for wf-getmt.sh on WSL/Linux)
 # =============================================================================
-CHRMPIDS_SCRIPT='/path/to/nanomito/preprocessing/get_chrMpid.py'
-CREATE_PID_DICT_SCRIPT='/path/to/nanomito/preprocessing/create_pid_dict.py'
+CHRMPIDS_SCRIPT='/mnt/c/Users/mferre/nanomito/preprocessing/get_chrMpid.py'
+CREATE_PID_DICT_SCRIPT='/mnt/c/Users/mferre/nanomito/preprocessing/create_pid_dict.py'
 
 # =============================================================================
 # DATA DIRECTORIES (WSL paths)
@@ -40,11 +40,11 @@ DATA_ROOT='/mnt/c/data'
 # =============================================================================
 # REMOTE UPLOAD CONFIGURATION (for upload_go.sh)
 # =============================================================================
-GO_USER='your_username'
-GO_HOST='your.ssh.host'
-GO_REMOTE_BASE='/home/your_cluster_user/workbench'
+GO_USER='mferre'
+GO_HOST='genossh.genouest.org'
+GO_REMOTE_BASE='/scratch/mferre/workbench'
 
 # =============================================================================
 # SCRIPT METADATA
 # =============================================================================
-PREPROCESSING_AUTHOR='Your Name <your.email@domain.com>'
+PREPROCESSING_AUTHOR='Marc FERRE <marc.ferre@univ-angers.fr>'
