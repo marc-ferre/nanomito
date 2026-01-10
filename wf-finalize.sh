@@ -751,9 +751,9 @@ with p.open(newline='') as f:
     rows = list(csv.reader(f, delimiter='\t'))
 print('<table>')
 if rows:
-    # Replace "Status" header with "Contamination" (column 2, index 1)
+    # Replace "Contamination Status" header with just "Contamination" (column 2, index 1)
     headers = rows[0]
-    if len(headers) > 1 and headers[1].lower() == 'status':
+    if len(headers) > 1 and 'contamination status' in headers[1].lower():
         headers[1] = 'Contamination'
     print('<thead><tr>' + ''.join(f'<th>{html.escape(h)}</th>' for h in headers) + '</tr></thead>')
     print('<tbody>')
