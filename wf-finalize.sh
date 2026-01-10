@@ -1403,17 +1403,22 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
       major_haplogroup=$(echo "$haplocheck_line" | awk -F'\t' '{print $10}' | tr -d '"')
       minor_haplogroup=$(echo "$haplocheck_line" | awk -F'\t' '{print $12}' | tr -d '"')
       
-      # Color code status
+      # Color code contamination status: NO=green, YES=red, ND/other=orange
       status_class="success"
-      if [ "$contamination_status" != "OK" ]; then
+      status_color="#155724"
+      if [ "$(echo "$contamination_status" | tr '[:lower:]' '[:upper:]')" = "YES" ]; then
+        status_class="error"
+        status_color="#721c24"
+      elif [ "$(echo "$contamination_status" | tr '[:lower:]' '[:upper:]')" != "NO" ]; then
         status_class="warning"
+        status_color="#856404"
       fi
       
       append_html "  <div style=\"margin: 10px 0;\">"
       append_html "    <strong>Haplogroup</strong>"
       append_html "    <div class=\"metric-row\">"
       append_html "      <span class=\"metric-label\">Contamination</span>"
-      append_html "      <span class=\"metric-value $status_class\">$contamination_status</span>"
+      append_html "      <span class=\"metric-value\" style=\"color:$status_color; font-weight:bold;\">$contamination_status</span>"
       append_html "    </div>"
       append_html "    <div class=\"metric-row\">"
       append_html "      <span class=\"metric-label\">Major</span>"
