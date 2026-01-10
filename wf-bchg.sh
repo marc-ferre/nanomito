@@ -630,13 +630,18 @@ SECONDS=$(( (RUNTIME % 3600) % 60 ))
 log_success "Total runtime: $(printf '%02d:%02d:%02d' $HOURS $MINUTES $SECONDS)"
 log_info "End time: $(date '+%Y-%m-%d %H:%M:%S')"
 
-# Write workflow summary file
-if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
-	log_success "Created workflow summary file"
-fi
-printf "%s\t%s\t%s\t%02d:%02d:%02d\n" "$RUN_ID" "NA" "bchg" "$HOURS" "$MINUTES" "$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
-log_success "Updated workflow summary file: $WORKFLOW_SUMMARY_FILE"
+# Write workflow summary file (with atomic lock to prevent race conditions)
+LOCK_FILE="${WORKFLOW_SUMMARY_FILE}.lock"
+(
+	flock -x 200
+	if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
+		echo "Run id\tSample id\tWorkflow\tRuntime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
+		log_success "Created workflow summary file"
+	fi
+	printf "%s\t%s\t%s\t%02d:%02d:%02d\n" "$RUN_ID" "NA" "bchg" "$HOURS" "$MINUTES" "$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
+	log_success "Updated workflow summary file: $WORKFLOW_SUMMARY_FILE"
+) 200>"$LOCK_FILE"
+rm -f "$LOCK_FILE"
 
 echo ""
 echo "=========================================="

@@ -372,14 +372,19 @@ if [ "$COUNT_MATCHED" -eq 0 ]; then
 	log_warning "Reads matching $SELECT: $COUNT_MATCHED (0.00%) - NO DATA TO PROCESS"
 	echo "==============================================="
 	
-	# Update summary file
-	if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
-		echo "Run id	Sample id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" \
-			> "$DEMULT_SUMMARY_FILE"
-		log_success "Created demultiplexing summary file"
-	fi
-	echo "$RUN_ID	$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
-	log_success "Updated demultiplexing summary file"
+	# Update summary file (with atomic lock to prevent race conditions)
+	LOCK_FILE="${DEMULT_SUMMARY_FILE}.lock"
+	(
+		flock -x 200
+		if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
+			echo "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching $SELECT" \
+				> "$DEMULT_SUMMARY_FILE"
+			log_success "Created demultiplexing summary file"
+		fi
+		echo "$RUN_ID\t$SAMPLE_ID\t$COUNT_TOTAL\t$COUNT_ALIGN\t$COUNT_CHRM\t$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
+		log_success "Updated demultiplexing summary file"
+	) 200>"$LOCK_FILE"
+	rm -f "$LOCK_FILE"
 	
 	# Create empty marker file to indicate no data
 	touch "$OUT_DIR/NO_DATA.marker"
@@ -403,13 +408,19 @@ fi
 log_success "Reads matching $SELECT: $COUNT_MATCHED ($(awk "BEGIN {printf \"%.2f\", ($COUNT_MATCHED/$COUNT_TOTAL)*100}")%)"
 echo "==============================================="
 
-if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Reads generated	Reads aligned to reference	Reads aligned to chrM	Reads matching $SELECT" \
-		> "$DEMULT_SUMMARY_FILE"
-	log_success "Created demultiplexing summary file"
-fi
-echo "$RUN_ID	$SAMPLE_ID	$COUNT_TOTAL	$COUNT_ALIGN	$COUNT_CHRM	$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
-log_success "Updated demultiplexing summary file"
+# Atomic file update to prevent race conditions between parallel jobs
+LOCK_FILE="${DEMULT_SUMMARY_FILE}.lock"
+(
+	flock -x 200
+	if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
+		echo "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching $SELECT" \
+			> "$DEMULT_SUMMARY_FILE"
+		log_success "Created demultiplexing summary file"
+	fi
+	echo "$RUN_ID\t$SAMPLE_ID\t$COUNT_TOTAL\t$COUNT_ALIGN\t$COUNT_CHRM\t$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
+	log_success "Updated demultiplexing summary file"
+) 200>"$LOCK_FILE"
+rm -f "$LOCK_FILE"
 
 log_info "Samtools version: $(samtools --version | head -n1)"
 log_info "Aligning reads to mitochondrial references..."
@@ -743,13 +754,22 @@ if [ -n "$haplofiles" ]; then
   log_info "Preserving haplocheck results: $haplofiles"
 fi
 
-if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
-	cp "$HPLCHK_RAW_FILE" "$HPLCHK_SUMMARY_FILE"
-	log_success "Created haplocheck summary file"
-else
-	tail -n +2 "$HPLCHK_RAW_FILE" >> "$HPLCHK_SUMMARY_FILE"
-	log_success "Updated haplocheck summary file"
-fi
+# Atomic file creation to prevent race conditions between parallel jobs
+# Using a lock file with flock for thread-safe operations
+LOCK_FILE="${HPLCHK_SUMMARY_FILE}.lock"
+(
+	# Acquire exclusive lock (wait if necessary)
+	flock -x 200
+	
+	if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
+		cp "$HPLCHK_RAW_FILE" "$HPLCHK_SUMMARY_FILE"
+		log_success "Created haplocheck summary file"
+	else
+		tail -n +2 "$HPLCHK_RAW_FILE" >> "$HPLCHK_SUMMARY_FILE"
+		log_success "Updated haplocheck summary file"
+	fi
+) 200>"$LOCK_FILE"
+rm -f "$LOCK_FILE"
 
 conda deactivate
 
@@ -783,13 +803,18 @@ log_info "Haplogroup: $HAPLOGROUP"
 log_info "Output directory: $OUT_DIR"
 echo "======================================"
 
-# Write workflow summary file
-if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-	echo "Run id	Sample id	Workflow	Runtime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
-	log_success "Created workflow summary file"
-fi
-printf "%s\t%s\t%s\t%02d:%02d:%02d\n" "$RUN_ID" "$SAMPLE_ID" "demultmt" "$HOURS" "$MINUTES" "$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
-log_success "Updated workflow summary file: $WORKFLOW_SUMMARY_FILE"
+# Write workflow summary file (with atomic lock to prevent race conditions)
+LOCK_FILE="${WORKFLOW_SUMMARY_FILE}.lock"
+(
+	flock -x 200
+	if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
+		echo "Run id\tSample id\tWorkflow\tRuntime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
+		log_success "Created workflow summary file"
+	fi
+	printf "%s\t%s\t%s\t%02d:%02d:%02d\n" "$RUN_ID" "$SAMPLE_ID" "demultmt" "$HOURS" "$MINUTES" "$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
+	log_success "Updated workflow summary file: $WORKFLOW_SUMMARY_FILE"
+) 200>"$LOCK_FILE"
+rm -f "$LOCK_FILE"
 
 echo ""
 echo "=========================================="
