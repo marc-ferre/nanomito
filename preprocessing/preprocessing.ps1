@@ -37,11 +37,13 @@ foreach ($line in $configLines) {
         
         # Convert bash variable names to PowerShell
         $psVarName = switch ($varName) {
-            'DORADO_BASE_PATH'  { 'DoradoBasePath' }
-            'DORADO_EXECUTABLE' { 'DoradoExecutable' }
-            'DORADO_MODEL'      { 'DoradoModel' }
-            'DORADO_KIT'        { 'DoradoKit' }
-            default             { $varName }
+            'DORADO_BASE_PATH'        { 'DoradoBasePath' }
+            'DORADO_EXECUTABLE'       { 'DoradoExecutable' }
+            'DORADO_MODEL'            { 'DoradoModel' }
+            'DORADO_KIT'              { 'DoradoKit' }
+            'DATA_ROOT'               { 'DataRoot' }
+            'PREPROCESSING_AUTHOR'    { 'PreprocessingAuthor' }
+            default                   { $varName }
         }
         
         New-Variable -Name $psVarName -Value $varValue -Scope Script -Force
@@ -62,28 +64,31 @@ foreach ($line in $configLines) {
 # DATA DIRECTORIES
 # ============================================================================
 
-# Root directory for run data
-$Script:DataRoot = "C:\data"
+# Root directory for run data (loaded from preprocessing.config)
+# Convert WSL path to Windows path if needed
+if ($Script:DataRoot -match '^/mnt/([a-z])/(.*)') {
+    $Script:DataRoot = "$($matches[1].ToUpper()):\$($matches[2] -replace '/', '\')"
+}
 
 # ============================================================================
 # REFERENCE FILES
 # ============================================================================
 
 # Path to human reference genome (GRCh38/hg38)
-$Script:ReferencePath = "C:\data\reference\Homo_sapiens-hg38-GRCh38.p14.mmi"
+$Script:ReferencePath = Join-Path $Script:DataRoot "reference\Homo_sapiens-hg38-GRCh38.p14.mmi"
 
 # ============================================================================
 # WORKFLOW SCRIPTS (for submit_preprocessing.ps1)
 # ============================================================================
 
 # Path to Dorado basecalling script (preprocessing before basecalling)
-$Script:DoradoScript = "C:\Users\mferre\nanomito\preprocessing\wf-prebchg.ps1"
+$Script:DoradoScript = Join-Path $PSScriptRoot "wf-prebchg.ps1"
 
 # Path to mitochondrial extraction script (WSL)
-$Script:MitochondrialScript = "C:\Users\mferre\nanomito\preprocessing\wf-getmt.sh"
+$Script:MitochondrialScript = Join-Path $PSScriptRoot "wf-getmt.sh"
 
 # Path to HPC upload script (WSL)
-$Script:UploadScript = "C:\Users\mferre\nanomito\preprocessing\wf-uplgo.sh"
+$Script:UploadScript = Join-Path $PSScriptRoot "wf-uplgo.sh"
 
 # ============================================================================
 # LOGGING
@@ -96,5 +101,5 @@ $Script:DefaultLogPattern = ".\{0}_run.log"  # {0} will be replaced with script 
 # SCRIPT METADATA
 # ============================================================================
 
-# Default author information
-$Script:PreprocessingAuthor = "Marc FERRE <marc.ferre@univ-angers.fr>"
+# Default author information (loaded from preprocessing.config)
+# $Script:PreprocessingAuthor
