@@ -42,7 +42,6 @@ foreach ($line in $configLines) {
             'DORADO_MODEL'            { 'DoradoModel' }
             'DORADO_KIT'              { 'DoradoKit' }
             'DATA_ROOT'               { 'DataRoot' }
-            'PREPROCESSING_AUTHOR'    { 'PreprocessingAuthor' }
             default                   { $varName }
         }
         
@@ -101,5 +100,5 @@ $Script:DefaultLogPattern = ".\{0}_run.log"  # {0} will be replaced with script 
 # SCRIPT METADATA
 # ============================================================================
 
-# Default author information (loaded from preprocessing.config)
-# $Script:PreprocessingAuthor
+# Default author information
+$Script:PreprocessingAuthor = "Marc FERRE <marc.ferre@univ-angers.fr>"
