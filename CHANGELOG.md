@@ -16,6 +16,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **TSV-to-HTML rendering**: Replaced problematic awk-based tab handling with Python CSV module for bulletproof field splitting
 - **Report label**: Changed "Haplogroup / Status" to "Haplogroup / Contamination" for clarity
+- **Haplogroup table color coding**: Contamination status values now color-coded (NO=green, YES=red, ND/other=orange)
+
+## [2.3.1] - 2026-01-10
+
+### Fixed
+
+- **Critical: Race condition in shared summary files** - Multiple parallel jobs attempting to create same summary files now properly serialized with atomic file locking (flock)
+  - Affects: `haplocheck_summary.<RUN_ID>.tsv`, `demult_summary.<RUN_ID>.tsv`, `workflows_summary.<RUN_ID>.tsv`
+  - Modified workflows: `wf-demultmt.sh`, `wf-modmito.sh`, `wf-bchg.sh`, `wf-subwf.sh`
+  - Solves: Job failures (e.g., d58_LELM) with exit code 1 when multiple samples run in parallel
+  - Implementation: Used POSIX `flock` with file descriptor 200 for mutual exclusion
+  - Impact: Zero performance overhead, compatible with all HPC systems
+
+### Changed
+
+- Increased SLURM time limits for sample processing workflows:
+  - `wf-demultmt.sh`: 4h → 6h (samples reaching 80% of previous limit)
+  - `wf-modmito.sh`: 2h → 3h (preemptive increase for modification analysis)
 
 ## [2.3.0] - 2026-01-09
 
