@@ -564,11 +564,11 @@ run_directory/
 
 #### 1. "Dorado executable not found"
 
-**Solution:** Check and update `DoradoBasePath` and `DoradoExecutable` in `preprocessing.ps1`
+**Solution:** Check and update `DoradoBasePath` and `DoradoExecutable` in `preprocessing.config`
 
 ```powershell
 # Verify path exists
-Test-Path "C:\Users\mferre\Documents\bioapps\dorado-1.1.1-win64\bin\dorado.exe"
+Test-Path "C:\path\to\your\dorado\installation\dorado-1.3.0-win64\bin\dorado.exe"
 ```
 
 #### 2. "Failed to load Conda"
