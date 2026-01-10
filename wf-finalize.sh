@@ -1412,7 +1412,7 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
       append_html "  <div style=\"margin: 10px 0;\">"
       append_html "    <strong>Haplogroup</strong>"
       append_html "    <div class=\"metric-row\">"
-      append_html "      <span class=\"metric-label\">Status</span>"
+      append_html "      <span class=\"metric-label\">Contamination</span>"
       append_html "      <span class=\"metric-value $status_class\">$contamination_status</span>"
       append_html "    </div>"
       append_html "    <div class=\"metric-row\">"
