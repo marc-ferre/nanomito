@@ -570,8 +570,8 @@ generate_sample_html_report() {
     basecalled_pass_bases=$(grep -o '"basecalled_pass_bases":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
   fi
 
-  # Haplogroup status/major from individual haplocheck file
-  local contamination_status="N/A" major_haplogroup="N/A"
+  # Haplogroup status/major/minor from individual haplocheck file
+  local contamination_status="N/A" major_haplogroup="N/A" minor_haplogroup=""
   local haplo_raw="$sample_dir/haplo/${sample}-haplocheck.raw.txt"
   if [ -f "$haplo_raw" ]; then
     # Read the data line (skip header)
@@ -579,7 +579,13 @@ generate_sample_html_report() {
     if [ -n "$haplocheck_line" ]; then
       contamination_status=$(echo "$haplocheck_line" | awk -F'\t' '{print $2}' | tr -d '"')
       major_haplogroup=$(echo "$haplocheck_line" | awk -F'\t' '{print $10}' | tr -d '"')
+      minor_haplogroup=$(echo "$haplocheck_line" | awk -F'\t' '{print $12}' | tr -d '"')
     fi
+  fi
+  # Combine major/minor haplogroup for display
+  local display_haplogroup="$major_haplogroup"
+  if [ -n "$minor_haplogroup" ] && [ "$minor_haplogroup" != "" ] && [ "$minor_haplogroup" != "$major_haplogroup" ]; then
+    display_haplogroup="$major_haplogroup / $minor_haplogroup"
   fi
 
   # Count highlighted variants (pathogenic, likely-pathogenic, benign, deletion)
@@ -724,8 +730,8 @@ generate_sample_html_report() {
       <div class="stats-grid">
         <div class="stat-card align"><div class="stat-label">Alignment / chrM reads</div><div class="stat-value">$(format_number "${chrM_reads:-N/A}")</div></div>
         <div class="stat-card align"><div class="stat-label">Alignment / Matching both</div><div class="stat-value">$(format_number "${matching_both:-N/A}")</div></div>
-        <div class="stat-card haplo"><div class="stat-label">Haplogroup / Contamination</div><div class="stat-value">$(sanitize_html "$contamination_status")</div></div>
-        <div class="stat-card haplo"><div class="stat-label">Haplogroup / Major</div><div class="stat-value">$(sanitize_html "$major_haplogroup")</div></div>
+        <div class="stat-card haplo"><div class="stat-label">CONTAMINATION</div><div class="stat-value">$(sanitize_html "$contamination_status")</div></div>
+        <div class="stat-card haplo"><div class="stat-label">HAPLOGROUP</div><div class="stat-value">$(sanitize_html "$display_haplogroup")</div></div>
         <div class="stat-card variants"><div class="stat-label">Variants / Total</div><div class="stat-value">$(format_number "$total_variants")</div></div>
         <div class="stat-card variants"><div class="stat-label">Variants / PASS</div><div class="stat-value">$(format_number "$pass_variants")</div></div>
         <div class="stat-card highlighted"><div class="stat-label">Variants / Highlighted</div><div class="stat-value">$(format_number "$highlighted_count")</div></div>
