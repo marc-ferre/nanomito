@@ -751,10 +751,28 @@ with p.open(newline='') as f:
     rows = list(csv.reader(f, delimiter='\t'))
 print('<table>')
 if rows:
-    print('<thead><tr>' + ''.join(f'<th>{html.escape(h)}</th>' for h in rows[0]) + '</tr></thead>')
+    # Replace "Status" header with "Contamination" (column 2, index 1)
+    headers = rows[0]
+    if len(headers) > 1 and headers[1].lower() == 'status':
+        headers[1] = 'Contamination'
+    print('<thead><tr>' + ''.join(f'<th>{html.escape(h)}</th>' for h in headers) + '</tr></thead>')
     print('<tbody>')
     for r in rows[1:]:
-        print('<tr>' + ''.join(f'<td>{html.escape(c)}</td>' for c in r) + '</tr>')
+        row_html = '<tr>'
+        for col_idx, c in enumerate(r):
+            # Color code Contamination column (index 1): NO=green, YES=red, ND/other=orange
+            if col_idx == 1:  # Contamination column
+                val = c.strip().upper()
+                if val == 'NO':
+                    row_html += f'<td style="color:#155724; font-weight:bold;">{html.escape(c)}</td>'
+                elif val == 'YES':
+                    row_html += f'<td style="color:#721c24; font-weight:bold;">{html.escape(c)}</td>'
+                else:  # ND or other
+                    row_html += f'<td style="color:#856404; font-weight:bold;">{html.escape(c)}</td>'
+            else:
+                row_html += f'<td>{html.escape(c)}</td>'
+        row_html += '</tr>'
+        print(row_html)
     print('</tbody>')
 print('</table>')
 PY
