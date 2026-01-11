@@ -20,12 +20,12 @@ SCRIPT_DIR="${SCRIPT_DIR:-$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 #   ./tools/compare_vcf.sh /path/to/directory
 # If no argument is provided, the current directory will be used by default.
 
-# Constants and reference paths
-readonly HAPLOCHECK_BIN="${HAPLOCHECK_BIN:-/path/to/haplocheck/haplocheck.jar}"
-readonly SNPSIFT_BIN="${SNPSIFT_BIN:-/path/to/snpEff/SnpSift.jar}"
-readonly ANN_GNOMAD="${ANN_GNOMAD:-/path/to/gnomAD/gnomad.genomes.v3.1.sites.chrM.vcf}"
-readonly ANN_MITOMAP_DISEASE="${ANN_MITOMAP_DISEASE:-/path/to/MITOMAP/disease-nosp.vcf}"
-readonly ANN_MITOMAP_POLYMORPHISMS="${ANN_MITOMAP_POLYMORPHISMS:-/path/to/MITOMAP/polymorphisms.vcf}"
+# Constants and reference paths (with fallback search if not explicitly set)
+HAPLOCHECK_BIN="${HAPLOCHECK_BIN:-}"
+SNPSIFT_BIN="${SNPSIFT_BIN:-}"
+ANN_GNOMAD="${ANN_GNOMAD:-}"
+ANN_MITOMAP_DISEASE="${ANN_MITOMAP_DISEASE:-}"
+ANN_MITOMAP_POLYMORPHISMS="${ANN_MITOMAP_POLYMORPHISMS:-}"
 
 # ANSI color codes (no change needed)
 readonly COLOR_RESET='\033[0m'
@@ -165,11 +165,23 @@ generate_html_report() {
     error_count=$(grep -E -c '^\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\] \[ERROR\]' "$log_file" 2>/dev/null || true)
     warn_count=$(grep -E -c '^\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\] \[WARN\]' "$log_file" 2>/dev/null || true)
     
-    # Extract haplogroups from haplocheck summary (column 10: "Major Haplogroup")
+    # Extract haplogroups from haplocheck summary (column 10: Major Haplogroup, column 11: Minor Haplogroup)
     local haplogroup_nanopore
     local haplogroup_illumina
+    local minor_nanopore
+    local minor_illumina
+    
+    # Extract major haplogroups (column 10)
     haplogroup_nanopore=$(awk -F'\t' 'NR==2 {gsub(/"/, "", $10); print $10}' "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" 2>/dev/null || echo "N/A")
     haplogroup_illumina=$(awk -F'\t' 'NR==3 {gsub(/"/, "", $10); print $10}' "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" 2>/dev/null || echo "N/A")
+    
+    # Extract minor haplogroups (column 12) if different from major
+    minor_nanopore=$(awk -F'\t' 'NR==2 {gsub(/"/, "", $10); gsub(/"/, "", $12); if ($12 != "" && $12 != $10) print $12}' "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" 2>/dev/null || echo "")
+    minor_illumina=$(awk -F'\t' 'NR==3 {gsub(/"/, "", $10); gsub(/"/, "", $12); if ($12 != "" && $12 != $10) print $12}' "${hplchk_dir}/haplocheck_summary.${prefix}.tsv" 2>/dev/null || echo "")
+    
+    # Append minor haplogroup to major if present
+    [[ -n "$minor_nanopore" ]] && haplogroup_nanopore="$haplogroup_nanopore / $minor_nanopore"
+    [[ -n "$minor_illumina" ]] && haplogroup_illumina="$haplogroup_illumina / $minor_illumina"
     
     # Verify 0002 == 0003
     local count_match_text="Match OK"
@@ -366,11 +378,11 @@ generate_html_report() {
             <h2>Summary</h2>
             <div class="stats-grid">
                 <div class="stat-card nanopore">
-                    <div class="stat-label">Nanopore-only</div>
+                    <div class="stat-label">LR/Nanomito-only</div>
                     <div class="stat-value">COUNT_0000</div>
                 </div>
                 <div class="stat-card illumina">
-                    <div class="stat-label">Illumina-only</div>
+                    <div class="stat-label">SR/Mitopore-only</div>
                     <div class="stat-value">COUNT_0001</div>
                 </div>
                 <div class="stat-card shared">
@@ -378,11 +390,11 @@ generate_html_report() {
                     <div class="stat-value">COUNT_0002</div>
                 </div>
                 <div class="stat-card total">
-                    <div class="stat-label">Total Nanopore</div>
+                    <div class="stat-label">Total LR/Nanomito</div>
                     <div class="stat-value">TOTAL_NANOPORE</div>
                 </div>
                 <div class="stat-card total">
-                    <div class="stat-label">Total Illumina</div>
+                    <div class="stat-label">Total SR/Mitopore</div>
                     <div class="stat-value">TOTAL_ILLUMINA</div>
                 </div>
                 <div class="stat-card highlighted">
@@ -390,11 +402,11 @@ generate_html_report() {
                     <div class="stat-value">HIGHLIGHTED_COUNT</div>
                 </div>
                 <div class="stat-card haplogroup">
-                    <div class="stat-label">Haplogroup Nanopore</div>
+                    <div class="stat-label">Haplogroup LR/Nanomito</div>
                     <div class="stat-value">HAPLOGROUP_NANOPORE</div>
                 </div>
                 <div class="stat-card haplogroup">
-                    <div class="stat-label">Haplogroup Illumina</div>
+                    <div class="stat-label">Haplogroup SR/Mitopore</div>
                     <div class="stat-value">HAPLOGROUP_ILLUMINA</div>
                 </div>
             </div>
@@ -415,26 +427,26 @@ generate_html_report() {
                 HAPLOCHECK_TABLE
             </div>
 
-            <h3>Nanopore-only Variants</h3>
-            <div class="table-description">Variants found only in Nanopore sequencing</div>
+            <h3>LR/Nanomito-only Variants</h3>
+            <div class="table-description">Variants found only in LR/Nanomito sequencing</div>
             <div class="table-wrapper">
                 TABLE_0000
             </div>
 
-            <h3>Illumina-only Variants</h3>
-            <div class="table-description">Variants found only in Illumina sequencing</div>
+            <h3>SR/Mitopore-only Variants</h3>
+            <div class="table-description">Variants found only in SR/Mitopore sequencing</div>
             <div class="table-wrapper">
                 TABLE_0001
             </div>
 
-            <h3>Shared Variants (Nanopore format)</h3>
-            <div class="table-description">Variants present in both sequencing methods (Nanopore VCF format)</div>
+            <h3>Shared Variants (LR/Nanomito format)</h3>
+            <div class="table-description">Variants present in both sequencing methods (LR/Nanomito VCF format)</div>
             <div class="table-wrapper">
                 TABLE_0002
             </div>
 
-            <h3>Shared Variants (Illumina format)</h3>
-            <div class="table-description">Variants present in both sequencing methods (Illumina VCF format)</div>
+            <h3>Shared Variants (SR/Mitopore format)</h3>
+            <div class="table-description">Variants present in both sequencing methods (SR/Mitopore VCF format)</div>
             <div class="table-wrapper">
                 TABLE_0003
             </div>
@@ -473,22 +485,22 @@ EOF
     fi
     
     sed -i '' \
-        -e "s/SAMPLE_ID/${prefix}/g" \
-        -e "s/GENERATION_DATE/$(date '+%Y-%m-%d %H:%M:%S')/g" \
-        -e "s/SCRIPT_VERSION/${VERSION}/g" \
-        -e "s/COUNT_0000/${count_0000}/g" \
-        -e "s/COUNT_0001/${count_0001}/g" \
-        -e "s/COUNT_0002/${count_0002}/g" \
-        -e "s/TOTAL_NANOPORE/${total_nanopore}/g" \
-        -e "s/TOTAL_ILLUMINA/${total_illumina}/g" \
-        -e "s/TOTAL_VARIANTS/${total_variants}/g" \
-        -e "s/HIGHLIGHTED_COUNT/${highlighted_count}/g" \
-        -e "s/HAPLOGROUP_NANOPORE/${haplogroup_nanopore}/g" \
-        -e "s/HAPLOGROUP_ILLUMINA/${haplogroup_illumina}/g" \
-        -e "s/LOG_STATUS_CLASS/${log_status_class}/g" \
-        -e "s/LOG_STATUS_MESSAGE/${log_status_msg}/g" \
-        -e "s/LOG_MATCH_CLASS/${count_match_class}/g" \
-        -e "s/COUNT_MATCH_STATUS/${count_match_text}/g" \
+        -e "s|SAMPLE_ID|${prefix}|g" \
+        -e "s|GENERATION_DATE|$(date '+%Y-%m-%d %H:%M:%S')|g" \
+        -e "s|SCRIPT_VERSION|${VERSION}|g" \
+        -e "s|COUNT_0000|${count_0000}|g" \
+        -e "s|COUNT_0001|${count_0001}|g" \
+        -e "s|COUNT_0002|${count_0002}|g" \
+        -e "s|TOTAL_NANOPORE|${total_nanopore}|g" \
+        -e "s|TOTAL_ILLUMINA|${total_illumina}|g" \
+        -e "s|TOTAL_VARIANTS|${total_variants}|g" \
+        -e "s|HIGHLIGHTED_COUNT|${highlighted_count}|g" \
+        -e "s|HAPLOGROUP_NANOPORE|${haplogroup_nanopore}|g" \
+        -e "s|HAPLOGROUP_ILLUMINA|${haplogroup_illumina}|g" \
+        -e "s|LOG_STATUS_CLASS|${log_status_class}|g" \
+        -e "s|LOG_STATUS_MESSAGE|${log_status_msg}|g" \
+        -e "s|LOG_MATCH_CLASS|${count_match_class}|g" \
+        -e "s|COUNT_MATCH_STATUS|${count_match_text}|g" \
         "$report_file"
     
     # Generate tables
@@ -699,19 +711,23 @@ cleanup_on_exit() {
         _log ERROR "Script failed with errors. Check the log file for details: $LOGFILE"
     fi
     
-    # Cleanup temporary files
-    if [[ -n "${VCF_NANOPORE:-}" ]]; then
-        cleanup_compressed_files "$VCF_NANOPORE"
+    # Cleanup temporary compressed files
+    if [[ -n "${VCF_NANOPORE_WITH_AF:-}" ]]; then
+        cleanup_compressed_files "$VCF_NANOPORE_WITH_AF"
     fi
-    if [[ -n "${VCF_ILLUMINA_ANNOTMT:-}" ]]; then
-        cleanup_compressed_files "$VCF_ILLUMINA_ANNOTMT"
+    if [[ -n "${VCF_ILLUMINA_COPY:-}" ]]; then
+        cleanup_compressed_files "$VCF_ILLUMINA_COPY"
     fi
     
+    # Remove temporary files (keep original *.ann.vcf and haplocheck files)
     local files_to_remove=()
     [[ -n "${VCF_ILLUMINA_ANNOTMT:-}" ]] && files_to_remove+=("$VCF_ILLUMINA_ANNOTMT")
     [[ -n "${VCF_ILLUMINA_CLEAN:-}" ]] && files_to_remove+=("$VCF_ILLUMINA_CLEAN")
+    [[ -n "${VCF_ILLUMINA_COPY:-}" ]] && files_to_remove+=("$VCF_ILLUMINA_COPY")
+    [[ -n "${VCF_NANOPORE_COPY:-}" ]] && files_to_remove+=("$VCF_NANOPORE_COPY")
     [[ -n "${VCF_NANOPORE_PASS:-}" ]] && files_to_remove+=("$VCF_NANOPORE_PASS")
     [[ -n "${VCF_NANOPORE_PASS_NOSV:-}" ]] && files_to_remove+=("$VCF_NANOPORE_PASS_NOSV")
+    [[ -n "${VCF_NANOPORE_WITH_AF:-}" ]] && files_to_remove+=("$VCF_NANOPORE_WITH_AF")
     for file in "${files_to_remove[@]}"; do
         if [[ -f "$file" ]]; then
             if rm -f "$file"; then
@@ -863,14 +879,29 @@ process_haplocheck() {
     
     _log INFO "Processing haplocheck for '$vcf_file'..."
 
-    # Run Haplocheck
-    prefix="${hplchk_dir}/hplchk_tmp"
+    # Extract sample name from VCF file path for output naming
+    local sample_name
+    sample_name=$(basename "$vcf_file")
+    # Remove extensions: .vcf, .haplo, .ann
+    sample_name="${sample_name%.vcf}"
+    sample_name="${sample_name%.haplo}"
+    sample_name="${sample_name%.ann}"
+    
+    # Run Haplocheck with unique output name
+    local prefix="${hplchk_dir}/${sample_name}"
     if ! java -jar "$HAPLOCHECK_BIN" --raw --out "$prefix" "$vcf_file"; then
         handle_error "haplocheck failed"
     fi
     
-    # Update summary file
+    # The raw file might have .ann suffix if the input was .ann.vcf
+    # Try both patterns
     local raw_file="${prefix}.raw.txt"
+    if [[ ! -f "$raw_file" ]]; then
+        raw_file="${prefix}.ann.raw.txt"
+    fi
+    if [[ ! -f "$raw_file" ]]; then
+        handle_error "Cannot find haplocheck raw output file"
+    fi
     if [[ ! -e "$summary_file" ]]; then
         cp "$raw_file" "$summary_file"
         _log INFO "File '$summary_file' created (with header)"
@@ -879,8 +910,8 @@ process_haplocheck() {
         _log INFO "Line added to '$summary_file'"
     fi
 
-    # Cleanup files
-    rm -f "$prefix" "${prefix}.html" "$raw_file"
+    # Keep report files (text and HTML) for reference
+    _log INFO "Haplocheck reports saved: '$prefix' (txt/html/raw.txt)"
     _log INFO "Haplocheck completed"
 }
 
@@ -926,22 +957,64 @@ validate_directory() {
 
 validate_reference_files() {
     _log INFO "Checking reference files..."
+    
+    # Try to find files if not already set
+    if [[ -z "$HAPLOCHECK_BIN" ]]; then
+        HAPLOCHECK_BIN=$(find ~ -name "haplocheck.jar" -type f 2>/dev/null | head -1)
+        [[ -n "$HAPLOCHECK_BIN" ]] && _log INFO "Auto-detected HAPLOCHECK_BIN: '$HAPLOCHECK_BIN'"
+    fi
+    
+    if [[ -z "$SNPSIFT_BIN" ]]; then
+        SNPSIFT_BIN=$(find ~ -name "SnpSift.jar" -type f 2>/dev/null | head -1)
+        [[ -n "$SNPSIFT_BIN" ]] && _log INFO "Auto-detected SNPSIFT_BIN: '$SNPSIFT_BIN'"
+    fi
+    
+    if [[ -z "$ANN_GNOMAD" ]]; then
+        ANN_GNOMAD=$(find ~ -name "gnomad.genomes.v3.1.sites.chrM.vcf*" -type f 2>/dev/null | head -1)
+        [[ -n "$ANN_GNOMAD" ]] && _log INFO "Auto-detected ANN_GNOMAD: '$ANN_GNOMAD'"
+    fi
+    
+    if [[ -z "$ANN_MITOMAP_DISEASE" ]]; then
+        ANN_MITOMAP_DISEASE=$(find ~ -path "*MITOMAP*" -name "disease-nosp.vcf*" -type f 2>/dev/null | head -1)
+        [[ -n "$ANN_MITOMAP_DISEASE" ]] && _log INFO "Auto-detected ANN_MITOMAP_DISEASE: '$ANN_MITOMAP_DISEASE'"
+    fi
+    
+    if [[ -z "$ANN_MITOMAP_POLYMORPHISMS" ]]; then
+        ANN_MITOMAP_POLYMORPHISMS=$(find ~ -path "*MITOMAP*" -name "polymorphisms.vcf*" -type f 2>/dev/null | head -1)
+        [[ -n "$ANN_MITOMAP_POLYMORPHISMS" ]] && _log INFO "Auto-detected ANN_MITOMAP_POLYMORPHISMS: '$ANN_MITOMAP_POLYMORPHISMS'"
+    fi
+    
+    # Validate all files exist
     local ref_files=(
-        "$SNPSIFT_BIN"
-        "$ANN_GNOMAD"
-        "$ANN_MITOMAP_DISEASE"
-        "$ANN_MITOMAP_POLYMORPHISMS"
+        "HAPLOCHECK_BIN:$HAPLOCHECK_BIN"
+        "SNPSIFT_BIN:$SNPSIFT_BIN"
+        "ANN_GNOMAD:$ANN_GNOMAD"
+        "ANN_MITOMAP_DISEASE:$ANN_MITOMAP_DISEASE"
+        "ANN_MITOMAP_POLYMORPHISMS:$ANN_MITOMAP_POLYMORPHISMS"
     )
+    
     for ref in "${ref_files[@]}"; do
-        if [[ ! -f "$ref" ]]; then
-            _log ERROR "Error: Reference file not found: '$ref'" >&2
+        local name="${ref%%:*}"
+        local path="${ref##*:}"
+        
+        if [[ -z "$path" ]]; then
+            _log ERROR "Error: $name not found. Please set $name environment variable or ensure the file is in home directory." >&2
             exit 1
         fi
-        if [[ ! -r "$ref" ]]; then
-            _log ERROR "Error: Reference file not readable: '$ref'" >&2
+        
+        if [[ ! -f "$path" ]]; then
+            _log ERROR "Error: $name file not found: '$path'" >&2
             exit 1
         fi
+        
+        if [[ ! -r "$path" ]]; then
+            _log ERROR "Error: $name file not readable: '$path'" >&2
+            exit 1
+        fi
+        
+        _log INFO "✓ $name: '$path'"
     done
+    
     _log INFO "All reference files are valid."
 }
 
@@ -979,6 +1052,9 @@ main() {
     # Check dependencies and reference files
     check_dependencies
     validate_reference_files
+    
+    # Export variables for use in sub-functions
+    export HAPLOCHECK_BIN SNPSIFT_BIN ANN_GNOMAD ANN_MITOMAP_DISEASE ANN_MITOMAP_POLYMORPHISMS
 
     # Find VCF files with improved error handling
     local vcf_output
@@ -1026,13 +1102,6 @@ main() {
     VCF_NANOPORE_PASS_NOSV="${VCF_NANOPORE%.vcf}.PASS.no_sv.vcf"
     strip_structural_variants "$VCF_NANOPORE_PASS" "$VCF_NANOPORE_PASS_NOSV"
 
-    VCF_NANOPORE_HAPLO="$WORKDIR/${PREFIX}.haplo.vcf"
-    _log INFO "Injecting AF into FORMAT for haplocheck: '$VCF_NANOPORE_HAPLO'"
-    if ! awk -f "$SCRIPT_DIR/inject_af_to_format.awk" "$VCF_NANOPORE_PASS_NOSV" > "$VCF_NANOPORE_HAPLO"; then
-        handle_error "Failed to inject AF into FORMAT for haplocheck"
-    fi
-    _log INFO "Haplocheck input ready: '$VCF_NANOPORE_HAPLO'"
-
     _log INFO '*************************'
     _log INFO '* Haplogroup Comparison *'
     _log INFO '*************************'
@@ -1042,6 +1111,14 @@ main() {
    
     # Create output directory for haplocheck
     recreate_directory "$HPLCHK_DIR"
+    
+    # Create haplo.vcf in haplocheck directory with AF injected
+    VCF_NANOPORE_HAPLO="${HPLCHK_DIR}/${PREFIX}.haplo.vcf"
+    _log INFO "Injecting AF into FORMAT for haplocheck: '$VCF_NANOPORE_HAPLO'"
+    if ! awk -f "$SCRIPT_DIR/tools/inject_af_to_format.awk" "$VCF_NANOPORE_PASS_NOSV" > "$VCF_NANOPORE_HAPLO"; then
+        handle_error "Failed to inject AF into FORMAT for haplocheck"
+    fi
+    _log INFO "Haplocheck input ready: '$VCF_NANOPORE_HAPLO'"
 
     # Process haplocheck for Nanopore and Illumina
     _log INFO "Comparing haplogroups using haplocheck..."
@@ -1052,10 +1129,26 @@ main() {
     _log INFO '***********************'
     _log INFO '* Variants Comparison *'
     _log INFO '***********************'
+    
+    # Create working copies to avoid modifying original *.ann.vcf files
+    VCF_NANOPORE_COPY="$WORKDIR/${PREFIX}.nanopore_copy.vcf"
+    VCF_ILLUMINA_COPY="$WORKDIR/${PREFIX}.illumina_copy.vcf"
+    
+    _log INFO "Creating working copies of VCF files..."
+    cp "$VCF_NANOPORE" "$VCF_NANOPORE_COPY"
+    cp "$VCF_ILLUMINA_ANNOTMT" "$VCF_ILLUMINA_COPY"
+    
+    # Inject AF into FORMAT for the Nanopore copy (needed for TSV export)
+    VCF_NANOPORE_WITH_AF="$WORKDIR/${PREFIX}.nanopore_with_af.vcf"
+    _log INFO "Injecting AF into FORMAT for Nanopore VCF copy: '$VCF_NANOPORE_WITH_AF'"
+    if ! awk -f "$SCRIPT_DIR/tools/inject_af_to_format.awk" "$VCF_NANOPORE_COPY" > "$VCF_NANOPORE_WITH_AF"; then
+        handle_error "Failed to inject AF into FORMAT for Nanopore VCF"
+    fi
+    _log INFO "Nanopore VCF with AF ready: '$VCF_NANOPORE_WITH_AF'"
 
-    # Compress and index files
-    compress_and_index "$VCF_NANOPORE"
-    compress_and_index "$VCF_ILLUMINA_ANNOTMT"
+    # Compress and index working copies
+    compress_and_index "$VCF_NANOPORE_WITH_AF"
+    compress_and_index "$VCF_ILLUMINA_COPY"
 
     # Create output directory for bcftools isec
     ISEC_DIR="$WORKDIR/isec-$PREFIX"
@@ -1063,7 +1156,7 @@ main() {
 
     # Compare VCF files using bcftools isec
     _log INFO "Comparing VCF files using bcftools isec..."
-    if ! bcftools isec "${VCF_NANOPORE}.gz" "${VCF_ILLUMINA_ANNOTMT}.gz" --prefix "$ISEC_DIR" --apply-filters PASS; then
+    if ! bcftools isec "${VCF_NANOPORE_WITH_AF}.gz" "${VCF_ILLUMINA_COPY}.gz" --prefix "$ISEC_DIR" --apply-filters PASS; then
         _log ERROR "Error: bcftools isec failed" >&2
         exit 1
     fi
