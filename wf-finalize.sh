@@ -1328,19 +1328,21 @@ try:
     if acq:
         ys = acq[-1].get("acquisition_run_info", {}).get("yield_summary", {})
         rc = str(ys.get("read_count", "N/A"))
+        tb = str(ys.get("basecalled_bases", "N/A"))
         pb = str(ys.get("basecalled_pass_bases", "N/A"))
         pr = str(ys.get("basecalled_pass_read_count", "N/A"))
-        print(f"{rc}|{pb}|{pr}")
+        print(f"{rc}|{tb}|{pb}|{pr}")
     else:
-        print("N/A|N/A|N/A")
+        print("N/A|N/A|N/A|N/A")
 except Exception as e:
-    print("N/A|N/A|N/A")
+    print("N/A|N/A|N/A|N/A")
 PYEOF
 )
   
   read_count=$(echo "$metrics_output" | cut -d'|' -f1)
-  basecalled_pass_bases=$(echo "$metrics_output" | cut -d'|' -f2)
-  basecalled_pass_read_count=$(echo "$metrics_output" | cut -d'|' -f3)
+  basecalled_bases=$(echo "$metrics_output" | cut -d'|' -f2)
+  basecalled_pass_bases=$(echo "$metrics_output" | cut -d'|' -f3)
+  basecalled_pass_read_count=$(echo "$metrics_output" | cut -d'|' -f4)
   
   # Debug log
   log_info "REPORT_JSON=$REPORT_JSON | read_count=$read_count | pass_reads=$basecalled_pass_read_count | pass_bases=$basecalled_pass_bases"
@@ -1351,6 +1353,23 @@ PYEOF
     append_html "    <span class=\"metric-label\">Total reads</span>"
     append_html "    <span class=\"metric-value info\">$reads_formatted</span>"
     append_html "  </div>"
+  fi
+  
+  if [ "$basecalled_bases" != "N/A" ] && [ "$basecalled_bases" != "" ] && [ "$basecalled_bases" != "0" ]; then
+    bases_formatted=$(format_number "$basecalled_bases")
+    # Convert to Gb
+    if [[ "$basecalled_bases" =~ ^[0-9]+$ ]]; then
+      bases_gb=$(awk "BEGIN {printf \"%.2f\", $basecalled_bases / 1000000000}")
+      append_html "  <div class=\"metric-row\">"
+      append_html "    <span class=\"metric-label\">Total bases</span>"
+      append_html "    <span class=\"metric-value info\">$bases_formatted <span class=\"info\">($bases_gb Gb)</span></span>"
+      append_html "  </div>"
+    else
+      append_html "  <div class=\"metric-row\">"
+      append_html "    <span class=\"metric-label\">Total bases</span>"
+      append_html "    <span class=\"metric-value info\">$bases_formatted</span>"
+      append_html "  </div>"
+    fi
   fi
   
   if [ "$basecalled_pass_read_count" != "N/A" ] && [ "$basecalled_pass_read_count" != "" ] && [ "$basecalled_pass_read_count" != "0" ]; then
