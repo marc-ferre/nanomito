@@ -1174,6 +1174,11 @@ fi
 # --- Email Header ---------------------------------------------------------
 start_html
 
+# --- CLEAN UP TEMPORARY FILES FROM PREVIOUS RUNS --------------------------
+# Remove any orphaned .tmp files from previous runs that may have failed
+log_info "Cleaning up orphaned temporary files from previous runs..."
+find "$PROCESS_DIR" -maxdepth 1 -name "*.$RUN_ID.*.tmp" -type f -delete 2>/dev/null || true
+
 # --- MERGE TEMPORARY SUMMARY FILES FROM PARALLEL JOBS ---------------------
 # Each demultmt/modmito job writes to its own .tmp file to avoid locking issues
 # Now that all jobs are complete, merge them into final summary files
@@ -1911,4 +1916,16 @@ if [ "$REPORTS_ONLY" = "true" ]; then
   log_ok "Reports-only mode: Global report generated at $EMAIL_BODY_FILE"
 else
   log_ok "Finalize completed"
+fi
+
+# --- FINAL CLEANUP -------------------------------------------------------
+# Remove any remaining temporary .tmp files as final safety check
+log_info "Performing final cleanup of temporary files..."
+find "$PROCESS_DIR" -maxdepth 1 -name "*.$RUN_ID.*.tmp" -type f -delete 2>/dev/null || true
+ORPHANED_TMP=$(find "$PROCESS_DIR" -maxdepth 1 -name "*.tmp" -type f | wc -l)
+if [ "$ORPHANED_TMP" -gt 0 ]; then
+  log_warn "Found $ORPHANED_TMP orphaned .tmp files (may be from other runs or samples)"
+  find "$PROCESS_DIR" -maxdepth 1 -name "*.tmp" -type f -printf "%f\n" | head -5
+else
+  log_ok "No temporary files remaining"
 fi
