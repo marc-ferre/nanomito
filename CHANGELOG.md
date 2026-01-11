@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Total bases metric** in SEQUENCING RUN METRICS section of HTML reports (displayed with formatted number and Gb conversion)
+
 ### Changed
 
 - Dorado models are now configurable via `nanomito.config` (`DORADO_MODEL`, `DORADO_MODEL_COMPLEX`) instead of being hardcoded in workflows
+- **SEQUENCING RUN METRICS display logic**: "Passed reads" and "Passed bases" metrics now hidden when values are 0 (common when basecalling is disabled in MinKNOW)
 
 ### Fixed
 
