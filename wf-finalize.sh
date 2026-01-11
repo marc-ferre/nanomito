@@ -1174,11 +1174,6 @@ fi
 # --- Email Header ---------------------------------------------------------
 start_html
 
-# --- CLEAN UP TEMPORARY FILES FROM PREVIOUS RUNS --------------------------
-# Remove any orphaned .tmp files from previous runs that may have failed
-log_info "Cleaning up orphaned temporary files from previous runs..."
-find "$PROCESS_DIR" -maxdepth 1 -name "*.$RUN_ID.*.tmp" -type f -delete 2>/dev/null || true
-
 # --- MERGE TEMPORARY SUMMARY FILES FROM PARALLEL JOBS ---------------------
 # Each demultmt/modmito job writes to its own .tmp file to avoid locking issues
 # Now that all jobs are complete, merge them into final summary files
@@ -1219,6 +1214,12 @@ if [ ${#WORKFLOW_TMP_FILES[@]} -gt 0 ] && [ -f "${WORKFLOW_TMP_FILES[0]}" ]; the
   rm -f "${WORKFLOW_TMP_FILES[@]}"
   log_ok "Merged workflows_summary: $(wc -l < "$SUMMARY_TSV") lines"
 fi
+
+# --- CLEAN UP TEMPORARY FILES FROM OTHER RUNS ----------------------------
+# Remove any orphaned .tmp files from OTHER runs that may have failed
+# (we only remove files that don't match current RUN_ID to avoid issues)
+log_info "Cleaning up orphaned temporary files from other runs..."
+find "$PROCESS_DIR" -maxdepth 1 -name "*.*.tmp" -type f ! -name "*.$RUN_ID.*.tmp" -delete 2>/dev/null || true
 
 append_html "<div class=\"header\">"
 append_html "  <h1>🧬 NANOMITO WORKFLOW COMPLETED</h1>"
