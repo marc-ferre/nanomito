@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.5] - 2026-01-11
+
+### Fixed
+
+- **Total bases metric**: Changed from non-existent `basecalled_bases` to `estimated_selected_bases` from MinKNOW JSON reports
+- **HTML structure**: Fixed SEQUENCING RUN METRICS section not being properly closed, causing PER-SAMPLE RESULTS to be nested inside it
+
 ## [2.4.4] - 2026-01-11
 
 ### Added
