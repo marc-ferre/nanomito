@@ -304,7 +304,7 @@ BASECALL_BAM="$BAM_DIR/basecalls.bam"
 
 # Basecalling without sample-sheet to write single BAM file to stdout
 # The sample-sheet will be used in the demux step instead
-if $DORADO_BIN basecaller $MODEL "$POD5_DIR" --recursive \
+if $DORADO_BIN basecaller "$MODEL" "$POD5_DIR" --recursive \
 	> "$BASECALL_BAM"; then
 	STEP_END=$(date +%s)
 	STEP_RUNTIME=$((STEP_END - STEP_START))

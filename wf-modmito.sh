@@ -240,7 +240,7 @@ $DORADO_BIN --version
 
 log_info "Starting duplex basecalling with modifications..."
 
-$DORADO_BIN duplex $MODEL_COMPLEX "$DEMULT_POD5_FILE" \
+$DORADO_BIN duplex "$MODEL_COMPLEX" "$DEMULT_POD5_FILE" \
 	--verbose \
 	--reference "$SELECTED_REF" \
 	> "$BAM_FILE"

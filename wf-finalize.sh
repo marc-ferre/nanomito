@@ -1180,38 +1180,38 @@ start_html
 log_info "Merging temporary summary files from parallel jobs..."
 
 # Merge demult_summary files
-DEMULT_TMP_FILES="$PROCESS_DIR/demult_summary.$RUN_ID."*.tmp
-if compgen -G "$DEMULT_TMP_FILES" > /dev/null; then
+DEMULT_TMP_FILES=("$PROCESS_DIR"/demult_summary."$RUN_ID".*.tmp)
+if [ ${#DEMULT_TMP_FILES[@]} -gt 0 ] && [ -f "${DEMULT_TMP_FILES[0]}" ]; then
   DEMULT_SUMMARY="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
   {
     printf "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching both\n"
-    cat $DEMULT_TMP_FILES | grep -v "^Run id" | sort
+    cat "${DEMULT_TMP_FILES[@]}" | grep -v "^Run id" | sort
   } > "$DEMULT_SUMMARY"
-  rm -f $DEMULT_TMP_FILES
+  rm -f "${DEMULT_TMP_FILES[@]}"
   log_ok "Merged demult_summary: $(wc -l < "$DEMULT_SUMMARY") lines"
 fi
 
 # Merge haplocheck_summary files
-HPLCHK_TMP_FILES="$PROCESS_DIR/haplocheck_summary.$RUN_ID."*.tmp
-if compgen -G "$HPLCHK_TMP_FILES" > /dev/null; then
+HPLCHK_TMP_FILES=("$PROCESS_DIR"/haplocheck_summary."$RUN_ID".*.tmp)
+if [ ${#HPLCHK_TMP_FILES[@]} -gt 0 ] && [ -f "${HPLCHK_TMP_FILES[0]}" ]; then
   HAPLOCHECK_SUMMARY="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
   {
-    head -n1 $(ls -1 $HPLCHK_TMP_FILES | head -1)
-    tail -q -n +2 $HPLCHK_TMP_FILES | sort
+    head -n1 "${HPLCHK_TMP_FILES[0]}"
+    tail -q -n +2 "${HPLCHK_TMP_FILES[@]}" | sort
   } > "$HAPLOCHECK_SUMMARY" 2>/dev/null || true
-  rm -f $HPLCHK_TMP_FILES
+  rm -f "${HPLCHK_TMP_FILES[@]}"
   [ -f "$HAPLOCHECK_SUMMARY" ] && log_ok "Merged haplocheck_summary: $(wc -l < "$HAPLOCHECK_SUMMARY") lines"
 fi
 
 # Merge workflow_summary files
-WORKFLOW_TMP_FILES="$PROCESS_DIR/workflows_summary.$RUN_ID."*.tmp
-if compgen -G "$WORKFLOW_TMP_FILES" > /dev/null; then
+WORKFLOW_TMP_FILES=("$PROCESS_DIR"/workflows_summary."$RUN_ID".*.tmp)
+if [ ${#WORKFLOW_TMP_FILES[@]} -gt 0 ] && [ -f "${WORKFLOW_TMP_FILES[0]}" ]; then
   SUMMARY_TSV="$PROCESS_DIR/workflows_summary.$RUN_ID.tsv"
   {
     printf "Run id\tSample id\tWorkflow\tRuntime (hh:mm:ss)\n"
-    cat $WORKFLOW_TMP_FILES | grep -v "^Run id" | sort
+    cat "${WORKFLOW_TMP_FILES[@]}" | grep -v "^Run id" | sort
   } > "$SUMMARY_TSV"
-  rm -f $WORKFLOW_TMP_FILES
+  rm -f "${WORKFLOW_TMP_FILES[@]}"
   log_ok "Merged workflows_summary: $(wc -l < "$SUMMARY_TSV") lines"
 fi
 
