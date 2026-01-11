@@ -566,23 +566,24 @@ generate_sample_html_report() {
   REPORT_JSON=$(find "$RUN_DIR" -type f -name "report_*.json" 2>/dev/null | sort -r | head -1)
   if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
     local metrics_output
-    metrics_output=$(python3 -c "
+    metrics_output=$(python3 << PYEOF
 import json
 try:
-    with open('$REPORT_JSON') as f:
+    with open("$REPORT_JSON") as f:
         data = json.load(f)
-    acq = data.get('acquisitions', [])
+    acq = data.get("acquisitions", [])
     if acq:
-        ys = acq[-1].get('acquisition_run_info', {}).get('yield_summary', {})
-        rc = str(ys.get('read_count', 'N/A'))
-        pb = str(ys.get('basecalled_pass_bases', 'N/A'))
-        pr = str(ys.get('basecalled_pass_read_count', 'N/A'))
-        print(f'{rc}|{pb}|{pr}')
+        ys = acq[-1].get("acquisition_run_info", {}).get("yield_summary", {})
+        rc = str(ys.get("read_count", "N/A"))
+        pb = str(ys.get("basecalled_pass_bases", "N/A"))
+        pr = str(ys.get("basecalled_pass_read_count", "N/A"))
+        print(f"{rc}|{pb}|{pr}")
     else:
-        print('N/A|N/A|N/A')
+        print("N/A|N/A|N/A")
 except Exception as e:
-    print(f'N/A|N/A|N/A')
-" 2>/dev/null)
+    print("N/A|N/A|N/A")
+PYEOF
+)
     read_count=$(echo "$metrics_output" | cut -d'|' -f1)
     basecalled_pass_bases=$(echo "$metrics_output" | cut -d'|' -f2)
     basecalled_pass_read_count=$(echo "$metrics_output" | cut -d'|' -f3)
@@ -1319,23 +1320,24 @@ if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
   # Extract key metrics using Python for proper JSON parsing
   # Metrics are in acquisitions[-1].acquisition_run_info.yield_summary (MinKNOW/Dorado report format)
   local metrics_output
-  metrics_output=$(python3 -c "
+  metrics_output=$(python3 << PYEOF
 import json
 try:
-    with open('$REPORT_JSON') as f:
+    with open("$REPORT_JSON") as f:
         data = json.load(f)
-    acq = data.get('acquisitions', [])
+    acq = data.get("acquisitions", [])
     if acq:
-        ys = acq[-1].get('acquisition_run_info', {}).get('yield_summary', {})
-        rc = str(ys.get('read_count', 'N/A'))
-        pb = str(ys.get('basecalled_pass_bases', 'N/A'))
-        pr = str(ys.get('basecalled_pass_read_count', 'N/A'))
-        print(f'{rc}|{pb}|{pr}')
+        ys = acq[-1].get("acquisition_run_info", {}).get("yield_summary", {})
+        rc = str(ys.get("read_count", "N/A"))
+        pb = str(ys.get("basecalled_pass_bases", "N/A"))
+        pr = str(ys.get("basecalled_pass_read_count", "N/A"))
+        print(f"{rc}|{pb}|{pr}")
     else:
-        print('N/A|N/A|N/A')
+        print("N/A|N/A|N/A")
 except Exception as e:
-    print(f'N/A|N/A|N/A')
-" 2>/dev/null)
+    print("N/A|N/A|N/A")
+PYEOF
+)
   
   read_count=$(echo "$metrics_output" | cut -d'|' -f1)
   basecalled_pass_bases=$(echo "$metrics_output" | cut -d'|' -f2)
