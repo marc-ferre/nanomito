@@ -565,8 +565,8 @@ generate_sample_html_report() {
   local read_count="N/A" basecalled_pass_read_count="N/A" basecalled_pass_bases="N/A"
   REPORT_JSON=$(find "$RUN_DIR" -type f -name "report_*.json" 2>/dev/null | sort -r | head -1)
   if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
-    read read_count basecalled_pass_bases basecalled_pass_read_count < <(
-      python3 -c "
+    local metrics_output
+    metrics_output=$(python3 -c "
 import json
 try:
     with open('$REPORT_JSON') as f:
@@ -577,13 +577,15 @@ try:
         rc = str(ys.get('read_count', 'N/A'))
         pb = str(ys.get('basecalled_pass_bases', 'N/A'))
         pr = str(ys.get('basecalled_pass_read_count', 'N/A'))
-        print(f'{rc} {pb} {pr}')
+        print(f'{rc}|{pb}|{pr}')
     else:
-        print('N/A N/A N/A')
+        print('N/A|N/A|N/A')
 except Exception as e:
-    print(f'N/A N/A N/A')
-" 2>/dev/null || echo "N/A N/A N/A"
-    )
+    print(f'N/A|N/A|N/A')
+" 2>/dev/null)
+    read_count=$(echo "$metrics_output" | cut -d'|' -f1)
+    basecalled_pass_bases=$(echo "$metrics_output" | cut -d'|' -f2)
+    basecalled_pass_read_count=$(echo "$metrics_output" | cut -d'|' -f3)
   fi
 
   # Haplogroup status/major/minor from individual haplocheck file
@@ -1316,8 +1318,8 @@ REPORT_MD=$(find "$RUN_DIR" -type f -name "report_*.md" 2>/dev/null | sort -r | 
 if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
   # Extract key metrics using Python for proper JSON parsing
   # Metrics are in acquisitions[-1].acquisition_run_info.yield_summary (MinKNOW/Dorado report format)
-  read read_count basecalled_pass_bases basecalled_pass_read_count < <(
-    python3 -c "
+  local metrics_output
+  metrics_output=$(python3 -c "
 import json
 try:
     with open('$REPORT_JSON') as f:
@@ -1328,13 +1330,16 @@ try:
         rc = str(ys.get('read_count', 'N/A'))
         pb = str(ys.get('basecalled_pass_bases', 'N/A'))
         pr = str(ys.get('basecalled_pass_read_count', 'N/A'))
-        print(f'{rc} {pb} {pr}')
+        print(f'{rc}|{pb}|{pr}')
     else:
-        print('N/A N/A N/A')
+        print('N/A|N/A|N/A')
 except Exception as e:
-    print(f'N/A N/A N/A')
-" 2>/dev/null || echo "N/A N/A N/A"
-  )
+    print(f'N/A|N/A|N/A')
+" 2>/dev/null)
+  
+  read_count=$(echo "$metrics_output" | cut -d'|' -f1)
+  basecalled_pass_bases=$(echo "$metrics_output" | cut -d'|' -f2)
+  basecalled_pass_read_count=$(echo "$metrics_output" | cut -d'|' -f3)
   
   # Debug log
   log_info "REPORT_JSON=$REPORT_JSON | read_count=$read_count | pass_reads=$basecalled_pass_read_count | pass_bases=$basecalled_pass_bases"
