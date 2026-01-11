@@ -563,7 +563,7 @@ generate_sample_html_report() {
 
   # Run metrics from report JSON
   local read_count="N/A" basecalled_pass_read_count="N/A" basecalled_pass_bases="N/A"
-  REPORT_JSON=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.json" -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1)
+  REPORT_JSON=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.json" | sort -r | head -1)
   if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
     read_count=$(grep -o '"read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
     basecalled_pass_read_count=$(grep -o '"basecalled_pass_read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
@@ -1293,8 +1293,8 @@ append_html "</div>"
 append_section "SEQUENCING RUN METRICS"
 
 # Try to find report file (JSON is easiest to parse, fallback to others)
-  REPORT_JSON=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.json" -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1)
-  REPORT_MD=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.md" -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1)
+REPORT_JSON=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.json" | sort -r | head -1)
+REPORT_MD=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.md" | sort -r | head -1)
 
 if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
   # Extract key metrics from the last snapshot in JSON
@@ -1302,6 +1302,9 @@ if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
   read_count=$(grep -o '"read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
   basecalled_pass_bases=$(grep -o '"basecalled_pass_bases":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
   basecalled_pass_read_count=$(grep -o '"basecalled_pass_read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
+  
+  # Debug log
+  log_info "REPORT_JSON=$REPORT_JSON | read_count=$read_count | pass_reads=$basecalled_pass_read_count | pass_bases=$basecalled_pass_bases"
   
   if [ "$read_count" != "N/A" ] && [ "$read_count" != "" ]; then
     reads_formatted=$(format_number "$read_count")
@@ -1348,8 +1351,6 @@ else
   append_html "    <span class=\"metric-value warning\">ℹ No report file found (report_*.json or report_*.md)</span>"
   append_html "  </div>"
 fi
-
-append_html "</div>"
 
 # --- 3. PER-SAMPLE RESULTS ------------------------------------------------
 append_section "PER-SAMPLE RESULTS"
