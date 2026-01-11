@@ -1323,7 +1323,6 @@ append_html "<!-- DEBUG: RUN_DIR=[${RUN_DIR}] -->"
 if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
   # Extract key metrics using Python for proper JSON parsing
   # Metrics are in acquisitions[-1].acquisition_run_info.yield_summary (MinKNOW/Dorado report format)
-  local metrics_output
   metrics_output=$(python3 << PYEOF
 import json
 try:
@@ -1348,7 +1347,7 @@ PYEOF
   basecalled_pass_read_count=$(echo "$metrics_output" | cut -d'|' -f3)
   
   # DEBUG: Include metrics in HTML comment for troubleshooting
-  append_html "<!-- DEBUG: metrics_output=[${metrics_output}] read_count=[${read_count}] -->"
+  append_html "<!-- DEBUG: FOUND_REPORT file=[$REPORT_JSON] metrics_output=[$metrics_output] read_count=[$read_count] -->"
   
   # Debug log
   log_info "REPORT_JSON=$REPORT_JSON | read_count=$read_count | pass_reads=$basecalled_pass_read_count | pass_bases=$basecalled_pass_bases"
