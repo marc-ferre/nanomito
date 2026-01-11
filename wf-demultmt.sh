@@ -372,29 +372,10 @@ if [ "$COUNT_MATCHED" -eq 0 ]; then
 	log_warning "Reads matching $SELECT: $COUNT_MATCHED (0.00%) - NO DATA TO PROCESS"
 	echo "==============================================="
 	
-	# Update summary file (with atomic lock to prevent race conditions)
-	# Add random delay to desynchronize parallel jobs
-	sleep $((RANDOM % 10))
-	
-	LOCK_FILE="${DEMULT_SUMMARY_FILE}.lock"
-	(
-		# Wait up to 180 seconds for the lock
-		if ! flock -w 180 -x 200; then
-			log_warning "Failed to acquire lock, retrying after random delay..."
-			sleep $((5 + RANDOM % 10))
-			if ! flock -w 180 -x 200; then
-				log_error "Failed to acquire lock after retry"
-				exit 65
-			fi
-		fi
-		if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
-			printf "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching %s\n" "$SELECT" > "$DEMULT_SUMMARY_FILE"
-			log_success "Created demultiplexing summary file"
-		fi
-		printf "%s\t%s\t%s\t%s\t%s\t%s\n" "$RUN_ID" "$SAMPLE_ID" "$COUNT_TOTAL" "$COUNT_ALIGN" "$COUNT_CHRM" "$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
-		log_success "Updated demultiplexing summary file"
-	) 200>"$LOCK_FILE"
-	rm -f "$LOCK_FILE"
+	# Write to temporary file (no locking needed - one file per sample)
+	DEMULT_TMP_FILE="${DEMULT_SUMMARY_FILE%.tsv}.$SAMPLE_ID.tmp"
+	printf "%s\t%s\t%s\t%s\t%s\t%s\n" "$RUN_ID" "$SAMPLE_ID" "$COUNT_TOTAL" "$COUNT_ALIGN" "$COUNT_CHRM" "$COUNT_MATCHED" >> "$DEMULT_TMP_FILE"
+	log_success "Wrote demultiplexing summary to temporary file: $(basename "$DEMULT_TMP_FILE")"
 	
 	# Create empty marker file to indicate no data
 	touch "$OUT_DIR/NO_DATA.marker"
@@ -418,29 +399,11 @@ fi
 log_success "Reads matching $SELECT: $COUNT_MATCHED ($(awk "BEGIN {printf \"%.2f\", ($COUNT_MATCHED/$COUNT_TOTAL)*100}")%)"
 echo "==============================================="
 
-# Atomic file update to prevent race conditions between parallel jobs
-# Add random delay (0-10s) to desynchronize parallel jobs
-sleep $((RANDOM % 10))
-
-LOCK_FILE="${DEMULT_SUMMARY_FILE}.lock"
-(
-	# Wait up to 180 seconds for the lock (sufficient for 20+ parallel jobs)
-	if ! flock -w 180 -x 200; then
-		log_warning "Failed to acquire lock, retrying after random delay..."
-		sleep $((5 + RANDOM % 10))
-		if ! flock -w 180 -x 200; then
-			log_error "Failed to acquire lock after retry"
-			exit 65
-		fi
-	fi
-	if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
-		printf "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching %s\n" "$SELECT" > "$DEMULT_SUMMARY_FILE"
-		log_success "Created demultiplexing summary file"
-	fi
-	printf "%s\t%s\t%s\t%s\t%s\t%s\n" "$RUN_ID" "$SAMPLE_ID" "$COUNT_TOTAL" "$COUNT_ALIGN" "$COUNT_CHRM" "$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
-	log_success "Updated demultiplexing summary file"
-) 200>"$LOCK_FILE"
-rm -f "$LOCK_FILE"
+# Write to temporary file (no locking needed - one file per sample)
+# Main wf-finalize.sh will merge all .tmp files after all jobs complete
+DEMULT_TMP_FILE="${DEMULT_SUMMARY_FILE%.tsv}.$SAMPLE_ID.tmp"
+printf "%s\t%s\t%s\t%s\t%s\t%s\n" "$RUN_ID" "$SAMPLE_ID" "$COUNT_TOTAL" "$COUNT_ALIGN" "$COUNT_CHRM" "$COUNT_MATCHED" >> "$DEMULT_TMP_FILE"
+log_success "Wrote demultiplexing summary to temporary file: $(basename "$DEMULT_TMP_FILE")"
 
 log_info "Samtools version: $(samtools --version | head -n1)"
 log_info "Aligning reads to mitochondrial references..."
@@ -774,31 +737,15 @@ if [ -n "$haplofiles" ]; then
   log_info "Preserving haplocheck results: $haplofiles"
 fi
 
-# Atomic file creation to prevent race conditions between parallel jobs
-# Add random delay to desynchronize parallel jobs
-sleep $((RANDOM % 10))
-
-LOCK_FILE="${HPLCHK_SUMMARY_FILE}.lock"
-(
-	# Wait up to 180 seconds for the lock
-	if ! flock -w 180 -x 200; then
-		log_warning "Failed to acquire lock for haplocheck, retrying after random delay..."
-		sleep $((5 + RANDOM % 10))
-		if ! flock -w 180 -x 200; then
-			log_error "Failed to acquire lock for haplocheck after retry"
-			exit 65
-		fi
-	fi
-	
-	if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
-		cp "$HPLCHK_RAW_FILE" "$HPLCHK_SUMMARY_FILE"
-		log_success "Created haplocheck summary file"
-	else
-		tail -n +2 "$HPLCHK_RAW_FILE" >> "$HPLCHK_SUMMARY_FILE"
-		log_success "Updated haplocheck summary file"
-	fi
-) 200>"$LOCK_FILE"
-rm -f "$LOCK_FILE"
+# Write haplocheck results to temporary file (no locking needed - one file per sample)
+# Main wf-finalize.sh will merge all .tmp files after all jobs complete
+HPLCHK_TMP_FILE="${HPLCHK_SUMMARY_FILE%.tsv}.$SAMPLE_ID.tmp"
+if [ -f "$HPLCHK_RAW_FILE" ]; then
+	cat "$HPLCHK_RAW_FILE" >> "$HPLCHK_TMP_FILE"
+	log_success "Wrote haplocheck summary to temporary file: $(basename "$HPLCHK_TMP_FILE")"
+else
+	log_warning "Haplocheck results file not found: $HPLCHK_RAW_FILE"
+fi
 
 conda deactivate
 
@@ -832,29 +779,10 @@ log_info "Haplogroup: $HAPLOGROUP"
 log_info "Output directory: $OUT_DIR"
 echo "======================================"
 
-# Write workflow summary file (with atomic lock to prevent race conditions)
-# Add random delay to desynchronize parallel jobs
-sleep $((RANDOM % 10))
-
-LOCK_FILE="${WORKFLOW_SUMMARY_FILE}.lock"
-(
-	# Wait up to 180 seconds for the lock
-	if ! flock -w 180 -x 200; then
-		log_warning "Failed to acquire lock for workflow summary, retrying after random delay..."
-		sleep $((5 + RANDOM % 10))
-		if ! flock -w 180 -x 200; then
-			log_error "Failed to acquire lock for workflow summary after retry"
-			exit 65
-		fi
-	fi
-	if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-		printf "Run id\tSample id\tWorkflow\tRuntime (hh:mm:ss)\n" > "$WORKFLOW_SUMMARY_FILE"
-		log_success "Created workflow summary file"
-	fi
-	printf "%s\t%s\t%s\t%02d:%02d:%02d\n" "$RUN_ID" "$SAMPLE_ID" "demultmt" "$HOURS" "$MINUTES" "$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
-	log_success "Updated workflow summary file: $WORKFLOW_SUMMARY_FILE"
-) 200>"$LOCK_FILE"
-rm -f "$LOCK_FILE"
+# Write to temporary file (no locking needed - one file per sample)
+WORKFLOW_TMP_FILE="${WORKFLOW_SUMMARY_FILE%.tsv}.$SAMPLE_ID.tmp"
+printf "%s\t%s\t%s\t%02d:%02d:%02d\n" "$RUN_ID" "$SAMPLE_ID" "demultmt" "$HOURS" "$MINUTES" "$SECONDS" >> "$WORKFLOW_TMP_FILE"
+log_success "Wrote workflow summary to temporary file: $(basename "$WORKFLOW_TMP_FILE")"
 
 echo ""
 echo "=========================================="
