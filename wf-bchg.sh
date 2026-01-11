@@ -53,11 +53,12 @@ mkdir -p "$PROCESS_DIR"
 RUN_ID=$(basename "$RUN_DIR")
 
 # Files - Robust handling of multiple sample_sheet files
-mapfile -t SAMPLESHEET_FILES < <(find "$RUN_DIR" -maxdepth 2 -type f -name 'sample_sheet_*.csv')
+# Look for both sample_sheet_*.csv and sample-sheet*.csv patterns (case-insensitive)
+mapfile -t SAMPLESHEET_FILES < <(find "$RUN_DIR" -maxdepth 2 -type f -iname 'sample*sheet*.csv' | sort)
 
 if [ ${#SAMPLESHEET_FILES[@]} -eq 0 ]; then
-    echo "[ERROR] No sample_sheet_*.csv file found in $RUN_DIR or subdirectories"
-    echo "Looking for files matching: sample_sheet_*.csv"
+    echo "[ERROR] No sample sheet CSV file found in $RUN_DIR or subdirectories"
+    echo "Looking for files matching: sample*sheet*.csv (sample_sheet_*.csv, sample-sheet*.csv, etc.)"
     echo "Available CSV files:"
     find "$RUN_DIR" -maxdepth 2 -type f -name '*.csv'
     exit 128
@@ -134,7 +135,8 @@ fi
 source "$CONFIG_FILE"
 
 # Basecalling options
-MODEL='sup'
+# MODEL can be overridden by command-line args, use config default if not set
+MODEL="${DORADO_MODEL:-sup}"  # Allow override via DORADO_MODEL in nanomito.config
 KIT='SQK-NBD114-24'
 
 # Logging helper functions
@@ -256,15 +258,16 @@ fi
 log_success "Sample sheet contains all required columns"
 
 # Find column indices for barcode and alias (if present)
+# Use 0-based indexing for bash arrays, matching wf-subwf.sh calculation
 BARCODE_COL=-1
 ALIAS_COL=-1
 for i in "${!HEADER[@]}"; do
     if [ "${HEADER[$i]}" = "barcode" ]; then
         BARCODE_COL=$i
-        log_info "Found 'barcode' column at index $BARCODE_COL"
+        log_info "Found 'barcode' column at index $BARCODE_COL (0-based for bash array access)"
     elif [ "${HEADER[$i]}" = "alias" ]; then
         ALIAS_COL=$i
-        log_info "Found 'alias' column at index $ALIAS_COL"
+        log_info "Found 'alias' column at index $ALIAS_COL (0-based for bash array access)"
     fi
 done
 
@@ -502,6 +505,7 @@ if [ -f "$SAMPLESHEET_FILE" ] && [ "$BARCODE_COL" -ge 0 ] && [ "$ALIAS_COL" -ge 
 	
 	# Read CSV dynamically using column indices (handle both Unix and Windows line endings)
 	# Use || [[ -n "$COLS" ]] to handle last line without newline
+	MAPPING_COUNT=0
 	while IFS=, read -ra COLS || [[ -n "${COLS[*]}" ]]; do
 		# Skip header line
 		if [ "${COLS[$BARCODE_COL]}" = "barcode" ]; then
@@ -512,19 +516,33 @@ if [ -f "$SAMPLESHEET_FILE" ] && [ "$BARCODE_COL" -ge 0 ] && [ "$ALIAS_COL" -ge 
 		BARCODE="${COLS[$BARCODE_COL]}"
 		ALIAS="${COLS[$ALIAS_COL]}"
 		
+		# Strip any trailing \r from both barcode and alias (Windows line endings)
+		BARCODE="${BARCODE%$'\r'}"
+		ALIAS="${ALIAS%$'\r'}"
+		
 		# Skip empty lines
 		[[ -z "$BARCODE" ]] && continue
 		
-		# Store mapping: barcode -> alias (strip any trailing \r from alias)
-		ALIAS="${ALIAS%$'\r'}"
+		# Store mapping: barcode -> alias
 		BARCODE_ALIAS["$BARCODE"]="$ALIAS"
+		((MAPPING_COUNT++)) || true
 		log_info "Mapped $BARCODE → $ALIAS"
 	done < "$SAMPLESHEET_FILE"
+	
+	if [ "$MAPPING_COUNT" -eq 0 ]; then
+		log_warning "No barcode→alias mappings found in sample sheet (all rows skipped or empty)"
+	else
+		log_success "Created $MAPPING_COUNT barcode→alias mapping(s)"
+	fi
 else
 	if [ ! -f "$SAMPLESHEET_FILE" ]; then
 		log_warning "Sample sheet not found, using default directory names"
-	elif [ "$BARCODE_COL" -eq -1 ] || [ "$ALIAS_COL" -eq -1 ]; then
-		log_warning "Sample sheet lacks 'barcode' or 'alias' column, using default directory names"
+	elif [ "$BARCODE_COL" -eq -1 ]; then
+		log_warning "Sample sheet missing 'barcode' column (detected at index -1), cannot map aliases"
+		log_info "Available columns in sample sheet: ${HEADER[*]}"
+	elif [ "$ALIAS_COL" -eq -1 ]; then
+		log_warning "Sample sheet missing 'alias' column (detected at index -1), will use barcode names as directory names"
+		log_info "Available columns in sample sheet: ${HEADER[*]}"
 	fi
 fi
 

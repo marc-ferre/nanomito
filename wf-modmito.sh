@@ -119,8 +119,8 @@ SAMPLE_ID=$1
 # Read selection strategy (start, both, either ,xor)
 SELECT='both' 
 
-# Basecalling model
-MODEL_COMPLEX='sup,5mC_5hmC,6mA'
+# Basecalling model - use config default, fallback to hard-coded value
+MODEL_COMPLEX="${DORADO_MODEL_COMPLEX:-sup,5mC_5hmC,6mA}"
 
 # Directories
 RUN_DIR=$(pwd)
@@ -128,11 +128,6 @@ PROCESS_DIR="$RUN_DIR/processing"
 OUT_DIR="$PROCESS_DIR/$SAMPLE_ID"
 SELECT_DIR="$OUT_DIR/select-$SELECT"
 # MODBASE_DIR="$OUT_DIR/modbase"
-
-# ============================================================================
-
-# Basecalling model
-MODEL_COMPLEX='sup,5mC_5hmC,6mA'
 
 # Prefixes
 BAM_PREFIX="$SAMPLE_ID.chrM.$MODEL_COMPLEX"
@@ -144,9 +139,10 @@ SORTED_BAM_FILE="$OUT_DIR/$BAM_PREFIX.sorted.bam"
 BEDMETHYL_FILE="$OUT_DIR/$BAM_PREFIX.combine.bed"
 
 # Handle multiple sample_sheet files (select oldest if multiple exist)
-mapfile -t SAMPLESHEET_FILES < <(find "$RUN_DIR" -maxdepth 2 -type f -name 'sample_sheet_*.csv')
+# Look for both sample_sheet_*.csv and sample-sheet*.csv patterns (case-insensitive)
+mapfile -t SAMPLESHEET_FILES < <(find "$RUN_DIR" -maxdepth 2 -type f -iname 'sample*sheet*.csv' | sort)
 if [ ${#SAMPLESHEET_FILES[@]} -eq 0 ]; then
-    log_error "No sample_sheet_*.csv file found in $RUN_DIR"
+    log_error "No sample sheet CSV file found in $RUN_DIR (expected patterns: sample_sheet_*.csv, sample-sheet*.csv, etc.)"
     exit 1
 elif [ ${#SAMPLESHEET_FILES[@]} -eq 1 ]; then
     SAMPLESHEET_FILE=$(readlink -f "${SAMPLESHEET_FILES[0]}")

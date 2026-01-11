@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Dorado models are now configurable via `nanomito.config` (`DORADO_MODEL`, `DORADO_MODEL_COMPLEX`) instead of being hardcoded in workflows
+
+### Fixed
+- Barcode→alias mapping in `wf-bchg.sh` now strips Windows `\r` from barcode values (CRLF sample sheets)
+
 ## [2.4.0] - 2026-01-11
 
 ### Added

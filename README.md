@@ -59,6 +59,21 @@ tools/rerun_all_workflows.sh /path/to/runs --only-needing
 
 **Full details**: [tools/HAPLOCHECK_FIX_NOTES.md](tools/HAPLOCHECK_FIX_NOTES.md)
 
+### Troubleshooting: Barcodes & Sample Sheet
+
+- Windows CSV (CRLF) files are still supported, but they can break aliases if `\r` is not removed.
+- The pipeline now strips `\r` from barcodes/aliases in `wf-bchg.sh`, but ideally convert the sheet before import: `dos2unix sample_sheet*.csv`.
+- Expected columns: `barcode` and `alias` (plus `kit`, `experiment_id`, `flow_cell_id`, or `position_id`).
+- Quick diagnostics: `tools/diagnose_samplesheet.sh /path/to/run` lists the columns and the detected mappings.
+
+### Dorado Models (basecalling & mods)
+
+- Configure the models in `nanomito.config`:
+  - `DORADO_MODEL='sup'` (wf-bchg)
+  - `DORADO_MODEL_COMPLEX='sup,5mC_5hmC,6mA'` (wf-modmito)
+- If Dorado returns `No matches for chemistry...mods_variant`, switch to the basic model: `DORADO_MODEL_COMPLEX='sup'`.
+- Make sure the installed Dorado version provides the requested model (`dorado --version`, then `dorado download model ...`).
+
 ## Workflow Architecture
 
 ```text

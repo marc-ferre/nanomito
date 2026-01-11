@@ -1,27 +1,26 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: CECILL-2.1
-# Batch relance des workflows Nanomito sur un ensemble de runs.
-# Soumet pour chaque run: submit_nanomito.sh --skip-bchg (par défaut) afin de réanalyser avec les dernières annotations/AF.
+# Batch re-run Nanomito workflows over a set of runs.
+# Submits per run: submit_nanomito.sh --skip-bchg (default) to reprocess with latest annotations/AF.
 #
 # Usage:
-#   tools/rerun_all_workflows.sh /chemin/vers/racine_runs [options]
+#   tools/rerun_all_workflows.sh /path/to/runs_root [options]
 #
 # Options:
-#   --dry-run           Affiche les commandes sans exécuter
-#   --no-skip-bchg      Ne pas passer --skip-bchg (relance aussi bchg)
-#   --only-needing      Ne soumettre que les runs qui semblent nécessiter la relance
-#   --pattern GLOB      Ne traiter que les dossiers correspondant au motif (ex: 2405*)
-#   --sleep SEC         Pause entre soumissions (défaut: 2s)
-#   --include-unclassified  Passe à submit_nanomito.sh
-#   --only-samples LIST      Passe à submit_nanomito.sh (ex: S1,S2)
-#   --export-name NAME       Passe à submit_nanomito.sh
-#   --extra "ARGS"        Args additionnels passés à submit_nanomito.sh tels quels
-#   --summary FILE        Écrit un récap TSV (timestamp, run_dir, status, args)
+#   --dry-run           Print commands without executing
+#   --no-skip-bchg      Do not pass --skip-bchg (also rerun bchg)
+#   --only-needing      Submit only runs that appear to need rerun
+#   --pattern GLOB      Only process directories matching the glob (e.g., 2405*)
+#   --sleep SEC         Pause between submissions (default: 2s)
+#   --include-unclassified  Forward to submit_nanomito.sh
+#   --only-samples LIST      Forward to submit_nanomito.sh (e.g., S1,S2)
+#   --export-name NAME       Forward to submit_nanomito.sh
+#   --extra "ARGS"        Extra args forwarded to submit_nanomito.sh as-is
+#   --summary FILE        Write a TSV summary (timestamp, run_dir, status, args)
 #
 # Notes:
-# - Détection "--only-needing": cherche un VCF nanopo re *.ann.vcf (ou .vcf.gz) et vérifie
-#   la présence d'un header INFO/AF et de tags préfixés MitoMap_/gnomAD_. Si absent → relance.
-# - Vous pouvez adapter la logique de découverte des runs via --pattern.
+# - "--only-needing": looks for a Nanopore *.ann.vcf (or .vcf.gz) and checks for INFO/AF header and prefixed MitoMap_/gnomAD_ tags. If missing → rerun.
+# - You can adjust run discovery logic via --pattern.
 
 set -euo pipefail
 
@@ -29,7 +28,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUBMIT_SCRIPT="${SCRIPT_DIR}/submit_nanomito.sh"
 
 if [[ ! -x "$SUBMIT_SCRIPT" ]]; then
-  echo "[ERROR] Script introuvable ou non exécutable: $SUBMIT_SCRIPT" >&2
+  echo "[ERROR] Script not found or not executable: $SUBMIT_SCRIPT" >&2
   exit 1
 fi
 
@@ -63,32 +62,32 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      if [[ -z "$ROOT" ]]; then ROOT="$1"; shift; else echo "[ERROR] Argument inattendu: $1" >&2; exit 1; fi ;;
+      if [[ -z "$ROOT" ]]; then ROOT="$1"; shift; else echo "[ERROR] Unexpected argument: $1" >&2; exit 1; fi ;;
   esac
 done
 
 if [[ -z "$ROOT" ]]; then
-  echo "[ERROR] Spécifiez la racine des runs." >&2
+  echo "[ERROR] Specify the runs root." >&2
   echo "Ex: tools/rerun_all_workflows.sh /workbench/runs --dry-run --only-needing" >&2
   exit 1
 fi
 
 if [[ ! -d "$ROOT" ]]; then
-  echo "[ERROR] Répertoire introuvable: $ROOT" >&2
+  echo "[ERROR] Directory not found: $ROOT" >&2
   exit 1
 fi
 
 needs_rerun() {
   # $1 = run_dir
   local run_dir="$1"
-  # Cherche un VCF annoté Nanopore pour inspection
+  # Locate a Nanopore-annotated VCF for inspection
   local vcf
   vcf=$(find "$run_dir" -maxdepth 3 -type f \( -name "*.ann.vcf" -o -name "*.ann.vcf.gz" \) -print -quit 2>/dev/null || true)
   if [[ -z "$vcf" ]]; then
-    # Pas de VCF trouvé → on considère qu'une relance est utile
+    # No VCF found → rerun is useful
     return 0
   fi
-  # Lecture 200 premières lignes (header + début) selon compression
+  # Read first 200 lines (header + start) depending on compression
   local head_content=""
   if [[ "$vcf" == *.gz ]]; then
     head_content=$(zcat "$vcf" 2>/dev/null | head -n 200 2>/dev/null || true)
@@ -96,26 +95,26 @@ needs_rerun() {
     head_content=$(head -n 200 "$vcf" 2>/dev/null || true)
   fi
   if [[ -z "$head_content" ]]; then
-    # Pas pu lire le VCF → on relance pour être sûr
+    # Could not read the VCF → rerun to be safe
     return 0
   fi
-  # Vérifie présence du header INFO/AF (nouveau champ)
+  # Check INFO/AF header (new field)
   if ! echo "$head_content" | grep -qE '^##INFO=<ID=AF,.*Description="Allele Frequency from sample for haplocheck"'; then
     return 0
   fi
-  # Vérifie présence des préfixes d'annotations
+  # Check annotation prefixes
   if ! echo "$head_content" | grep -q 'MitoMap_'; then
     return 0
   fi
   if ! echo "$head_content" | grep -q 'gnomAD_'; then
     return 0
   fi
-  # Tout semble à jour → pas besoin de relancer
+  # Looks up-to-date → no rerun needed
   return 1
 }
 
 if [[ -n "$SUMMARY_FILE" ]]; then
-  # Initialise le fichier résumé avec en-tête TSV
+  # Initialize summary file with TSV header
   {
     echo -e "timestamp\trun_dir\tstatus\targs"
   } > "$SUMMARY_FILE"
@@ -157,7 +156,7 @@ count_total=0
 count_submitted=0
 count_skipped=0
 
-# Découverte des runs
+# Run discovery
 shopt -s nullglob
 for run_dir in "$ROOT"/$PATTERN/; do
   [[ -d "$run_dir" ]] || continue
@@ -167,7 +166,7 @@ for run_dir in "$ROOT"/$PATTERN/; do
       submit_one "$run_dir"
       ((count_submitted++)) || true
     else
-      echo "[SKIP] $run_dir (semble déjà à jour)"
+      echo "[SKIP] $run_dir (already up to date)"
       ((count_skipped++)) || true
       append_summary "SKIPPED_UP_TO_DATE" "$run_dir" "--only-needing ${PATTERN:+--pattern $PATTERN}"
     fi
@@ -179,4 +178,4 @@ for run_dir in "$ROOT"/$PATTERN/; do
 done
 shopt -u nullglob
 
-echo "[SUMMARY] Total: $count_total | Soumis: $count_submitted | Sautés: $count_skipped"
+echo "[SUMMARY] Total: $count_total | Submitted: $count_submitted | Skipped: $count_skipped"

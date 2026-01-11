@@ -556,7 +556,7 @@ tsv_to_html() {
         line_num=$((line_num + 1))
 
         if [[ $line_num -eq 1 ]]; then
-            # Header row (préserver toutes les colonnes)
+            # Header row (preserve all columns)
             header_line="$line"
             num_cols=$(awk -F'\t' '{print NF}' <<< "$header_line")
             html+="<thead><tr>"
@@ -580,7 +580,7 @@ tsv_to_html() {
                 fi
             fi
 
-            # Détection deletion via ALT (colonne 5)
+            # Deletion detection via ALT (column 5)
             local alt_field
             alt_field=$(printf "%s" "$line" | cut -f 5)
             if [[ "$alt_field" =~ ^"<DEL" ]]; then

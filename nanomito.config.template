@@ -65,6 +65,21 @@ ANN_MITOMAP_DISEASE='/path/to/reference/MITOMAP/disease-nosp.vcf'
 ANN_MITOMAP_POLYMORPHISMS='/path/to/reference/MITOMAP/polymorphisms.vcf'
 
 # =============================================================================
+# DORADO MODELS
+# =============================================================================
+# Basecalling model for wf-bchg (basic basecalling)
+DORADO_MODEL='sup'
+
+# Modified bases model for wf-modmito (duplex basecalling with modifications)
+# Format: model_name,modification1,modification2,...
+# Available modifications: 5mC_5hmC, 6mA, etc.
+# Note: Not all modifications are available for all chemistries/versions
+DORADO_MODEL_COMPLEX='sup,5mC_5hmC,6mA'
+
+# Alternative: use only basic model without modifications (if duplex fails)
+# Uncomment to use: DORADO_MODEL_COMPLEX='sup'
+
+# =============================================================================
 # SLURM MAIL CONFIGURATION
 # =============================================================================
 MAIL_USER='your.email@domain.com'

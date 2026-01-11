@@ -265,6 +265,7 @@ if [ "$PROCESS_ALL" = false ]; then
 		log_info "Reading sample sheet: $SAMPLESHEET_FILE"
 		
 		# Read CSV header to find barcode and alias column indices dynamically (handle both Unix and Windows line endings)
+		# Note: awk uses 1-based column indexing, so we add 1 to bash array index (0-based)
 		IFS=, read -ra HEADER < <(head -n 1 "$SAMPLESHEET_FILE" | tr -d '\r')
 		BARCODE_COL=-1
 		ALIAS_COL=-1
