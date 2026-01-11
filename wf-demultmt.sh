@@ -375,7 +375,15 @@ if [ "$COUNT_MATCHED" -eq 0 ]; then
 	# Update summary file (with atomic lock to prevent race conditions)
 	LOCK_FILE="${DEMULT_SUMMARY_FILE}.lock"
 	(
-		flock -x 200
+		# Wait up to 60 seconds for the lock, retry once on failure
+		if ! flock -w 60 -x 200; then
+			log_warning "Failed to acquire lock, retrying in 5 seconds..."
+			sleep 5
+			if ! flock -w 60 -x 200; then
+				log_error "Failed to acquire lock after retry"
+				exit 65
+			fi
+		fi
 		if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
 			printf "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching %s\n" "$SELECT" > "$DEMULT_SUMMARY_FILE"
 			log_success "Created demultiplexing summary file"
@@ -410,7 +418,15 @@ echo "==============================================="
 # Atomic file update to prevent race conditions between parallel jobs
 LOCK_FILE="${DEMULT_SUMMARY_FILE}.lock"
 (
-	flock -x 200
+	# Wait up to 60 seconds for the lock, retry once on failure
+	if ! flock -w 60 -x 200; then
+		log_warning "Failed to acquire lock, retrying in 5 seconds..."
+		sleep 5
+		if ! flock -w 60 -x 200; then
+			log_error "Failed to acquire lock after retry"
+			exit 65
+		fi
+	fi
 	if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
 		printf "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching %s\n" "$SELECT" > "$DEMULT_SUMMARY_FILE"
 		log_success "Created demultiplexing summary file"
@@ -756,8 +772,15 @@ fi
 # Using a lock file with flock for thread-safe operations
 LOCK_FILE="${HPLCHK_SUMMARY_FILE}.lock"
 (
-	# Acquire exclusive lock (wait if necessary)
-	flock -x 200
+	# Wait up to 60 seconds for the lock, retry once on failure
+	if ! flock -w 60 -x 200; then
+		log_warning "Failed to acquire lock for haplocheck, retrying in 5 seconds..."
+		sleep 5
+		if ! flock -w 60 -x 200; then
+			log_error "Failed to acquire lock for haplocheck after retry"
+			exit 65
+		fi
+	fi
 	
 	if ! [ -e "$HPLCHK_SUMMARY_FILE" ] ; then
 		cp "$HPLCHK_RAW_FILE" "$HPLCHK_SUMMARY_FILE"
@@ -804,7 +827,15 @@ echo "======================================"
 # Write workflow summary file (with atomic lock to prevent race conditions)
 LOCK_FILE="${WORKFLOW_SUMMARY_FILE}.lock"
 (
-	flock -x 200
+	# Wait up to 60 seconds for the lock, retry once on failure
+	if ! flock -w 60 -x 200; then
+		log_warning "Failed to acquire lock for workflow summary, retrying in 5 seconds..."
+		sleep 5
+		if ! flock -w 60 -x 200; then
+			log_error "Failed to acquire lock for workflow summary after retry"
+			exit 65
+		fi
+	fi
 	if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
 		printf "Run id\tSample id\tWorkflow\tRuntime (hh:mm:ss)\n" > "$WORKFLOW_SUMMARY_FILE"
 		log_success "Created workflow summary file"

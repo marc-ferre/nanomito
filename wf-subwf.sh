@@ -507,7 +507,15 @@ log_info "End time: $(date '+%Y-%m-%d %H:%M:%S')"
 # Write workflow summary file (with atomic lock to prevent race conditions)
 LOCK_FILE="${WORKFLOW_SUMMARY_FILE}.lock"
 (
-	flock -x 200
+	# Wait up to 60 seconds for the lock, retry once on failure
+	if ! flock -w 60 -x 200; then
+		log_warning "Failed to acquire lock for workflow summary, retrying in 5 seconds..."
+		sleep 5
+		if ! flock -w 60 -x 200; then
+			log_error "Failed to acquire lock for workflow summary after retry"
+			exit 65
+		fi
+	fi
 	if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
 		echo "Run id\tSample id\tWorkflow\tRuntime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
 		log_success "Created workflow summary file"
