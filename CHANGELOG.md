@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.4.1] - 2026-01-11
+## [2.4.4] - 2026-01-11
 
 ### Added
 
@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **SEQUENCING RUN METRICS display logic**: "Passed reads" and "Passed bases" metrics now hidden when values are 0 (common when basecalling is disabled in MinKNOW)
+
+## [2.4.3] - 2026-01-11
+
+### Changed
+
+- **Complete English translation** of all documentation and user-facing content
+
+### Added
+
+- **Diagnostic tool** for sample sheet validation (`tools/diagnose_samplesheet.sh`)
 
 ## [2.4.0] - 2026-01-11
 
