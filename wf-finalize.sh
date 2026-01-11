@@ -563,7 +563,7 @@ generate_sample_html_report() {
 
   # Run metrics from report JSON
   local read_count="N/A" basecalled_pass_read_count="N/A" basecalled_pass_bases="N/A"
-  REPORT_JSON=$(find "$RUN_DIR" -maxdepth 1 -name "report_*.json" | head -1)
+  REPORT_JSON=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.json" -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1)
   if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
     read_count=$(grep -o '"read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
     basecalled_pass_read_count=$(grep -o '"basecalled_pass_read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
@@ -878,6 +878,10 @@ PY
           
           report_file="report-${_sample}.html"
           bam_file="${_sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
+          # If model suffix differs, pick the first available sorted BAM
+          if [ ! -f "$_sample_dir/$bam_file" ]; then
+            bam_file=$(find "$_sample_dir" -maxdepth 1 -type f -name "*.sorted.bam" | head -1 || true)
+          fi
           ann_vcf="${_sample}.ann.vcf"
           ann_tsv_file="${_sample}.ann.tsv"
           
@@ -888,11 +892,11 @@ PY
             echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $report_file - NOT FOUND</div>"
           fi
           
-          if [ -f "$_sample_dir/$bam_file" ]; then
+          if [ -n "$bam_file" ] && [ -f "$_sample_dir/$bam_file" ]; then
             bam_size=$(du -h "$_sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
-            echo "<div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $bam_file ($bam_size)</div>"
+            echo "<div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $(basename "$bam_file") ($bam_size)</div>"
           else
-            echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $bam_file - NOT FOUND</div>"
+            echo "<div class=\"file-item\"><span class=\"badge badge-error\">✗</span> *.sorted.bam - NOT FOUND</div>"
           fi
           
           if [ -f "$_sample_dir/$ann_vcf" ]; then
@@ -1107,6 +1111,12 @@ if [ "$REPORTS_ONLY" = "true" ]; then
   conda activate "$ANNOTMT_ENV" || log_warning "Failed to activate ANNOTMT_ENV"
   
   DEMULT_SUMMARY="$PROCESS_DIR/demult_summary.$RUN_ID.tsv"
+  if [ ! -f "$DEMULT_SUMMARY" ]; then
+    DEMULT_SUMMARY=$(find "$PROCESS_DIR" -maxdepth 2 -type f -name "demult_summary*.tsv" | head -1 || true)
+  fi
+  if [ ! -f "$DEMULT_SUMMARY" ]; then
+    DEMULT_SUMMARY=$(find "$PROCESS_DIR" -maxdepth 2 -type f -name "demult_summary*.tsv" | head -1 || true)
+  fi
   HAPLOCHECK_SUMMARY="$PROCESS_DIR/haplocheck_summary.$RUN_ID.tsv"
   count=0
   for sample_dir in "$PROCESS_DIR"/*/ ; do
@@ -1278,8 +1288,8 @@ append_html "</div>"
 append_section "SEQUENCING RUN METRICS"
 
 # Try to find report file (JSON is easiest to parse, fallback to others)
-REPORT_JSON=$(find "$RUN_DIR" -maxdepth 1 -name "report_*.json" | head -1)
-REPORT_MD=$(find "$RUN_DIR" -maxdepth 1 -name "report_*.md" | head -1)
+  REPORT_JSON=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.json" -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1)
+  REPORT_MD=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.md" -print0 2>/dev/null | xargs -0 ls -t 2>/dev/null | head -1)
 
 if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
   # Extract key metrics from the last snapshot in JSON
@@ -1503,6 +1513,9 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   
   report_file="report-${sample}.html"
   bam_file="${sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
+  if [ ! -f "$sample_dir/$bam_file" ]; then
+    bam_file=$(find "$sample_dir" -maxdepth 1 -type f -name "*.sorted.bam" | head -1 || true)
+  fi
   ann_tsv="${sample}.ann.tsv"
   ann_vcf="${sample}.ann.vcf"
   
@@ -1513,11 +1526,11 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
     append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $report_file - NOT FOUND</div>"
   fi
   
-  if [ -f "$sample_dir/$bam_file" ]; then
+  if [ -n "$bam_file" ] && [ -f "$sample_dir/$bam_file" ]; then
     bam_size=$(du -h "$sample_dir/$bam_file" 2>/dev/null | cut -f1 || echo "?")
-    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $bam_file ($bam_size)</div>"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-ok\">✓</span> $(basename "$bam_file") ($bam_size)</div>"
   else
-    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> $bam_file - NOT FOUND</div>"
+    append_html "      <div class=\"file-item\"><span class=\"badge badge-error\">✗</span> *.sorted.bam - NOT FOUND</div>"
   fi
   
   if [ -f "$sample_dir/$ann_vcf" ]; then

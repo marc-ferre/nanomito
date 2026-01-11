@@ -377,11 +377,10 @@ if [ "$COUNT_MATCHED" -eq 0 ]; then
 	(
 		flock -x 200
 		if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
-			echo "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching $SELECT" \
-				> "$DEMULT_SUMMARY_FILE"
+			printf "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching %s\n" "$SELECT" > "$DEMULT_SUMMARY_FILE"
 			log_success "Created demultiplexing summary file"
 		fi
-		echo "$RUN_ID\t$SAMPLE_ID\t$COUNT_TOTAL\t$COUNT_ALIGN\t$COUNT_CHRM\t$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
+		printf "%s\t%s\t%s\t%s\t%s\t%s\n" "$RUN_ID" "$SAMPLE_ID" "$COUNT_TOTAL" "$COUNT_ALIGN" "$COUNT_CHRM" "$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
 		log_success "Updated demultiplexing summary file"
 	) 200>"$LOCK_FILE"
 	rm -f "$LOCK_FILE"
@@ -413,11 +412,10 @@ LOCK_FILE="${DEMULT_SUMMARY_FILE}.lock"
 (
 	flock -x 200
 	if ! [ -e "$DEMULT_SUMMARY_FILE" ] ; then
-		echo "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching $SELECT" \
-			> "$DEMULT_SUMMARY_FILE"
+		printf "Run id\tSample id\tReads generated\tReads aligned to reference\tReads aligned to chrM\tReads matching %s\n" "$SELECT" > "$DEMULT_SUMMARY_FILE"
 		log_success "Created demultiplexing summary file"
 	fi
-	echo "$RUN_ID\t$SAMPLE_ID\t$COUNT_TOTAL\t$COUNT_ALIGN\t$COUNT_CHRM\t$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
+	printf "%s\t%s\t%s\t%s\t%s\t%s\n" "$RUN_ID" "$SAMPLE_ID" "$COUNT_TOTAL" "$COUNT_ALIGN" "$COUNT_CHRM" "$COUNT_MATCHED" >> "$DEMULT_SUMMARY_FILE"
 	log_success "Updated demultiplexing summary file"
 ) 200>"$LOCK_FILE"
 rm -f "$LOCK_FILE"
@@ -808,7 +806,7 @@ LOCK_FILE="${WORKFLOW_SUMMARY_FILE}.lock"
 (
 	flock -x 200
 	if ! [ -e "$WORKFLOW_SUMMARY_FILE" ] ; then
-		echo "Run id\tSample id\tWorkflow\tRuntime (hh:mm:ss)" > "$WORKFLOW_SUMMARY_FILE"
+		printf "Run id\tSample id\tWorkflow\tRuntime (hh:mm:ss)\n" > "$WORKFLOW_SUMMARY_FILE"
 		log_success "Created workflow summary file"
 	fi
 	printf "%s\t%s\t%s\t%02d:%02d:%02d\n" "$RUN_ID" "$SAMPLE_ID" "demultmt" "$HOURS" "$MINUTES" "$SECONDS" >> "$WORKFLOW_SUMMARY_FILE"
