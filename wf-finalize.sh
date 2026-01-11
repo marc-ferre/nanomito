@@ -1411,6 +1411,8 @@ else
   append_html "  </div>"
 fi
 
+append_html "</div>"
+
 # --- 3. PER-SAMPLE RESULTS ------------------------------------------------
 append_section "PER-SAMPLE RESULTS"
 
