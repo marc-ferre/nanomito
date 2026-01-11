@@ -1343,6 +1343,10 @@ PYEOF
   basecalled_pass_bases=$(echo "$metrics_output" | cut -d'|' -f2)
   basecalled_pass_read_count=$(echo "$metrics_output" | cut -d'|' -f3)
   
+  # DEBUG: Write metrics to stderr for troubleshooting
+  echo "[DEBUG] metrics_output: [$metrics_output]" >&2
+  echo "[DEBUG] read_count: [$read_count]" >&2
+  
   # Debug log
   log_info "REPORT_JSON=$REPORT_JSON | read_count=$read_count | pass_reads=$basecalled_pass_read_count | pass_bases=$basecalled_pass_bases"
   
