@@ -565,9 +565,25 @@ generate_sample_html_report() {
   local read_count="N/A" basecalled_pass_read_count="N/A" basecalled_pass_bases="N/A"
   REPORT_JSON=$(find "$RUN_DIR" -type f -name "report_*.json" 2>/dev/null | sort -r | head -1)
   if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
-    read_count=$(grep -o '"read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
-    basecalled_pass_read_count=$(grep -o '"basecalled_pass_read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
-    basecalled_pass_bases=$(grep -o '"basecalled_pass_bases":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
+    read read_count basecalled_pass_bases basecalled_pass_read_count < <(
+      python3 -c "
+import json
+try:
+    with open('$REPORT_JSON') as f:
+        data = json.load(f)
+    acq = data.get('acquisitions', [])
+    if acq:
+        ys = acq[-1].get('acquisition_run_info', {}).get('yield_summary', {})
+        rc = str(ys.get('read_count', 'N/A'))
+        pb = str(ys.get('basecalled_pass_bases', 'N/A'))
+        pr = str(ys.get('basecalled_pass_read_count', 'N/A'))
+        print(f'{rc} {pb} {pr}')
+    else:
+        print('N/A N/A N/A')
+except Exception as e:
+    print(f'N/A N/A N/A')
+" 2>/dev/null || echo "N/A N/A N/A"
+    )
   fi
 
   # Haplogroup status/major/minor from individual haplocheck file
@@ -1298,11 +1314,27 @@ REPORT_JSON=$(find "$RUN_DIR" -type f -name "report_*.json" 2>/dev/null | sort -
 REPORT_MD=$(find "$RUN_DIR" -type f -name "report_*.md" 2>/dev/null | sort -r | head -1)
 
 if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
-  # Extract key metrics from the last snapshot in JSON
-  # The metrics are in the last "yield_summary" of the last acquisition's last snapshot
-  read_count=$(grep -o '"read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
-  basecalled_pass_bases=$(grep -o '"basecalled_pass_bases":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
-  basecalled_pass_read_count=$(grep -o '"basecalled_pass_read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
+  # Extract key metrics using Python for proper JSON parsing
+  # Metrics are in acquisitions[-1].acquisition_run_info.yield_summary (MinKNOW/Dorado report format)
+  read read_count basecalled_pass_bases basecalled_pass_read_count < <(
+    python3 -c "
+import json
+try:
+    with open('$REPORT_JSON') as f:
+        data = json.load(f)
+    acq = data.get('acquisitions', [])
+    if acq:
+        ys = acq[-1].get('acquisition_run_info', {}).get('yield_summary', {})
+        rc = str(ys.get('read_count', 'N/A'))
+        pb = str(ys.get('basecalled_pass_bases', 'N/A'))
+        pr = str(ys.get('basecalled_pass_read_count', 'N/A'))
+        print(f'{rc} {pb} {pr}')
+    else:
+        print('N/A N/A N/A')
+except Exception as e:
+    print(f'N/A N/A N/A')
+" 2>/dev/null || echo "N/A N/A N/A"
+  )
   
   # Debug log
   log_info "REPORT_JSON=$REPORT_JSON | read_count=$read_count | pass_reads=$basecalled_pass_read_count | pass_bases=$basecalled_pass_bases"
