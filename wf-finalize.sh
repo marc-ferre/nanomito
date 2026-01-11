@@ -1310,17 +1310,19 @@ append_html "</div>"
 
 # --- 2. SEQUENCING RUN METRICS --------------------------------------------
 append_section "SEQUENCING RUN METRICS"
-append_html "<!-- DEBUG: Entering SEQUENCING RUN METRICS section -->"
 
 # Try to find report file (JSON is easiest to parse, fallback to others)
 # Search deeper to include preprocessing subdirectories
 REPORT_JSON=$(find "$RUN_DIR" -type f -name "report_*.json" 2>/dev/null | sort -r | head -1)
 REPORT_MD=$(find "$RUN_DIR" -type f -name "report_*.md" 2>/dev/null | sort -r | head -1)
 
-append_html "<!-- DEBUG: REPORT_JSON=[${REPORT_JSON}] -->"
-append_html "<!-- DEBUG: RUN_DIR=[${RUN_DIR}] -->"
+# Add a test line to check if code runs
+append_html "<!-- TEST: RUN_DIR=[$RUN_DIR] -->"
+append_html "<!-- TEST: REPORT_JSON=[$REPORT_JSON] -->"
+append_html "<!-- TEST: REPORT_MD=[$REPORT_MD] -->"
 
 if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
+  append_html "<!-- TEST: REPORT_JSON exists and readable -->"
   # Extract key metrics using Python for proper JSON parsing
   # Metrics are in acquisitions[-1].acquisition_run_info.yield_summary (MinKNOW/Dorado report format)
   metrics_output=$(python3 << PYEOF
@@ -1347,7 +1349,7 @@ PYEOF
   basecalled_pass_read_count=$(echo "$metrics_output" | cut -d'|' -f3)
   
   # DEBUG: Include metrics in HTML comment for troubleshooting
-  append_html "<!-- DEBUG: FOUND_REPORT file=[$REPORT_JSON] metrics_output=[$metrics_output] read_count=[$read_count] -->"
+  append_html "<!-- TEST: Found metrics_output=[${metrics_output}] read_count=[${read_count}] -->"
   
   # Debug log
   log_info "REPORT_JSON=$REPORT_JSON | read_count=$read_count | pass_reads=$basecalled_pass_read_count | pass_bases=$basecalled_pass_bases"
