@@ -373,13 +373,16 @@ if [ "$COUNT_MATCHED" -eq 0 ]; then
 	echo "==============================================="
 	
 	# Update summary file (with atomic lock to prevent race conditions)
+	# Add random delay to desynchronize parallel jobs
+	sleep $((RANDOM % 10))
+	
 	LOCK_FILE="${DEMULT_SUMMARY_FILE}.lock"
 	(
-		# Wait up to 60 seconds for the lock, retry once on failure
-		if ! flock -w 60 -x 200; then
-			log_warning "Failed to acquire lock, retrying in 5 seconds..."
-			sleep 5
-			if ! flock -w 60 -x 200; then
+		# Wait up to 180 seconds for the lock
+		if ! flock -w 180 -x 200; then
+			log_warning "Failed to acquire lock, retrying after random delay..."
+			sleep $((5 + RANDOM % 10))
+			if ! flock -w 180 -x 200; then
 				log_error "Failed to acquire lock after retry"
 				exit 65
 			fi
@@ -416,13 +419,16 @@ log_success "Reads matching $SELECT: $COUNT_MATCHED ($(awk "BEGIN {printf \"%.2f
 echo "==============================================="
 
 # Atomic file update to prevent race conditions between parallel jobs
+# Add random delay (0-10s) to desynchronize parallel jobs
+sleep $((RANDOM % 10))
+
 LOCK_FILE="${DEMULT_SUMMARY_FILE}.lock"
 (
-	# Wait up to 60 seconds for the lock, retry once on failure
-	if ! flock -w 60 -x 200; then
-		log_warning "Failed to acquire lock, retrying in 5 seconds..."
-		sleep 5
-		if ! flock -w 60 -x 200; then
+	# Wait up to 180 seconds for the lock (sufficient for 20+ parallel jobs)
+	if ! flock -w 180 -x 200; then
+		log_warning "Failed to acquire lock, retrying after random delay..."
+		sleep $((5 + RANDOM % 10))
+		if ! flock -w 180 -x 200; then
 			log_error "Failed to acquire lock after retry"
 			exit 65
 		fi
@@ -769,14 +775,16 @@ if [ -n "$haplofiles" ]; then
 fi
 
 # Atomic file creation to prevent race conditions between parallel jobs
-# Using a lock file with flock for thread-safe operations
+# Add random delay to desynchronize parallel jobs
+sleep $((RANDOM % 10))
+
 LOCK_FILE="${HPLCHK_SUMMARY_FILE}.lock"
 (
-	# Wait up to 60 seconds for the lock, retry once on failure
-	if ! flock -w 60 -x 200; then
-		log_warning "Failed to acquire lock for haplocheck, retrying in 5 seconds..."
-		sleep 5
-		if ! flock -w 60 -x 200; then
+	# Wait up to 180 seconds for the lock
+	if ! flock -w 180 -x 200; then
+		log_warning "Failed to acquire lock for haplocheck, retrying after random delay..."
+		sleep $((5 + RANDOM % 10))
+		if ! flock -w 180 -x 200; then
 			log_error "Failed to acquire lock for haplocheck after retry"
 			exit 65
 		fi
@@ -825,13 +833,16 @@ log_info "Output directory: $OUT_DIR"
 echo "======================================"
 
 # Write workflow summary file (with atomic lock to prevent race conditions)
+# Add random delay to desynchronize parallel jobs
+sleep $((RANDOM % 10))
+
 LOCK_FILE="${WORKFLOW_SUMMARY_FILE}.lock"
 (
-	# Wait up to 60 seconds for the lock, retry once on failure
-	if ! flock -w 60 -x 200; then
-		log_warning "Failed to acquire lock for workflow summary, retrying in 5 seconds..."
-		sleep 5
-		if ! flock -w 60 -x 200; then
+	# Wait up to 180 seconds for the lock
+	if ! flock -w 180 -x 200; then
+		log_warning "Failed to acquire lock for workflow summary, retrying after random delay..."
+		sleep $((5 + RANDOM % 10))
+		if ! flock -w 180 -x 200; then
 			log_error "Failed to acquire lock for workflow summary after retry"
 			exit 65
 		fi
