@@ -880,7 +880,12 @@ PY
           bam_file="${_sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
           # If model suffix differs, pick the first available sorted BAM
           if [ ! -f "$_sample_dir/$bam_file" ]; then
-            bam_file=$(find "$_sample_dir" -maxdepth 1 -type f -name "*.sorted.bam" | head -1 || true)
+            bam_found=$(find "$_sample_dir" -maxdepth 1 -type f -name "*.sorted.bam" | head -1 || true)
+            if [ -n "$bam_found" ]; then
+              bam_file=$(basename "$bam_found")
+            else
+              bam_file=""
+            fi
           fi
           ann_vcf="${_sample}.ann.vcf"
           ann_tsv_file="${_sample}.ann.tsv"
@@ -1514,7 +1519,12 @@ for sample_dir in "$PROCESS_DIR"/*/ ; do
   report_file="report-${sample}.html"
   bam_file="${sample}.chrM.sup,5mC_5hmC,6mA.sorted.bam"
   if [ ! -f "$sample_dir/$bam_file" ]; then
-    bam_file=$(find "$sample_dir" -maxdepth 1 -type f -name "*.sorted.bam" | head -1 || true)
+    bam_found=$(find "$sample_dir" -maxdepth 1 -type f -name "*.sorted.bam" | head -1 || true)
+    if [ -n "$bam_found" ]; then
+      bam_file=$(basename "$bam_found")
+    else
+      bam_file=""
+    fi
   fi
   ann_tsv="${sample}.ann.tsv"
   ann_vcf="${sample}.ann.vcf"
