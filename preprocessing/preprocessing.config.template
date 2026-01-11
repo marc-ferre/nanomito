@@ -44,7 +44,4 @@ GO_USER='your_username'
 GO_HOST='your.ssh.host'
 GO_REMOTE_BASE='/home/your_cluster_user/workbench'
 
-# =============================================================================
-# SCRIPT METADATA
-# =============================================================================
-PREPROCESSING_AUTHOR='Your Name <your.email@domain.com>'
+
