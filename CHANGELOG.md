@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.6] - 2026-01-11
+
+### Fixed
+
+- **File locking race condition (ExitCode 65)**: Replaced POSIX `flock`-based synchronization with temporary-file-per-sample pattern
+  - Eliminates "Stale file handle" errors that occurred when 20+ parallel jobs contended for shared summary files on NFS
+  - Each job now writes to isolated temporary file (`{summary}.$RUN_ID.$SAMPLE_ID.tmp`) with zero contention
+  - wf-finalize.sh merges all temporary files into final summary files after all jobs complete
+  - Guaranteed by job dependency chain (no race conditions by design)
+
+- **Shellcheck compliance**: Added proper quoting and bash arrays for glob expansion
+  - Fixed SC2086 (Double quote variables), SC2125 (Quote glob expansions), SC2046 (Quote command substitution)
+  - Updated all modified workflows to pass strict shellcheck validation
+
+- **Temporary file cleanup**: Added two-layer cleanup strategy
+  - Orphan removal at start: cleans residual .tmp files from previous runs that may have failed
+  - Safety cleanup at end: verifies no temporary files remain and warns about orphans from other runs
+
+### Changed
+
+- **Summary file merging**: Migration from centralized locking to distributed writing
+  - wf-demultmt.sh: writes demult_summary, haplocheck_summary, and workflows_summary to temp files
+  - wf-modmito.sh: writes workflows_summary to temp file
+  - wf-bchg.sh: writes workflows_summary to temp file
+  - wf-subwf.sh: writes workflows_summary to temp file
+  - wf-finalize.sh: aggregates all temporary files into final TSV files with proper sorting
+
 ## [2.4.5] - 2026-01-11
 
 ### Fixed
