@@ -1316,6 +1316,11 @@ append_section "SEQUENCING RUN METRICS"
 REPORT_JSON=$(find "$RUN_DIR" -type f -name "report_*.json" 2>/dev/null | sort -r | head -1)
 REPORT_MD=$(find "$RUN_DIR" -type f -name "report_*.md" 2>/dev/null | sort -r | head -1)
 
+echo "[DEBUG-REPORT] RUN_DIR: [$RUN_DIR]" >&2
+echo "[DEBUG-REPORT] REPORT_JSON: [$REPORT_JSON]" >&2
+echo "[DEBUG-REPORT] -n REPORT_JSON: [$([ -n "$REPORT_JSON" ] && echo "true" || echo "false")]" >&2
+echo "[DEBUG-REPORT] -f REPORT_JSON: [$([ -f "$REPORT_JSON" ] 2>/dev/null && echo "true" || echo "false")]" >&2
+
 if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
   # Extract key metrics using Python for proper JSON parsing
   # Metrics are in acquisitions[-1].acquisition_run_info.yield_summary (MinKNOW/Dorado report format)
