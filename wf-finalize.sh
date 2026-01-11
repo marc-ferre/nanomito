@@ -1353,7 +1353,7 @@ PYEOF
     append_html "  </div>"
   fi
   
-  if [ "$basecalled_pass_read_count" != "N/A" ] && [ "$basecalled_pass_read_count" != "" ]; then
+  if [ "$basecalled_pass_read_count" != "N/A" ] && [ "$basecalled_pass_read_count" != "" ] && [ "$basecalled_pass_read_count" != "0" ]; then
     pass_reads_formatted=$(format_number "$basecalled_pass_read_count")
     append_html "  <div class=\"metric-row\">"
     append_html "    <span class=\"metric-label\">Passed reads</span>"
@@ -1361,7 +1361,7 @@ PYEOF
     append_html "  </div>"
   fi
   
-  if [ "$basecalled_pass_bases" != "N/A" ] && [ "$basecalled_pass_bases" != "" ]; then
+  if [ "$basecalled_pass_bases" != "N/A" ] && [ "$basecalled_pass_bases" != "" ] && [ "$basecalled_pass_bases" != "0" ]; then
     bases_formatted=$(format_number "$basecalled_pass_bases")
     # Convert to Gb
     if [[ "$basecalled_pass_bases" =~ ^[0-9]+$ ]]; then
