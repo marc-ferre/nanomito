@@ -7,18 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-01-11
+
 ### Added
 
 - **Total bases metric** in SEQUENCING RUN METRICS section of HTML reports (displayed with formatted number and Gb conversion)
 
 ### Changed
 
-- Dorado models are now configurable via `nanomito.config` (`DORADO_MODEL`, `DORADO_MODEL_COMPLEX`) instead of being hardcoded in workflows
 - **SEQUENCING RUN METRICS display logic**: "Passed reads" and "Passed bases" metrics now hidden when values are 0 (common when basecalling is disabled in MinKNOW)
-
-### Fixed
-
-- Barcode→alias mapping in `wf-bchg.sh` now strips Windows `\r` from barcode values (CRLF sample sheets)
 
 ## [2.4.0] - 2026-01-11
 
@@ -34,14 +31,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Dorado models are now configurable via `nanomito.config` (`DORADO_MODEL`, `DORADO_MODEL_COMPLEX`) instead of being hardcoded in workflows
+
+### Fixed
+
 - **TSV-to-HTML rendering**: Replaced problematic awk-based tab handling with Python CSV module for bulletproof field splitting
 - **Report label**: Changed "Haplogroup / Status" to "Haplogroup / Contamination" for clarity
 - **Haplogroup table color coding**: Contamination status values now color-coded (NO=green, YES=red, ND/other=orange)
 - **Per-sample stat cards**: Labels updated to `CONTAMINATION` and `HAPLOGROUP`, with haplogroup showing `major / minor` when minor exists
 - **Contamination colors in stat cards**: NO→green, YES→red, ND/other→orange (consistent with haplogroup table)
-
-## [2.3.1] - 2026-01-10
-
+- Barcode→alias mapping in `wf-bchg.sh` now strips Windows `\r` from barcode values (CRLF sample sheets
 ### Fixed
 
 - **Critical: Race condition in shared summary files** - Multiple parallel jobs attempting to create same summary files now properly serialized with atomic file locking (flock)
