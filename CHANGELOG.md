@@ -38,9 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Preprocessing configuration refactoring**: Removed hardcoded paths and usernames, all derived from `preprocessing.config` and script location
 - **Configuration template improvements**: Updated placeholders and documentation for better clarity
-
-### Fixed
-
 - Dorado models are now configurable via `nanomito.config` (`DORADO_MODEL`, `DORADO_MODEL_COMPLEX`) instead of being hardcoded in workflows
 
 ### Fixed
@@ -50,7 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Haplogroup table color coding**: Contamination status values now color-coded (NO=green, YES=red, ND/other=orange)
 - **Per-sample stat cards**: Labels updated to `CONTAMINATION` and `HAPLOGROUP`, with haplogroup showing `major / minor` when minor exists
 - **Contamination colors in stat cards**: NO→green, YES→red, ND/other→orange (consistent with haplogroup table)
-- Barcode→alias mapping in `wf-bchg.sh` now strips Windows `\r` from barcode values (CRLF sample sheets
+- Barcode→alias mapping in `wf-bchg.sh` now strips Windows `\r` from barcode values (CRLF sample sheets)
+
+## [2.3.1] - 2026-01-10
+
 ### Fixed
 
 - **Critical: Race condition in shared summary files** - Multiple parallel jobs attempting to create same summary files now properly serialized with atomic file locking (flock)
