@@ -563,7 +563,7 @@ generate_sample_html_report() {
 
   # Run metrics from report JSON
   local read_count="N/A" basecalled_pass_read_count="N/A" basecalled_pass_bases="N/A"
-  REPORT_JSON=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.json" | sort -r | head -1)
+  REPORT_JSON=$(find "$RUN_DIR" -type f -name "report_*.json" 2>/dev/null | sort -r | head -1)
   if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
     read_count=$(grep -o '"read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
     basecalled_pass_read_count=$(grep -o '"basecalled_pass_read_count":"[0-9]*"' "$REPORT_JSON" | tail -1 | grep -o '[0-9]*' || echo "N/A")
@@ -1293,8 +1293,9 @@ append_html "</div>"
 append_section "SEQUENCING RUN METRICS"
 
 # Try to find report file (JSON is easiest to parse, fallback to others)
-REPORT_JSON=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.json" | sort -r | head -1)
-REPORT_MD=$(find "$RUN_DIR" -maxdepth 3 -type f -name "report_*.md" | sort -r | head -1)
+# Search deeper to include preprocessing subdirectories
+REPORT_JSON=$(find "$RUN_DIR" -type f -name "report_*.json" 2>/dev/null | sort -r | head -1)
+REPORT_MD=$(find "$RUN_DIR" -type f -name "report_*.md" 2>/dev/null | sort -r | head -1)
 
 if [ -n "$REPORT_JSON" ] && [ -f "$REPORT_JSON" ]; then
   # Extract key metrics from the last snapshot in JSON
