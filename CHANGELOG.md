@@ -7,10 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-01-11
+
 ### Added
 
 - **DEL variant enrichment in HTML reports**: Deletion variants now display as `<DEL;END=NNNNN;SVLEN=NNNN>` instead of just `<DEL>` for better clarity on deletion size
 - **Haplocheck file preservation**: All haplocheck-generated files (`.raw.txt`, `.html`, etc.) now retained in `haplo/` directory
+
+### Changed
+
+- **Preprocessing configuration refactoring**: Removed hardcoded paths and usernames, all derived from `preprocessing.config` and script location
+- **Configuration template improvements**: Updated placeholders and documentation for better clarity
 
 ### Fixed
 
