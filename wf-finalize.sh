@@ -1310,6 +1310,7 @@ append_html "</div>"
 
 # --- 2. SEQUENCING RUN METRICS --------------------------------------------
 append_section "SEQUENCING RUN METRICS"
+append_html "<!-- DEBUG: Entering SEQUENCING RUN METRICS section -->"
 
 # Try to find report file (JSON is easiest to parse, fallback to others)
 # Search deeper to include preprocessing subdirectories
