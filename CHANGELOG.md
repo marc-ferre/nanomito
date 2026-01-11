@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.7] - 2026-01-11
+
+### Fixed
+
+- **Premature temporary file deletion**: Fixed critical bug where cleanup happened before merge in wf-finalize.sh
+  - Previously, orphaned `.tmp` files were deleted before attempting to merge, causing them to be removed if wf-finalize ran while jobs were still writing
+  - Reordered operations: MERGE first (with current RUN_ID) → DELETE merged files → CLEANUP other runs
+  - Prevents data loss when summary files cannot be generated due to missing temporary files
+
 ## [2.4.6] - 2026-01-11
 
 ### Fixed
