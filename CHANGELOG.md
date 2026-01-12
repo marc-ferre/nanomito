@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.8] - 2026-01-12
+
+### Fixed
+
+- **Export BAM pattern**: Generalized BAM file pattern in export_results.sh
+  - Changed from `*.chrM.sup,5mC_5hmC,6mA.sorted.bam` to `*.chrM.*.sorted.bam`
+  - Now exports BAM files regardless of base modification versions
+  - Fixes export for runs with different dorado model configurations (e.g., run08, run09)
+
 ## [2.4.7] - 2026-01-11
 
 ### Fixed
