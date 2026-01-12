@@ -41,8 +41,8 @@ Output:
 Exported files:
     - *.ann.tsv
     - *.ann.vcf
-    - *.chrM.sup,5mC_5hmC,6mA.sorted.bam
-    - *.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai
+    - *.chrM.*.sorted.bam
+    - *.chrM.*.sorted.bam.bai
     - report-*.html
 EOF
 }
@@ -120,8 +120,8 @@ Output:
 Exported files per sample:
   - *.ann.tsv
   - *.ann.vcf
-  - *.chrM.sup,5mC_5hmC,6mA.sorted.bam
-  - *.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai
+  - *.chrM.*.sorted.bam
+  - *.chrM.*.sorted.bam.bai
   - report-*.html
 EOF
     exit 0
@@ -131,8 +131,8 @@ EOF
 FILE_PATTERNS=(
     "*.ann.tsv"
     "*.ann.vcf"
-    "*.chrM.sup,5mC_5hmC,6mA.sorted.bam"
-    "*.chrM.sup,5mC_5hmC,6mA.sorted.bam.bai"
+    "*.chrM.*.sorted.bam"
+    "*.chrM.*.sorted.bam.bai"
     "report-*.html"
 )
 
