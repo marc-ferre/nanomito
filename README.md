@@ -738,12 +738,6 @@ If you use Nanomito in your research, please cite:
 ```
 <!-- markdownlint-enable MD034 -->
 
-## Acknowledgments
-
-- **HPC cluster** resources for high-performance computing
-- **Oxford Nanopore Technologies** for sequencing technology
-- **Dorado** team for basecalling software
-
 ## Version History
 
 - **v2.2.4** (2025-12-31) - Preprocessing improvements and report generation
