@@ -185,7 +185,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Replace /home/<user> paths with generic placeholders or $HOME variable
+- Replace `/home/<user>` paths with generic placeholders or `$HOME` variable
 - Replace Windows user-specific paths with generic examples
 - Documentation cleanup: removed redundant notable commits section
 
