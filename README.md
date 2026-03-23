@@ -740,14 +740,22 @@ If you use Nanomito in your research, please cite:
 
 <!-- markdownlint-disable MD034 -->
 ```bibtex
-@software{nanomito2025,
+@software{nanomito2026,
   author = {Ferré, Marc},
-  title = {Nanomito: Workflows for mitochondrial DNA sequencing},
-  year = {2025},
+  title = {Nanomito: An Amplification-Free Long-Read Workflow for
+           Single-Molecule mtDNA Variant Calling and Deletion
+           Quantification in Clinical Diagnostics},
+  year = {2026},
   url = {https://github.com/marc-ferre/nanomito}
 }
 ```
 <!-- markdownlint-enable MD034 -->
+
+## Acknowledgments
+
+The project underlying this work was selected for the Oxford Nanopore Technologies MinION Access Programme in 2014, which provided early access to Oxford Nanopore technology.
+
+We acknowledge the [GenOuest bioinformatics core facility](https://www.genouest.org) for providing the computing infrastructure.
 
 ## Version History
 
