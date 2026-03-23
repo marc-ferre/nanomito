@@ -759,6 +759,14 @@ We acknowledge the [GenOuest bioinformatics core facility](https://www.genouest.
 
 ## Version History
 
+- **v2.5.0** (2026-03-23) - Public release hardening
+  - **License headers:** SPDX-License-Identifier + Author metadata added to all scripts (32/32 compliant)
+  - **Anonymization:** All personal HPC paths, email addresses, and SSH credentials replaced with generic placeholders in config templates
+  - **Git hygiene:** Runtime configs (`nanomito.config`, `preprocessing.config`, `config/`) confirmed excluded from tracking; generated test artifacts (`sample_ANON*`, `tmp_out/`, `tmp_out2/`) purged and gitignored
+  - **Template alignment:** `preprocessing/preprocessing.config.template` aligned to match `preprocessing.config` (12/12 variables, inline comments, section naming)
+  - **Citation:** Updated title and year to match associated manuscript
+  - **Acknowledgments:** Added ONT MinION Access Programme and GenOuest acknowledgments
+
 - **v2.2.4** (2025-12-31) - Preprocessing improvements and report generation
   - **Preprocessing enhancements:** HTML report generator with comprehensive metrics
   - **Progress visualization:** Progress bar for chrM Pod5 percentage tracking
