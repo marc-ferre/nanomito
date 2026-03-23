@@ -7,14 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-03-23
+
 ### Documentation
 
 - Added public-release and anonymization checklist to `README.md`
 - Added preprocessing publication hygiene guidance to `preprocessing/README.md`
+- Updated citation title and year to match associated manuscript
+- Added ONT MinION Access Programme and GenOuest acknowledgments to `README.md`
+- Added v2.5.0 entry to Version History in `README.md`
 
 ### Maintenance
 
 - Updated `TODO.md` with publication-hardening tasks (header consistency and anonymization sweep)
+- Added SPDX-License-Identifier + Author headers to all scripts (32/32 compliant)
+- Anonymized all personal HPC paths, email addresses, and SSH credentials in config templates
+- Excluded generated test artifacts (`sample_ANON*`, `tmp_out/`, `tmp_out2/`) from git tracking
+- Aligned `preprocessing/preprocessing.config.template` with `preprocessing.config` (12/12 variables)
 
 ## [2.4.8] - 2026-01-12
 
