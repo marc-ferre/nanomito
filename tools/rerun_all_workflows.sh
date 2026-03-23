@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 # Batch re-run Nanomito workflows over a set of runs.
 # Submits per run: submit_nanomito.sh --skip-bchg (default) to reprocess with latest annotations/AF.
 #

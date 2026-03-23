@@ -10,6 +10,17 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 
 - Licensed under CeCILL-2.1 (see LICENSE).
 - Copy nanomito.config.template to nanomito.config and preprocessing/preprocessing.config.template to preprocessing/preprocessing.config, then set your paths, conda envs, and mail recipient.
+- For public releases, keep personalized configuration values out of Git history and commit only template/example files.
+
+### Public Release Checklist
+
+Before publishing this repository or submitting associated manuscript material:
+
+- Verify all runtime and local paths are generic placeholders (no personal workstation paths).
+- Ensure sensitive/local configuration values are stored only in local files, not committed tracked config files.
+- Remove generated test artifacts that embed absolute local paths in logs or VCF metadata.
+- Confirm script headers include SPDX license and author metadata consistently.
+- Re-run documentation review for option/feature consistency with current behavior.
 
 ### Key Features
 
@@ -19,8 +30,8 @@ Nanomito is a collection of production-ready bash scripts designed for high-thro
 - 🔬 **Modification detection** - 5mC, 5hmC, and 6mA base modification calling
 - 📊 **SLURM integration** - Optimized for HPC environments with automatic job dependency management
 - 📦 **Automated archiving** - Integrated archiving to project storage with dependency management
-- � **Optional export packaging** - Post-run export to $HOME/export (per-sample results + ZIP)
-- �📧 **HTML email reports** - Beautiful responsive HTML email notifications with comprehensive summaries
+- **Optional export packaging** - Post-run export to $HOME/export (per-sample results + ZIP)
+- **HTML email reports** - Beautiful responsive HTML email notifications with comprehensive summaries
 - 📄 **Per-sample HTML reports** - Interactive individual reports with variants filtering and disease coloring
 - ✅ **Robust error handling** - Comprehensive logging and error recovery mechanisms
 

@@ -1,5 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 #
 # Diagnostic script to identify issues with sample sheet processing
 # Helps troubleshoot barcode/alias assignment problems

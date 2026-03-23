@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 # Test script to verify haplocheck issue with Nanopore VCF files
 # The problem: HPL (FORMAT field) needs to be converted to AF (INFO field)
 

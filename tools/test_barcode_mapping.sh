@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 # Test script to verify barcode→alias mapping with Windows line endings
 
 echo "Testing barcode→alias mapping fix"

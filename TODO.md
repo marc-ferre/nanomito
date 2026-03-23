@@ -1,6 +1,6 @@
 # TODO List - Nanomito
 
-Last updated: 2025-12-30
+Last updated: 2026-03-23
 
 ## ✅ Recently Completed (v2.2.0 - 2025-12-30)
 
@@ -123,6 +123,29 @@ Last updated: 2025-12-30
 
 ## 🔴 High Priority
 
+### Public Release Hardening
+
+- [x] **Complete header compliance audit (code files)** ✅ COMPLETED 2026-03-23
+  - Add missing `# SPDX-License-Identifier: CECILL-2.1` and/or `# Author: Marc FERRE <marc.ferre@univ-angers.fr>` in:
+    - `preprocessing/create_pid_dict.py`
+    - `preprocessing/get_chrMpid.py`
+    - `tools/fix_vcf_for_haplocheck.sh`
+    - `tools/test_barcode_mapping.sh`
+    - `tools/test_haplocheck_fix.sh`
+    - `tools/test_haplocheck_vcf.sh`
+    - `tools/rerun_all_workflows.sh` (missing Author header)
+    - `tools/diagnose_samplesheet.sh` (missing Author header)
+
+- [x] **Complete anonymization sweep before public release** ✅ COMPLETED 2026-03-23
+  - Replace personal/local values in tracked config files with generic placeholders or template-only values:
+    - `nanomito.config`
+    - `preprocessing/preprocessing.config`
+    - `config/nanomito.config.dorado*`
+  - Remove or regenerate generated test artifacts embedding absolute local paths:
+    - `tools/test_data/**/*.log`
+    - `tools/test_data/**/*.vcf` (metadata lines containing absolute paths)
+  - Re-run a repository-wide grep check for personal workstation paths and local usernames
+
 ### Configuration Management
 
 - [x] **Create centralized configuration file for all workflow parameters** ✅ COMPLETED 2025-11-03
@@ -230,21 +253,10 @@ Last updated: 2025-12-30
   - ✅ Added error detection in sample logs
   - 📋 Future: Consider HTML format for even better formatting
 
-- [ ] **Add option to process 'unclassified' folder**
-  - Add command-line option (e.g., --include-unclassified) to submit_nanomito.sh
-  - By default, skip the 'unclassified' folder in fastq_pass/
-  - When enabled, process unclassified samples like regular samples
-  - Update wf-subwf.sh sample discovery logic
-
 - [ ] Add progress bars to long-running operations
   - Use `tqdm` in Python scripts
   - Add time estimates in bash scripts
   - Show percentage completion
-
-- [ ] Create configuration file for workflow parameters
-  - YAML or JSON config file
-  - Reduce hardcoded paths
-  - Make it easier to switch between environments
 
 - [ ] Add dry-run mode to workflows
   - Preview what will be executed
@@ -367,11 +379,6 @@ Last updated: 2025-12-30
   - Monitor running jobs
   - View real-time logs
   - Display summary statistics
-
-- [ ] Add email notifications
-  - Notify on job completion
-  - Alert on failures
-  - Send summary reports
 
 ## ✅ Completed (Archive)
 

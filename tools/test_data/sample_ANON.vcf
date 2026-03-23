@@ -1,7 +1,0 @@
-##fileformat=VCFv4.2
-##source=anonymize_test
-##anonymizeCommand=<Date="2025-11-18T17:07:54Z",Tool="anonymize_vcf.sh",Args="count=       1,replacement='ANON'",Log="/Users/marcferre/Documents/Recherche/Projets/Nanomito/GitHub/nanomito/tools/test_data/sample_ANON.vcf.log">
-##anonymizeHashes=<Algorithm="SHA256",Count="       1",Hashes="5d5abffac2067677580c31b36eff1d987132c6055eac06c10eccfb5762c1c0a6">
-##INFO=<ID=ANON,Number=0,Type=Flag,Description="This VCF has been anonymized: original identifiers replaced. See log: /Users/marcferre/Documents/Recherche/Projets/Nanomito/GitHub/nanomito/tools/test_data/sample_ANON.vcf.log">
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	ANON
-chrM	73	rs1	A	G	.	PASS	.	GT	0/1

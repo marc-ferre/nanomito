@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Added public-release and anonymization checklist to `README.md`
+- Added preprocessing publication hygiene guidance to `preprocessing/README.md`
+
+### Maintenance
+
+- Updated `TODO.md` with publication-hardening tasks (header consistency and anonymization sweep)
+
 ## [2.4.8] - 2026-01-12
 
 ### Fixed
@@ -167,7 +176,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Replace /home/mferre paths with generic placeholders or $HOME variable
+- Replace /home/<user> paths with generic placeholders or $HOME variable
 - Replace Windows user-specific paths with generic examples
 - Documentation cleanup: removed redundant notable commits section
 
