@@ -74,13 +74,13 @@ Options:
 
 Examples:
   # Interactive mode (with confirmation)
-  $0 /scratch/mferre/workbench/250303_run01_solene
+    $0 /scratch/your_username/workbench/250303_run01_example
 
   # Dry run (preview only)
-  $0 --dry-run /scratch/mferre/workbench/250303_run01_solene
+    $0 --dry-run /scratch/your_username/workbench/250303_run01_example
 
   # Non-interactive mode (no confirmation)
-  $0 --yes /scratch/mferre/workbench/250303_run01_solene
+    $0 --yes /scratch/your_username/workbench/250303_run01_example
 
 Safety Features:
   - Validates directory existence and permissions

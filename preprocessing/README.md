@@ -37,6 +37,15 @@ The preprocessing directory contains workflows for preparing Nanopore sequencing
 - **Manual:** Run each script individually
 - **Automated:** Use `submit_preprocessing.ps1` to run the complete pipeline
 
+## Public Release Hygiene
+
+Before publishing this repository:
+
+- Keep personal paths, usernames, and email values in local config files only.
+- Commit templates (`preprocessing.config.template`, `preprocessing.ps1` defaults/examples) instead of environment-specific secrets/paths.
+- Remove generated logs and test outputs containing absolute local paths.
+- Recheck script headers for SPDX + Author consistency.
+
 ## Prerequisites
 
 ### Windows Requirements

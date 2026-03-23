@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 # Fix Nanopore VCF for haplocheck by converting HPL (FORMAT) to AF (INFO)
 # This is required because haplocheck expects AF in INFO field
 

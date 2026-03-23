@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 ###############################################################################
 # create_pid_dict.py - Create read_id to parent_id dictionary from BAM files
 #

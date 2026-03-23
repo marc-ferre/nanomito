@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 ###############################################################################
 # get_chrMpid.py -b bam/dir -p pod5/dir -o chrM_pids.txt
 #

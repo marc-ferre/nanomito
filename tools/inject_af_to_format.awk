@@ -1,4 +1,6 @@
 #!/usr/bin/awk -f
+# SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 # Script to inject AF (Allele Frequency) from HPL or existing AF into FORMAT field
 # For Nanopore: extracts HPL from FORMAT/HPL
 # For Illumina: preserves/relocates existing FORMAT/AF

@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: CECILL-2.1
+# Author: Marc FERRE <marc.ferre@univ-angers.fr>
 #
 # Test script to verify the haplocheck fix
 # 1. Apply fix_vcf_for_haplocheck.sh to an annotated VCF
