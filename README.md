@@ -24,16 +24,16 @@ Before publishing this repository or submitting associated manuscript material:
 
 ### Key Features
 
-- 🧬 **Full mitochondrial genome sequencing** - Complete workflow from basecalling to modification analysis
-- 🚀 **GPU-accelerated basecalling** - Leverages Dorado for high-accuracy basecalling with modification detection
-- 🔀 **Sample demultiplexing** - Automated barcode demultiplexing and patient-level separation
-- 🔬 **Modification detection** - 5mC, 5hmC, and 6mA base modification calling
-- 📊 **SLURM integration** - Optimized for HPC environments with automatic job dependency management
-- 📦 **Automated archiving** - Integrated archiving to project storage with dependency management
+- **Full mitochondrial genome sequencing** - Complete workflow from basecalling to modification analysis
+- **GPU-accelerated basecalling** - Leverages Dorado for high-accuracy basecalling with modification detection
+- **Sample demultiplexing** - Automated barcode demultiplexing and patient-level separation
+- **Modification detection** - 5mC, 5hmC, and 6mA base modification calling
+- **SLURM integration** - Optimized for HPC environments with automatic job dependency management
+- **Automated archiving** - Integrated archiving to project storage with dependency management
 - **Optional export packaging** - Post-run export to $HOME/export (per-sample results + ZIP)
 - **HTML email reports** - Beautiful responsive HTML email notifications with comprehensive summaries
-- 📄 **Per-sample HTML reports** - Interactive individual reports with variants filtering and disease coloring
-- ✅ **Robust error handling** - Comprehensive logging and error recovery mechanisms
+- **Per-sample HTML reports** - Interactive individual reports with variants filtering and disease coloring
+- **Robust error handling** - Comprehensive logging and error recovery mechanisms
 
 ### Troubleshooting: Haplocheck (Nanopore VCFs)
 
