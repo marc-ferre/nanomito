@@ -769,6 +769,10 @@ We acknowledge the [GenOuest bioinformatics core facility](https://www.genouest.
 
 ## Version History
 
+- **v2.5.1** (2026-03-30) - Documentation updates
+  - **Disclaimer:** Added "For Research Use Only" notice after Overview section
+  - **Citation:** Updated to `@unpublished` with `Manuscript submitted for publication` note
+
 - **v2.5.0** (2026-03-23) - Public release hardening
   - **License headers:** SPDX-License-Identifier + Author metadata added to all scripts (32/32 compliant)
   - **Anonymization:** All personal HPC paths, email addresses, and SSH credentials replaced with generic placeholders in config templates

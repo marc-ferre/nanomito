@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-03-30
+
+### Documentation
+
+- Added "For Research Use Only" disclaimer to `README.md` (after Overview section)
+- Updated BibTeX citation from `@software` to `@unpublished` with `note = {Manuscript submitted for publication}`
+
 ## [2.5.0] - 2026-03-23
 
 ### Documentation
