@@ -6,6 +6,15 @@ Comprehensive SLURM workflows for full-length single-molecule sequencing of mito
 
 Nanomito is a collection of production-ready bash scripts designed for high-throughput processing of Oxford Nanopore sequencing data, specifically optimized for mitochondrial DNA analysis. The workflows are designed to run on HPC clusters using SLURM workload manager.
 
+## Disclaimer
+
+> **FOR RESEARCH USE ONLY.**
+> This software is intended for research purposes only and has not been validated
+> as a clinical diagnostic tool. It must not be used as the sole basis for clinical
+> decision-making or patient management without appropriate clinical validation and
+> regulatory approval. The authors and their institutions accept no liability for
+> clinical use of this software.
+
 ### License & Configuration
 
 - Licensed under CeCILL-2.1 (see LICENSE).
@@ -740,13 +749,14 @@ If you use Nanomito in your research, please cite:
 
 <!-- markdownlint-disable MD034 -->
 ```bibtex
-@software{nanomito2026,
+@unpublished{nanomito2026,
   author = {Ferré, Marc},
-  title = {Nanomito: An Amplification-Free Long-Read Workflow for
-           Single-Molecule mtDNA Variant Calling and Deletion
-           Quantification in Clinical Diagnostics},
-  year = {2026},
-  url = {https://github.com/marc-ferre/nanomito}
+  title  = {Nanomito: An Amplification-Free Long-Read Workflow for
+             Single-Molecule mtDNA Variant Calling and Deletion
+             Quantification in Clinical Diagnostics},
+  year   = {2026},
+  note   = {Manuscript submitted for publication},
+  url    = {https://github.com/marc-ferre/nanomito}
 }
 ```
 <!-- markdownlint-enable MD034 -->
