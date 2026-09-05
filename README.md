@@ -769,8 +769,8 @@ We acknowledge the [GenOuest bioinformatics core facility](https://www.genouest.
 
 ## Version History
 
-- **v2.5.6** (2026-09-05) - Zenodo-compatible citation metadata
-  - **Citation:** Aligned `CITATION.cff` with the minimal CFF 1.1 format and included the author's ORCID
+- **v2.5.7** (2026-09-05) - Enriched citation metadata
+  - **Citation:** Added complete software metadata and a preferred manuscript citation to `CITATION.cff`
 
 - **v2.5.0** (2026-03-23) - Public release hardening and documentation
   - **Release hygiene:** Anonymized public configuration and test artifacts

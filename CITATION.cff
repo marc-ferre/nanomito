@@ -1,9 +1,29 @@
-cff-version: 1.1.0
-message: "If you use Nanomito, please cite it as below."
+cff-version: 1.2.0
+message: "If you use Nanomito, please cite it using the preferred citation below."
+title: "Nanomito"
+type: software
 authors:
   - family-names: Ferré
     given-names: Marc
     orcid: https://orcid.org/0000-0001-8265-7249
-title: Nanomito
-version: v2.5.6
+    email: marc.ferre@univ-angers.fr
+    affiliation: "UMR MitoVasc, Inserm U1083, CNRS 6015, Université d'Angers"
+version: v2.5.7
 date-released: 2026-09-05
+repository-code: "https://github.com/marc-ferre/nanomito"
+license: CECILL-2.1
+keywords:
+  - "mitochondrial DNA"
+  - "Oxford Nanopore sequencing"
+  - "long-read sequencing"
+  - "variant calling"
+  - "deletion analysis"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Ferré
+      given-names: Marc
+  title: "Nanomito enables amplification-free full-length analysis of mitochondrial DNA variants and deletions"
+  journal: "Scientific Reports"
+  year: 2026
+  notes: "Manuscript under revision"
