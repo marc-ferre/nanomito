@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.4] - 2026-09-05
+
+### Documentation
+
+- Simplified `CITATION.cff` to the CFF 1.1.0 format expected by Zenodo
+
 ## [2.5.3] - 2026-09-05
 
 ### Documentation
