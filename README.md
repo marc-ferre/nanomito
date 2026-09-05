@@ -769,6 +769,9 @@ We acknowledge the [GenOuest bioinformatics core facility](https://www.genouest.
 
 ## Version History
 
+- **v2.5.8** (2026-09-05) - Zenodo metadata alignment
+  - **Metadata:** Aligned `CITATION.cff` and `.zenodo.json` with the release version
+
 - **v2.5.7** (2026-09-05) - Enriched citation metadata
   - **Citation:** Added complete software metadata and a preferred manuscript citation to `CITATION.cff`
 
