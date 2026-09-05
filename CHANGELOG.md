@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.6] - 2026-09-05
+
+### Documentation
+
+- Aligned `CITATION.cff` with the minimal CFF 1.1 format and included the author's ORCID
+- Kept only the main release of each version series in `README.md`
+
 ## [2.5.5] - 2026-09-05
 
 ### Documentation

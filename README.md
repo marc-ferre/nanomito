@@ -769,152 +769,24 @@ We acknowledge the [GenOuest bioinformatics core facility](https://www.genouest.
 
 ## Version History
 
-- **v2.5.5** (2026-09-05) - Zenodo citation metadata
-  - **Author metadata:** Added Marc Ferré's ORCID
-  - **Zenodo:** Added `.zenodo.json` with the manuscript reference
+- **v2.5.6** (2026-09-05) - Zenodo-compatible citation metadata
+  - **Citation:** Aligned `CITATION.cff` with the minimal CFF 1.1 format and included the author's ORCID
 
-- **v2.5.4** (2026-09-05) - Zenodo citation metadata compatibility
-  - **Citation:** Simplified `CITATION.cff` to the CFF 1.1.0 format expected by Zenodo
+- **v2.5.0** (2026-03-23) - Public release hardening and documentation
+  - **Release hygiene:** Anonymized public configuration and test artifacts
+  - **Documentation:** Added the research-use disclaimer, citation updates, and acknowledgments
 
-- **v2.5.3** (2026-09-05) - Citation metadata and release documentation
-  - **Citation:** Added `CITATION.cff` with the preferred manuscript citation
-  - **README:** Updated the title, journal, and manuscript status in the BibTeX citation
-
-- **v2.5.2** (2026-09-05) - Local data and release metadata
-  - **Git hygiene:** Ignored the local `data/` analysis directory
-  - **Release:** Published the GitHub release used for Zenodo archiving
-
-- **v2.5.1** (2026-03-30) - Documentation updates
-  - **Disclaimer:** Added "For Research Use Only" notice after Overview section
-  - **Citation:** Updated to `@unpublished` with `Manuscript submitted for publication` note
-
-- **v2.5.0** (2026-03-23) - Public release hardening
-  - **License headers:** SPDX-License-Identifier + Author metadata added to all scripts (32/32 compliant)
-  - **Anonymization:** All personal HPC paths, email addresses, and SSH credentials replaced with generic placeholders in config templates
-  - **Git hygiene:** Runtime configs (`nanomito.config`, `preprocessing.config`, `config/`) confirmed excluded from tracking; generated test artifacts (`sample_ANON*`, `tmp_out/`, `tmp_out2/`) purged and gitignored
-  - **Template alignment:** `preprocessing/preprocessing.config.template` aligned to match `preprocessing.config` (12/12 variables, inline comments, section naming)
-  - **Citation:** Updated title and year to match associated manuscript
-  - **Acknowledgments:** Added ONT MinION Access Programme and GenOuest acknowledgments
-
-- **v2.2.4** (2025-12-31) - Preprocessing improvements and report generation
-  - **Preprocessing enhancements:** HTML report generator with comprehensive metrics
-  - **Progress visualization:** Progress bar for chrM Pod5 percentage tracking
-  - **Metrics expansion:** Percentage of total Pod5 files and Total Pod5 Files size metrics
-  - **Automatic cleanup:** Robust Dorado temp directory cleanup from both run and working directories
-  - **File management:** Dorado log copying to pod5_chrM directory with proper naming
-  - **Report archiving:** SHA256 checksum verification for archived reports
-  - **Encoding fixes:** Emoji replaced with ASCII text for proper string handling
-  - **Error handling:** Improved PowerShell temp file capture for Dorado execution
-  - **Configuration support:** NANOMITO_DIR support in submit_nanomito.sh
+- **v2.4.0** (2026-01-10) - Preprocessing and reporting improvements
+  - **Workflow:** Improved preprocessing, report generation, cleanup, and archiving
 
 - **v2.1.0** (2024-12-24) - Interactive per-sample HTML reports
-  - **Per-sample HTML reports** - Individual interactive reports for each sample
-  - **Interactive variants table** - PASS filter toggle button
-  - **Disease coloring** - Pathogenic, likely-pathogenic, benign variants highlighted
-  - **Comprehensive metrics** - Alignment, haplogroup, variants, and deletions counts
-  - **Responsive design** - Mobile-optimized layout with adaptive tables
-  - **Column width limiting** - Max 200px with ellipsis and hover expansion
-  - **Footer** - Creator name and email information
-  - **--reports-only option** - Regenerate reports without sending email
-  
-  **Report Features:**
-  - Run metrics header (total/passed reads and bases with thousand separators)
-  - Stat cards grid: Alignment (chrM reads, Matching both), Haplogroup (Status, Major), Variants (Total, PASS, Highlighted), Deletions (Total, Highlighted)
-  - Horizontal haplogroup table with all haplocheck columns
-  - Variants table with interactive PASS filter and disease coloring
-  - Deletions table with deduplicated mirrored +/- pairs
-  - Output files section with file sizes and validation badges
-  - Logs section displaying errors and warnings from processing
-  - Saved as `processing/<SAMPLE>/report-<SAMPLE>.html`
-  
-  **Bug Fixes:**
-  - Fixed deletions count to match table display (deduplicates mirrored pairs)
-  - Fixed PASS filter applying to all tables (now only affects variants table)
-  - Fixed optional parameter handling in tsv_to_html_table function
+  - **Reporting:** Added interactive reports with variant, deletion, haplogroup, and workflow metrics
 
-- **v2.0.0** (2025-11-04) - Major workflow improvements and HTML email reports
-  - **Integrated archiving workflow** with automatic dependency management
-  - Beautiful responsive HTML email reports optimized for mobile viewing
-  - **BREAKING:** Archiving enabled by default (use `--skip-archiving` to disable)
-  - **BREAKING:** Email format changed to HTML with responsive design
-  
-  **Workflow Enhancements:**
-  - Fixed critical job dependency bug (archiving/finalize now wait for all sample jobs)
-  - Added `--skip-archiving` and `--archiving-only` options
-  - `wf-subwf.sh` now handles archiving/finalize submission with proper dependencies
-  - Archiving summary with human-readable sizes and duration metrics
-  
-  **Email Report Features:**
-  - Responsive HTML design with embedded CSS
-  - Color-coded status indicators (success/warning/error)
-  - Mobile-optimized layout for iPhone and Android
-  - Per-sample results with alignment stats, haplogroups, variant counts, file sizes
-  - Deletions table from Baldur analysis with columns: Start / Stop / Strand / Length / Type / Count (sorted by Start,Stop; mirrored +/- intervals merged as ± with summed Count)
-  - Archiving summary section with destination, size, and duration
-  - Fixed total runtime calculation (was showing 00:00:00)
-  - English number formatting (331,496 and 3.7G instead of French format)
-  - Uniform time formatting (HH:MM:SS with two digits)
-  
-  **Configuration:**
-  - Removed `END` from `MAIL_TYPE` variables to prevent success email spam
-  - SLURM emails now sent only on failures
-  - Success notifications handled exclusively by `wf-finalize.sh` HTML email
-  
-  **Bug Fixes:**
-  - Fixed job dependency chain: sample jobs → archiving → finalize
-  - Fixed total runtime calculation (subshell variable scope issue)
-  - Fixed TSV parsing for empty fields (sample_id display)
-  - Fixed decimal format for archive sizes (3.7G instead of 3,7G)
-  - Removed double slashes in error log file paths
-  
-  **Documentation:**
-  - Updated README with archiving features and workflow diagram
-  - Updated TODO marking completed tasks
-  - All commit messages in English
+- **v2.0.0** (2025-11-04) - Major workflow improvements
+  - **Workflow:** Added integrated archiving, dependency management, and responsive HTML email reports
 
-- **v1.1.1** (2025-11-04) - Email notification optimization
-  - Disabled SLURM success emails (`END` removed from `--mail-type`)
-  - SLURM emails now sent only on failures (FAIL, INVALID_DEPEND, REQUEUE, etc.)
-  - Success notification handled exclusively by `wf-finalize.sh` final email
-  - Significantly reduces email noise while maintaining critical failure alerts
-
-- **v1.1.0** (2025-11-04) - Configuration management and workflow enhancements
-  - Added global configuration file `nanomito.config` for centralized settings
-  - New `--include-unclassified` option to process unclassified reads (skipped by default)
-  - Optimized SLURM resource requests for faster job scheduling
-  - Standardized per-sample logging: split `.out` and `.err` files for demultmt/modmito workflows
-  - Single final notification email with comprehensive log tails and run summary
-  - Improved documentation with ASCII workflow diagram
-  - Enhanced error handling and path resolution in SLURM contexts
-
-- **v1.0.1** (2025-11-04) - Final notification email and resource tuning
-  - Added `wf-finalize.sh` and automatic final job submission from `wf-subwf.sh`
-  - Sends a single email with run summary and log tails when all jobs finish
-  - Updated recommended SLURM resources (GPU jobs: 6 CPUs/32GB; demultmt: 8 CPUs/100GB)
-
-- **v1.0.0** (2025-11-03) - Production release with architecture refinement
-  - **BREAKING:** Restored two-step workflow architecture with `wf-subwf.sh`
-  - Added workflow filtering options: `--demultmt-only`, `--skip-demultmt`, `--modmito-only`, `--skip-modmito`
-  - Fixed dynamic sample discovery: `wf-subwf.sh` discovers samples after basecalling completes
-  - Improved option validation and help messages
-  - Enhanced logging to show active workflow modes
-  - Repository structure: maintained `nanomito/` directory name
-  - All Dorado 1.2.0 compatibility fixes validated
-  - Tested end-to-end on production data (4 samples, all haplogroups detected)
-  
-- **v25.10.27** - Major architecture simplification and cleanup
-  - Integrated `wf-subwf.sh` functionality directly into `submit_nanomito.sh` (reverted in v1.0.0)
-  - Added `--skip-bchg` and `--bchg-only` options for flexible workflow execution
-  - Removed Archive/ directory (all history available via Git)
-  - Renamed repository directory from `workflows/` to `nanomito/`
-  - Added preprocessing workflow with PID dictionary creation
-  - New `preprocessing/wf-getmt.sh` for chrM read extraction
-  - New `preprocessing/create_pid_dict.py` for read-to-parent ID mapping
-  - Updated `get_chrMpid.py` to use dictionary files
-  - Fixed SIGPIPE errors in `wf-demultmt.sh`
-  - Improved error handling and logging
-  
-- **v25.10.26** - Major improvements: robust error handling, comprehensive documentation
+- **v1.0.0** (2025-11-03) - Production release
+  - **Architecture:** Established the production workflow and filtering options
 
 - **v25.05.18** - Initial release
 
