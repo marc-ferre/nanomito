@@ -3,10 +3,11 @@ message: "If you use Nanomito, please cite it as below."
 authors:
   - family-names: Ferré
     given-names: Marc
+    orcid: "https://orcid.org/0000-0001-8265-7249"
     email: marc.ferre@univ-angers.fr
     affiliation: "UMR MitoVasc, Inserm U1083, CNRS 6015, Université d'Angers"
 title: "Nanomito"
-version: v2.5.4
+version: v2.5.5
 date-released: 2026-09-05
 repository-code: "https://github.com/marc-ferre/nanomito"
 license: CECILL-2.1

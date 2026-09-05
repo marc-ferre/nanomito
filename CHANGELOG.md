@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.5] - 2026-09-05
+
+### Documentation
+
+- Added Marc Ferré's ORCID to the citation metadata
+- Added `.zenodo.json` with the manuscript reference for Zenodo
+
 ## [2.5.4] - 2026-09-05
 
 ### Documentation

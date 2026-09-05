@@ -1,0 +1,17 @@
+{
+  "creators": [
+    {
+      "name": "Ferré, Marc",
+      "orcid": "0000-0001-8265-7249",
+      "affiliation": "UMR MitoVasc, Inserm U1083, CNRS 6015, Université d'Angers"
+    }
+  ],
+  "title": "Nanomito",
+  "version": "v2.5.5",
+  "access_right": "open",
+  "license": "cecill-2.1",
+  "upload_type": "software",
+  "references": [
+    "Ferré, Marc. \"Nanomito enables amplification-free full-length analysis of mitochondrial DNA variants and deletions.\" Scientific Reports. Manuscript under revision."
+  ]
+}

@@ -769,6 +769,10 @@ We acknowledge the [GenOuest bioinformatics core facility](https://www.genouest.
 
 ## Version History
 
+- **v2.5.5** (2026-09-05) - Zenodo citation metadata
+  - **Author metadata:** Added Marc Ferré's ORCID
+  - **Zenodo:** Added `.zenodo.json` with the manuscript reference
+
 - **v2.5.4** (2026-09-05) - Zenodo citation metadata compatibility
   - **Citation:** Simplified `CITATION.cff` to the CFF 1.1.0 format expected by Zenodo
 
