@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use Nanomito, please cite it using the preferred citation below."
+title: "Nanomito"
+type: software
+authors:
+  - family-names: Ferré
+    given-names: Marc
+    email: marc.ferre@univ-angers.fr
+    affiliation: "UMR MitoVasc, Inserm U1083, CNRS 6015, Université d'Angers"
+version: 2.5.3
+date-released: 2026-09-05
+repository-code: "https://github.com/marc-ferre/nanomito"
+license: CECILL-2.1
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Ferré
+      given-names: Marc
+  title: "Nanomito enables amplification-free full-length analysis of mitochondrial DNA variants and deletions"
+  journal: "Scientific Reports"
+  year: 2026
+  notes: "Manuscript under revision"
+  url: "https://github.com/marc-ferre/nanomito"

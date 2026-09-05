@@ -751,11 +751,11 @@ If you use Nanomito in your research, please cite:
 ```bibtex
 @unpublished{nanomito2026,
   author = {Ferré, Marc},
-  title  = {Nanomito: An Amplification-Free Long-Read Workflow for
-             Single-Molecule mtDNA Variant Calling and Deletion
-             Quantification in Clinical Diagnostics},
+  title  = {Nanomito enables amplification-free full-length analysis of
+             mitochondrial DNA variants and deletions},
+  journal = {Scientific Reports},
   year   = {2026},
-  note   = {Manuscript submitted for publication},
+  note   = {Manuscript under revision},
   url    = {https://github.com/marc-ferre/nanomito}
 }
 ```
@@ -768,6 +768,14 @@ The project underlying this work was selected for the Oxford Nanopore Technologi
 We acknowledge the [GenOuest bioinformatics core facility](https://www.genouest.org) for providing the computing infrastructure.
 
 ## Version History
+
+- **v2.5.3** (2026-09-05) - Citation metadata and release documentation
+  - **Citation:** Added `CITATION.cff` with the preferred manuscript citation
+  - **README:** Updated the title, journal, and manuscript status in the BibTeX citation
+
+- **v2.5.2** (2026-09-05) - Local data and release metadata
+  - **Git hygiene:** Ignored the local `data/` analysis directory
+  - **Release:** Published the GitHub release used for Zenodo archiving
 
 - **v2.5.1** (2026-03-30) - Documentation updates
   - **Disclaimer:** Added "For Research Use Only" notice after Overview section

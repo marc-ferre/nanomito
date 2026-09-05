@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.3] - 2026-09-05
+
+### Documentation
+
+- Added `CITATION.cff` with the preferred manuscript citation
+- Updated the BibTeX citation with the manuscript title, journal, and revision status
+- Added `v2.5.2` and `v2.5.3` entries to the Version History in `README.md`
+
+## [2.5.2] - 2026-09-05
+
+### Maintenance
+
+- Ignored the local `data/` analysis directory
+- Published the GitHub release for Zenodo archiving
+
 ## [2.5.1] - 2026-03-30
 
 ### Documentation
