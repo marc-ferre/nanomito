@@ -8,8 +8,8 @@ authors:
     orcid: https://orcid.org/0000-0001-8265-7249
     email: marc.ferre@univ-angers.fr
     affiliation: "UMR MitoVasc, Inserm U1083, CNRS 6015, Université d'Angers"
-version: v2.5.8
-date-released: 2026-09-05
+version: v2.5.9
+date-released: 2026-09-12
 repository-code: "https://github.com/marc-ferre/nanomito"
 license: CECILL-2.1
 keywords:

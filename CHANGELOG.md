@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.9] - 2026-09-12
+
+### Added
+
+- Added standalone concordance analysis script `tools/analyze_shared_heteroplasmy.py` to compare mtDNA SNV heteroplasmy estimates between amplification-free long-read (Nanomito) and long-range PCR short-read (Mitopore) workflows
+
 ## [2.5.8] - 2026-09-05
 
 ### Documentation

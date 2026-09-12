@@ -769,6 +769,9 @@ We acknowledge the [GenOuest bioinformatics core facility](https://www.genouest.
 
 ## Version History
 
+- **v2.5.9** (2026-09-12) - Shared heteroplasmy concordance analysis tool
+  - **Tooling:** Added `tools/analyze_shared_heteroplasmy.py` for cross-workflow heteroplasmy evaluation
+
 - **v2.5.8** (2026-09-05) - Zenodo metadata alignment
   - **Metadata:** Aligned `CITATION.cff` and `.zenodo.json` with the release version
 
